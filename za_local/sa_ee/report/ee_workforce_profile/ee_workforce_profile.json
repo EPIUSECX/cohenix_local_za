@@ -1,0 +1,25 @@
+{
+ "add_total_row": 0,
+ "creation": "2025-01-28 12:00:00",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "idx": 0,
+ "is_standard": "Yes",
+ "modified": "2025-01-28 12:00:00",
+ "modified_by": "Administrator",
+ "module": "SA EE",
+ "name": "Ee Workforce Profile",
+ "owner": "Administrator",
+ "ref_doctype": "Employee",
+ "report_name": "Ee Workforce Profile",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "HR User"
+  }
+ ]
+}

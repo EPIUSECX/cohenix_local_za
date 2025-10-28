@@ -1,0 +1,201 @@
+{
+ "actions": [],
+ "creation": "2025-01-28 12:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "column_break_2",
+  "company",
+  "section_break_4",
+  "vehicle_registration",
+  "vehicle_make_model",
+  "purchase_price",
+  "column_break_8",
+  "purchase_date",
+  "co2_emissions",
+  "section_break_11",
+  "private_km_per_month",
+  "business_km_per_month",
+  "column_break_14",
+  "total_km_per_month",
+  "private_use_percentage",
+  "section_break_17",
+  "monthly_taxable_value",
+  "calculation_method",
+  "section_break_20",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Details"
+  },
+  {
+   "fieldname": "vehicle_registration",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Vehicle Registration",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vehicle_make_model",
+   "fieldtype": "Data",
+   "label": "Vehicle Make & Model",
+   "reqd": 1
+  },
+  {
+   "fieldname": "purchase_price",
+   "fieldtype": "Currency",
+   "label": "Purchase Price",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "purchase_date",
+   "fieldtype": "Date",
+   "label": "Purchase Date"
+  },
+  {
+   "description": "CO2 emissions in grams per kilometer",
+   "fieldname": "co2_emissions",
+   "fieldtype": "Int",
+   "label": "CO2 Emissions (g/km)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_11",
+   "fieldtype": "Section Break",
+   "label": "Usage"
+  },
+  {
+   "fieldname": "private_km_per_month",
+   "fieldtype": "Float",
+   "label": "Private km per Month",
+   "precision": "2"
+  },
+  {
+   "fieldname": "business_km_per_month",
+   "fieldtype": "Float",
+   "label": "Business km per Month",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_14",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_km_per_month",
+   "fieldtype": "Float",
+   "label": "Total km per Month",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "private_use_percentage",
+   "fieldtype": "Percent",
+   "label": "Private Use %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_17",
+   "fieldtype": "Section Break",
+   "label": "Taxable Calculation"
+  },
+  {
+   "fieldname": "monthly_taxable_value",
+   "fieldtype": "Currency",
+   "label": "Monthly Taxable Value",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculation_method",
+   "fieldtype": "Small Text",
+   "label": "Calculation Method",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_20",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-01-28 12:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Company Car Benefit",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+

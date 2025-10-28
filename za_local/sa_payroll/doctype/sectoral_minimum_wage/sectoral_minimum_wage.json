@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "creation": "2025-01-28 14:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "sector",
+  "effective_from",
+  "position_category",
+  "hourly_rate",
+  "monthly_rate"
+ ],
+ "fields": [
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "label": "Sector",
+   "options": "Domestic Workers\nFarm Workers\nPrivate Security\nHospitality\nWholesale/Retail\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "label": "Effective From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "position_category",
+   "fieldtype": "Data",
+   "label": "Position Category"
+  },
+  {
+   "fieldname": "hourly_rate",
+   "fieldtype": "Currency",
+   "label": "Hourly Rate"
+  },
+  {
+   "fieldname": "monthly_rate",
+   "fieldtype": "Currency",
+   "label": "Monthly Rate"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "modified": "2025-01-28 14:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Sectoral Minimum Wage",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:name"
+}

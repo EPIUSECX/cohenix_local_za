@@ -68,7 +68,7 @@ def create_company_contribution_doctype():
     doc = frappe.get_doc({
         "doctype": "DocType",
         "name": "Company Contribution",
-        "module": "SA Payroll",
+        "module": "Payroll",  # Use existing Payroll module from HRMS
         "custom": 1,
         "istable": 1,
         "editable_grid": 1,

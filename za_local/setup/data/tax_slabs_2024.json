@@ -1,0 +1,53 @@
+{
+  "Tax Slab": [
+    {
+      "name": "2024-2025 Slab 1",
+      "from_amount": 0,
+      "to_amount": 237100,
+      "rate_of_tax": 18,
+      "tax_year": "2024-2025"
+    },
+    {
+      "name": "2024-2025 Slab 2",
+      "from_amount": 237101,
+      "to_amount": 370500,
+      "rate_of_tax": 26,
+      "tax_year": "2024-2025"
+    },
+    {
+      "name": "2024-2025 Slab 3",
+      "from_amount": 370501,
+      "to_amount": 512800,
+      "rate_of_tax": 31,
+      "tax_year": "2024-2025"
+    },
+    {
+      "name": "2024-2025 Slab 4",
+      "from_amount": 512801,
+      "to_amount": 673000,
+      "rate_of_tax": 36,
+      "tax_year": "2024-2025"
+    },
+    {
+      "name": "2024-2025 Slab 5",
+      "from_amount": 673001,
+      "to_amount": 857900,
+      "rate_of_tax": 39,
+      "tax_year": "2024-2025"
+    },
+    {
+      "name": "2024-2025 Slab 6",
+      "from_amount": 857901,
+      "to_amount": 1817000,
+      "rate_of_tax": 41,
+      "tax_year": "2024-2025"
+    },
+    {
+      "name": "2024-2025 Slab 7",
+      "from_amount": 1817001,
+      "to_amount": 999999999,
+      "rate_of_tax": 45,
+      "tax_year": "2024-2025"
+    }
+  ]
+}

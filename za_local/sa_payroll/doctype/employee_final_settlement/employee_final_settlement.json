@@ -1,0 +1,154 @@
+{
+ "actions": [],
+ "creation": "2025-01-28 14:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "separation_date",
+  "termination_type",
+  "notice_period_days",
+  "notice_pay",
+  "severance_pay",
+  "leave_payout",
+  "bonus_prorata",
+  "total_gross",
+  "paye",
+  "uif",
+  "net_settlement",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SETTLE-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1,
+   "fetch_from": "employee.employee_name"
+  },
+  {
+   "fieldname": "separation_date",
+   "fieldtype": "Date",
+   "label": "Separation Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "termination_type",
+   "fieldtype": "Select",
+   "label": "Termination Type",
+   "options": "Resignation\nDismissal - Misconduct\nDismissal - Operational\nMutual Agreement\nEnd of Contract"
+  },
+  {
+   "fieldname": "notice_period_days",
+   "fieldtype": "Int",
+   "label": "Notice Period Days"
+  },
+  {
+   "fieldname": "notice_pay",
+   "fieldtype": "Currency",
+   "label": "Notice Pay"
+  },
+  {
+   "fieldname": "severance_pay",
+   "fieldtype": "Currency",
+   "label": "Severance Pay"
+  },
+  {
+   "fieldname": "leave_payout",
+   "fieldtype": "Currency",
+   "label": "Leave Payout"
+  },
+  {
+   "fieldname": "bonus_prorata",
+   "fieldtype": "Currency",
+   "label": "Bonus Prorata"
+  },
+  {
+   "fieldname": "total_gross",
+   "fieldtype": "Currency",
+   "label": "Total Gross",
+   "read_only": 1
+  },
+  {
+   "fieldname": "paye",
+   "fieldtype": "Currency",
+   "label": "Paye",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uif",
+   "fieldtype": "Currency",
+   "label": "Uif",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_settlement",
+   "fieldtype": "Currency",
+   "label": "Net Settlement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Employee Final Settlement",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "modified": "2025-01-28 14:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Employee Final Settlement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "is_submittable": 1,
+ "naming_rule": "By \"Naming Series\" field"
+}

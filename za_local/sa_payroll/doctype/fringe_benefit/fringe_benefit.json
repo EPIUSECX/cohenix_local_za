@@ -1,0 +1,218 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-01-28 12:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "company",
+  "column_break_4",
+  "benefit_type",
+  "status",
+  "section_break_7",
+  "from_date",
+  "to_date",
+  "column_break_10",
+  "benefit_value",
+  "taxable_value",
+  "section_break_12",
+  "company_car_details",
+  "housing_details",
+  "loan_details",
+  "section_break_15",
+  "monthly_breakdown",
+  "section_break_17",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "FB-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "benefit_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Benefit Type",
+   "options": "Company Car\nHousing\nLow Interest Loan\nCellphone\nFuel Card\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nInactive\nExpired"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Period"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "benefit_value",
+   "fieldtype": "Currency",
+   "label": "Benefit Value",
+   "precision": "2"
+  },
+  {
+   "fieldname": "taxable_value",
+   "fieldtype": "Currency",
+   "label": "Taxable Value",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.benefit_type=='Company Car'",
+   "fieldname": "section_break_12",
+   "fieldtype": "Section Break",
+   "label": "Company Car Details"
+  },
+  {
+   "depends_on": "eval:doc.benefit_type=='Company Car'",
+   "fieldname": "company_car_details",
+   "fieldtype": "Link",
+   "label": "Company Car Benefit",
+   "options": "Company Car Benefit"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.benefit_type=='Housing'",
+   "fieldname": "housing_details",
+   "fieldtype": "Link",
+   "label": "Housing Benefit",
+   "options": "Housing Benefit"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.benefit_type=='Low Interest Loan'",
+   "fieldname": "loan_details",
+   "fieldtype": "Link",
+   "label": "Loan Benefit",
+   "options": "Low Interest Loan Benefit"
+  },
+  {
+   "fieldname": "section_break_15",
+   "fieldtype": "Section Break",
+   "label": "Monthly Breakdown"
+  },
+  {
+   "fieldname": "monthly_breakdown",
+   "fieldtype": "Table",
+   "label": "Monthly Breakdown",
+   "options": "Fringe Benefit Detail"
+  },
+  {
+   "fieldname": "section_break_17",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Fringe Benefit",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-01-28 12:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Fringe Benefit",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+

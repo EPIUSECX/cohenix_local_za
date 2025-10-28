@@ -1,0 +1,212 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-01-28 10:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "company",
+  "column_break_4",
+  "directive_number",
+  "directive_type",
+  "status",
+  "section_break_7",
+  "effective_from",
+  "effective_to",
+  "column_break_10",
+  "tax_rate_override",
+  "fixed_amount",
+  "section_break_12",
+  "garnishee_creditor",
+  "garnishee_amount",
+  "garnishee_percentage",
+  "section_break_15",
+  "attachment",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "TAX-DIR-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "directive_number",
+   "fieldtype": "Data",
+   "label": "Directive Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "directive_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Directive Type",
+   "options": "Standard Directive\nReduced Tax Rate\nGarnishee Order\nFixed Amount",
+   "reqd": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nExpired\nCancelled"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Period"
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "label": "Effective From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "effective_to",
+   "fieldtype": "Date",
+   "label": "Effective To"
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.directive_type=='Reduced Tax Rate'",
+   "fieldname": "tax_rate_override",
+   "fieldtype": "Percent",
+   "label": "Tax Rate Override"
+  },
+  {
+   "depends_on": "eval:doc.directive_type=='Fixed Amount'",
+   "fieldname": "fixed_amount",
+   "fieldtype": "Currency",
+   "label": "Fixed Monthly Amount"
+  },
+  {
+   "depends_on": "eval:doc.directive_type=='Garnishee Order'",
+   "fieldname": "section_break_12",
+   "fieldtype": "Section Break",
+   "label": "Garnishee Details"
+  },
+  {
+   "depends_on": "eval:doc.directive_type=='Garnishee Order'",
+   "fieldname": "garnishee_creditor",
+   "fieldtype": "Data",
+   "label": "Creditor Name"
+  },
+  {
+   "depends_on": "eval:doc.directive_type=='Garnishee Order'",
+   "fieldname": "garnishee_amount",
+   "fieldtype": "Currency",
+   "label": "Garnishee Amount (Fixed)"
+  },
+  {
+   "depends_on": "eval:doc.directive_type=='Garnishee Order'",
+   "fieldname": "garnishee_percentage",
+   "fieldtype": "Percent",
+   "label": "Garnishee Percentage"
+  },
+  {
+   "fieldname": "section_break_15",
+   "fieldtype": "Section Break",
+   "label": "Additional Details"
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Directive Attachment"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Tax Directive",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-01-28 10:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Tax",
+ "name": "Tax Directive",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Payroll User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+

@@ -1,0 +1,114 @@
+{
+ "actions": [],
+ "creation": "2025-01-28 14:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "last_day_worked",
+  "reason_for_leaving",
+  "total_uif_contributions",
+  "employer_uif_number",
+  "declaration_date",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "U19-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1,
+   "fetch_from": "employee.employee_name"
+  },
+  {
+   "fieldname": "last_day_worked",
+   "fieldtype": "Date",
+   "label": "Last Day Worked",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reason_for_leaving",
+   "fieldtype": "Select",
+   "label": "Reason For Leaving",
+   "options": "Resignation\nDismissal\nRetrenchment\nEnd of Contract\nOther"
+  },
+  {
+   "fieldname": "total_uif_contributions",
+   "fieldtype": "Currency",
+   "label": "Total Uif Contributions"
+  },
+  {
+   "fieldname": "employer_uif_number",
+   "fieldtype": "Data",
+   "label": "Employer Uif Number"
+  },
+  {
+   "fieldname": "declaration_date",
+   "fieldtype": "Date",
+   "label": "Declaration Date"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Uif U19 Declaration",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "modified": "2025-01-28 14:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Tax",
+ "name": "Uif U19 Declaration",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "is_submittable": 1,
+ "naming_rule": "By \"Naming Series\" field"
+}

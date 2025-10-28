@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "creation": "2025-01-28 12:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "effective_from",
+  "reimbursive_rate_per_km",
+  "fixed_allowance_rate",
+  "company"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "TRA-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Data",
+   "label": "Effective From"
+  },
+  {
+   "fieldname": "reimbursive_rate_per_km",
+   "fieldtype": "Data",
+   "label": "Reimbursive Rate Per Km"
+  },
+  {
+   "fieldname": "fixed_allowance_rate",
+   "fieldtype": "Data",
+   "label": "Fixed Allowance Rate"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "modified": "2025-01-28 12:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Travel Allowance Rate",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "is_submittable": 1
+}

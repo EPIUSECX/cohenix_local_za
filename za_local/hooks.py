@@ -59,7 +59,9 @@ after_uninstall = "za_local.setup.uninstall.after_uninstall"
 override_doctype_class = {
     "Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
     "Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
-    "Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary"
+    "Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary",
+    "Leave Application": "za_local.overrides.leave_application.ZALeaveApplication",
+    "Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation"
 }
 
 # Document Events

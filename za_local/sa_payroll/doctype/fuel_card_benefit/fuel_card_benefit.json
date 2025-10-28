@@ -1,0 +1,93 @@
+{
+ "actions": [],
+ "creation": "2025-01-28 14:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "card_number",
+  "monthly_limit",
+  "private_km_per_month",
+  "fuel_rate_per_liter",
+  "vehicle_fuel_consumption",
+  "monthly_taxable_value"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "card_number",
+   "fieldtype": "Data",
+   "label": "Card Number"
+  },
+  {
+   "fieldname": "monthly_limit",
+   "fieldtype": "Currency",
+   "label": "Monthly Limit"
+  },
+  {
+   "fieldname": "private_km_per_month",
+   "fieldtype": "Float",
+   "label": "Private Km Per Month"
+  },
+  {
+   "fieldname": "fuel_rate_per_liter",
+   "fieldtype": "Currency",
+   "label": "Fuel Rate Per Liter"
+  },
+  {
+   "fieldname": "vehicle_fuel_consumption",
+   "fieldtype": "Float",
+   "label": "Vehicle Fuel Consumption",
+   "description": "Liters per 100km"
+  },
+  {
+   "fieldname": "monthly_taxable_value",
+   "fieldtype": "Currency",
+   "label": "Monthly Taxable Value",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "modified": "2025-01-28 14:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Fuel Card Benefit",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "naming_rule": "Expression"
+}

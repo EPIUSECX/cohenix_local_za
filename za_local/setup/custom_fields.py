@@ -272,41 +272,8 @@ def setup_custom_fields():
             }
         ],
         
-        "IRP5 Certificate": [
-            {
-                "fieldname": "za_generation_mode",
-                "label": "Generation Mode",
-                "fieldtype": "Select",
-                "options": "Individual\nBulk",
-                "default": "Individual",
-                "insert_after": "certificate_type",
-                "description": "Certificate generation mode"
-            },
-            {
-                "fieldname": "za_bulk_generation_section",
-                "label": "Bulk Generation",
-                "fieldtype": "Section Break",
-                "insert_after": "za_generation_mode",
-                "depends_on": "eval:doc.za_generation_mode=='Bulk'",
-                "collapsible": 1
-            },
-            {
-                "fieldname": "za_bulk_department",
-                "label": "Department Filter",
-                "fieldtype": "Link",
-                "options": "Department",
-                "insert_after": "za_bulk_generation_section",
-                "description": "Generate certificates for specific department"
-            },
-            {
-                "fieldname": "za_bulk_employee_list",
-                "label": "Employee List",
-                "fieldtype": "Table",
-                "options": "IRP5 Bulk Employee",
-                "insert_after": "za_bulk_department",
-                "description": "List of employees for bulk generation"
-            }
-        ],
+        # IRP5 Certificate - Bulk generation is handled programmatically in the DocType code
+        # No custom fields needed here as MultiSelect field type doesn't exist in modern Frappe
         
         "Payroll Employee Detail": [
             {
@@ -366,18 +333,8 @@ def setup_property_setters():
         },
         "Salary Slip": {
             "payroll_entry": {"hidden": 0}
-        },
-        "IRP5 Certificate": {
-            "employee": {
-                "reqd": 0,
-                "mandatory_depends_on": "eval:doc.za_generation_mode!='Bulk'",
-                "depends_on": "eval:doc.za_generation_mode!='Bulk'"
-            },
-            "certificate_number": {
-                "reqd": 0,
-                "mandatory_depends_on": "eval:doc.za_generation_mode!='Bulk'"
-            }
         }
+        # IRP5 Certificate - No property setters needed (bulk generation handled programmatically)
     }
     
     for doctype, field_properties in properties.items():
