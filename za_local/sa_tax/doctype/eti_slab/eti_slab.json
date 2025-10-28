@@ -1,0 +1,116 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2024-02-21 12:41:35.172006",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "start_date",
+  "column_break_iadgo",
+  "minimum_age",
+  "maximum_age",
+  "hours_in_a_month",
+  "section_break_fyogz",
+  "eti_slab_details",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "eti_slab_details",
+   "fieldtype": "Table",
+   "label": "ETI Slab Details",
+   "options": "ETI Slab Details",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "ETI Slab",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_iadgo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "minimum_age",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Minimum Age",
+   "reqd": 1
+  },
+  {
+   "fieldname": "maximum_age",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Maximum Age",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_fyogz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "ETI-.YYYY.-.####."
+  },
+  {
+   "fieldname": "hours_in_a_month",
+   "fieldtype": "Float",
+   "label": "Hours in a Month",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-05-01 16:59:59.076193",
+ "modified_by": "Administrator",
+ "module": "SA Tax",
+ "name": "ETI Slab",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title"
+}

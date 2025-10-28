@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "creation": "2025-05-07 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "deduction_code",
+  "description",
+  "amount",
+  "column_break_4",
+  "tax_year",
+  "period"
+ ],
+ "fields": [
+  {
+   "fieldname": "deduction_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Deduction Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_year",
+   "fieldtype": "Data",
+   "label": "Tax Year"
+  },
+  {
+   "fieldname": "period",
+   "fieldtype": "Select",
+   "label": "Period",
+   "options": "Interim\nFinal"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-05-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Tax",
+ "name": "IRP5 Deduction Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

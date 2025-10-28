@@ -1,0 +1,254 @@
+{
+ "actions": [],
+ "creation": "2025-05-06 17:30:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "vat_settings_section",
+  "standard_vat_rate",
+  "column_break_3",
+  "enable_zero_rated_items",
+  "enable_exempt_items",
+  "section_break_6",
+  "vat_registration_section",
+  "vat_registration_number",
+  "vat_vendor_type",
+  "column_break_10",
+  "vat_filing_frequency",
+  "vat_filing_day",
+  "section_break_13",
+  "vat_accounts_section",
+  "output_vat_account",
+  "column_break_16",
+  "input_vat_account",
+  "section_break_18",
+  "vat_rates_section",
+  "vat_rates",
+  "section_break_21",
+  "sars_efiling_section",
+  "sars_efiling_username",
+  "column_break_24",
+  "sars_efiling_password",
+  "section_break_26",
+  "vat_report_settings_section",
+  "default_vat_report_company",
+  "column_break_29",
+  "default_vat_report_period"
+ ],
+ "fields": [
+  {
+   "fieldname": "vat_settings_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Settings"
+  },
+  {
+   "default": "15",
+   "description": "Standard VAT rate in South Africa (percentage)",
+   "fieldname": "standard_vat_rate",
+   "fieldtype": "Percent",
+   "label": "Standard VAT Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Enable zero-rated items (0% VAT)",
+   "fieldname": "enable_zero_rated_items",
+   "fieldtype": "Check",
+   "label": "Enable Zero-Rated Items"
+  },
+  {
+   "default": "1",
+   "description": "Enable VAT exempt items",
+   "fieldname": "enable_exempt_items",
+   "fieldtype": "Check",
+   "label": "Enable Exempt Items"
+  },
+  {
+   "fieldname": "section_break_6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "vat_registration_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Registration"
+  },
+  {
+   "description": "VAT Registration Number (e.g., 4111111112)",
+   "fieldname": "vat_registration_number",
+   "fieldtype": "Data",
+   "label": "VAT Registration Number",
+   "reqd": 1
+  },
+  {
+   "description": "Type of VAT vendor",
+   "fieldname": "vat_vendor_type",
+   "fieldtype": "Link",
+   "label": "VAT Vendor Type",
+   "options": "VAT Vendor Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "How often VAT returns are filed",
+   "fieldname": "vat_filing_frequency",
+   "fieldtype": "Select",
+   "label": "VAT Filing Frequency",
+   "options": "Monthly\nBi-Monthly\nQuarterly\nAnnually",
+   "reqd": 1
+  },
+  {
+   "description": "Day of the month when VAT returns are due",
+   "fieldname": "vat_filing_day",
+   "fieldtype": "Int",
+   "label": "VAT Filing Day",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_13",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "vat_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Accounts"
+  },
+  {
+   "description": "Account used for Output VAT",
+   "fieldname": "output_vat_account",
+   "fieldtype": "Link",
+   "label": "Output VAT Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_16",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Account used for Input VAT",
+   "fieldname": "input_vat_account",
+   "fieldtype": "Link",
+   "label": "Input VAT Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_18",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "vat_rates_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Rates"
+  },
+  {
+   "description": "Configure different VAT rates",
+   "fieldname": "vat_rates",
+   "fieldtype": "Table",
+   "label": "VAT Rates",
+   "options": "South African VAT Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_21",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "sars_efiling_section",
+   "fieldtype": "Section Break",
+   "label": "SARS e-Filing Integration"
+  },
+  {
+   "description": "Username for SARS e-Filing",
+   "fieldname": "sars_efiling_username",
+   "fieldtype": "Data",
+   "label": "SARS e-Filing Username"
+  },
+  {
+   "fieldname": "column_break_24",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Password for SARS e-Filing",
+   "fieldname": "sars_efiling_password",
+   "fieldtype": "Password",
+   "label": "SARS e-Filing Password"
+  },
+  {
+   "fieldname": "section_break_26",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "vat_report_settings_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Report Settings"
+  },
+  {
+   "description": "Default company for VAT reports",
+   "fieldname": "default_vat_report_company",
+   "fieldtype": "Link",
+   "label": "Default VAT Report Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_29",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Default period for VAT reports",
+   "fieldname": "default_vat_report_period",
+   "fieldtype": "Select",
+   "label": "Default VAT Report Period",
+   "options": "Monthly\nBi-Monthly\nQuarterly\nAnnually"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-05-06 17:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "South African VAT Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

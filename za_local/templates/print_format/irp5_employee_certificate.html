@@ -1,0 +1,310 @@
+{# IRP5 Employee Certificate - Full template #}
+<style>
+.irp5-wrap {
+  font-size: 10.5pt;
+  padding: 10px 12px;
+  color: #111;
+}
+.top-bar {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 0.3fr;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.top-bar .title { font-weight: 700; font-size: 16pt; text-align: center; }
+.top-bar .env { text-align: right; font-weight: 700; }
+
+.section { margin-top: 10px; }
+.section-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+}
+.grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid.two.compact { gap: 8px; }
+
+.frow { display: grid; grid-template-columns: 220px 1fr; align-items: baseline; margin-bottom: 2px; }
+.flabel { font-weight: 600; }
+.fval { text-align: left; }
+
+.two-col-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+table.lines {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2px;
+  font-size: 10pt;
+}
+table.lines th, table.lines td {
+  border-bottom: 1px solid #ddd;
+  padding: 4px 6px;
+}
+table.lines th { text-align: left; background: #fafafa; }
+table.lines td.num { text-align: right; width: 120px; }
+table.lines td.code { text-align: right; width: 80px; }
+
+.totals .section-title { margin-top: 4px; }
+</style>
+
+{# Helper macros #}
+{% macro fmt_date(d) -%}
+  {{ frappe.format(d, {'fieldtype': 'Date'}) if d else '' }}
+{%- endmacro %}
+
+{% macro fv(label, value) -%}
+  {% if value %}
+    <div class="frow">
+      <div class="flabel">{{ label }}</div>
+      <div class="fval">{{ value }}</div>
+    </div>
+  {% endif %}
+{%- endmacro %}
+
+<div class="irp5-wrap">
+  <div class="top-bar">
+    <div class="left">
+      {{ fv("Hierarchy", doc.get("hierarchy")) }}
+      {{ fv("Transaction Year", doc.get("transaction_year")) }}
+      {{ fv("Certificate Number", doc.get("certificate_number")) }}
+    </div>
+    <div class="center">
+      <div class="title">TAX Certificate</div>
+      {{ fv("Assessment Year", doc.get("assessment_year")) }}
+      {{ fv("Reconciliation Period", doc.get("reconciliation_period")) }}
+      {{ fv("Type of Certificate", doc.get("certificate_type") or "IRP5") }}
+    </div>
+    <div class="right">
+      <div class="env">LIVE</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Employee Information</div>
+    <div class="grid two">
+      <div>
+        {{ fv("Surname / Trading", doc.get("surname") or doc.get("last_name")) }}
+        {{ fv("First Names", doc.get("first_names") or doc.get("first_name")) }}
+        {{ fv("Initials", doc.get("initials")) }}
+        {{ fv("Income Tax Ref No.", doc.get("income_tax_ref_no")) }}
+      </div>
+      <div>
+        {{ fv("Employee Code", doc.get("employee_code") or doc.get("employee")) }}
+        {{ fv("Nature of Person", doc.get("nature_of_person")) }}
+        {{ fv("Passport Number", doc.get("passport_no")) }}
+        {{ fv("Passport Country", doc.get("passport_country")) }}
+      </div>
+    </div>
+    <div class="grid two">
+      <div>
+        {{ fv("Date Of Birth", fmt_date(doc.get("date_of_birth"))) }}
+        {{ fv("Identity Number", doc.get("id_number")) }}
+        {{ fv("Home Tel Number", doc.get("home_tel_no")) }}
+      </div>
+      <div>
+        {{ fv("Business Tel Number", doc.get("business_tel_no")) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="grid two">
+      <div>
+        <div class="section-title">Employee Residential Address</div>
+        {{ fv("Complex No & Name", doc.get("res_complex_name")) }}
+        {{ fv("Street No & Name", doc.get("res_street")) }}
+        {{ fv("Suburb / District", doc.get("res_suburb")) }}
+        {{ fv("City / Town", doc.get("res_city")) }}
+        <div class="grid two compact">
+          <div>{{ fv("Postal Code", doc.get("res_postal_code")) }}</div>
+          <div>{{ fv("Country", doc.get("res_country") or "ZA") }}</div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Employee Postal Address</div>
+        {{ fv("Same as Physical", "Yes" if doc.get("postal_same_as_physical") else "No") }}
+        {{ fv("Complex No & Name", doc.get("post_complex_name")) }}
+        {{ fv("Street No & Name", doc.get("post_street")) }}
+        {{ fv("Suburb / District", doc.get("post_suburb")) }}
+        {{ fv("City / Town", doc.get("post_city")) }}
+        {{ fv("Postal Code", doc.get("post_postal_code")) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="grid two">
+      <div>
+        <div class="section-title">Bank Account Details</div>
+        {{ fv("Account Holder", doc.get("bank_account_holder")) }}
+        {{ fv("Account Number", doc.get("bank_account_no")) }}
+        {{ fv("Bank Name", doc.get("bank_name")) }}
+        {{ fv("Branch Name", doc.get("branch_name")) }}
+        {{ fv("Branch Code", doc.get("branch_code")) }}
+      </div>
+      <div>
+        <div class="section-title">Bank Account Type</div>
+        {{ fv("Account Type", doc.get("account_type")) }}
+        {{ fv("Acc Holder Relationship", doc.get("account_holder_relationship")) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="grid two">
+      <div>
+        <div class="section-title">Employee Business Address</div>
+        {{ fv("Complex No & Name", doc.get("biz_complex_name")) }}
+        {{ fv("Street No & Name", doc.get("biz_street")) }}
+        {{ fv("Suburb / District", doc.get("biz_suburb")) }}
+        {{ fv("City / Town", doc.get("biz_city")) }}
+        <div class="grid two compact">
+          <div>{{ fv("Postal Code", doc.get("biz_postal_code")) }}</div>
+          <div>{{ fv("Country", doc.get("biz_country") or "ZA") }}</div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Employer Reference Numbers</div>
+        {{ fv("PAYE Reference Number", doc.get("paye_reference_no")) }}
+        {{ fv("SDL Reference Number", doc.get("sdl_reference_no")) }}
+        {{ fv("UIF Reference Number", doc.get("uif_reference_no")) }}
+      </div>
+    </div>
+    {{ fv("Employer Trading / Other Name", doc.get("employer_trading_name")) }}
+  </div>
+
+  <div class="section">
+    <div class="grid two">
+      <div>
+        <div class="section-title">Pay Periods</div>
+        {{ fv("Assessment Year Periods", doc.get("assessment_year_periods")) }}
+        {{ fv("No of Periods Worked", doc.get("periods_worked")) }}
+        {{ fv("Employed From", fmt_date(doc.get("employed_from"))) }}
+        {{ fv("Employed To", fmt_date(doc.get("employed_to"))) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="section two-col-tables">
+    <div>
+      <div class="section-title">Income Received</div>
+      <table class="lines">
+        <thead>
+          <tr>
+            <th>Description(s)</th>
+            <th class="num">Total Amount</th>
+            <th class="code">SARS Code</th>
+          </tr>
+        </thead>
+        <tbody>
+          {# Group and sum by SARS code #}
+          {% set incomes = doc.get('income_table') or doc.get('incomes') or [] %}
+          {% if incomes|length == 0 %}
+          <!-- Example fallback row for demonstration; remove in production -->
+          <tr>
+            <td>Salary</td>
+            <td class="num">100000</td>
+            <td class="code">3601</td>
+          </tr>
+          <tr>
+            <td>Bonus</td>
+            <td class="num">5000</td>
+            <td class="code">3605</td>
+          </tr>
+          {% else %}
+          {% set code_map = {} %}
+          {% for row in incomes %}
+            {% set _ = code_map.setdefault(row.get('code'), {'amount': 0, 'labels': []}) %}
+            {% set _ = code_map[row.get('code')].update({'amount': code_map[row.get('code')]['amount'] + (row.get('amount') or 0)}) %}
+            {% if row.get('description') or row.get('label') %}
+              {% set _ = code_map[row.get('code')]['labels'].append(row.get('description') or row.get('label')) %}
+            {% endif %}
+          {% endfor %}
+          {% for code, data in code_map.items() %}
+          <tr>
+            <td>{{ data['labels']|unique|join(', ') }}</td>
+            <td class="num">{{ '%.2f' % data['amount'] }}</td>
+            <td class="code">{{ code }}</td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="section-title">Deductions / Contributions</div>
+      <table class="lines">
+        <thead>
+          <tr>
+            <th>Description(s)</th>
+            <th class="num">Total Amount</th>
+            <th class="code">SARS Code</th>
+          </tr>
+        </thead>
+        <tbody>
+          {# Group and sum by SARS code #}
+          {% set deductions = doc.get('deduction_table') or doc.get('deductions') or [] %}
+          {% if deductions|length == 0 %}
+          <!-- Example fallback row for demonstration; remove in production -->
+          <tr>
+            <td>UIF</td>
+            <td class="num">1000</td>
+            <td class="code">4102</td>
+          </tr>
+          <tr>
+            <td>PAYE</td>
+            <td class="num">15000</td>
+            <td class="code">4101</td>
+          </tr>
+          {% else %}
+          {% set code_map = {} %}
+          {% for row in deductions %}
+            {% set _ = code_map.setdefault(row.get('code'), {'amount': 0, 'labels': []}) %}
+            {% set _ = code_map[row.get('code')].update({'amount': code_map[row.get('code')]['amount'] + (row.get('amount') or 0)}) %}
+            {% if row.get('description') or row.get('label') %}
+              {% set _ = code_map[row.get('code')]['labels'].append(row.get('description') or row.get('label')) %}
+            {% endif %}
+          {% endfor %}
+          {% for code, data in code_map.items() %}
+          <tr>
+            <td>{{ data['labels']|unique|join(', ') }}</td>
+            <td class="num">{{ '%.2f' % data['amount'] }}</td>
+            <td class="code">{{ code }}</td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section totals">
+    <div class="grid two">
+      <div>
+        {{ fv("Gross Taxable Income", doc.get("gross_taxable_income")) }}
+        {{ fv("Tax Directive Number(s)", doc.get("tax_directive_numbers")) }}
+      </div>
+      <div>
+        <div class="section-title">Tax Withheld</div>
+        <div class="grid two compact">
+          <div>
+            {{ fv("PAYE (Pay-As-You-Earn)", doc.get("paye_tax")) }}
+            {{ fv("PAYE on Lump Sum Benefit", doc.get("paye_lump_sum")) }}
+            {{ fv("EE & ER UIF Contribution", doc.get("uif_contrib_total")) }}
+            {{ fv("Employer SDL Contribution", doc.get("sdl_contrib")) }}
+            {{ fv("Total Tax, SDL and UIF", doc.get("total_tax_sdl_uif")) }}
+            {{ fv("Medical Aid Tax Credit", doc.get("medical_aid_tax_credit")) }}
+          </div>
+          <div>
+            {{ fv("Total Deductions & Contrib.", doc.get("total_deductions_contrib")) }}
+          </div>
+        </div>
+        <div class="grid two compact">
+          <div>{{ fv("Directive Issue Date", fmt_date(doc.get("directive_issue_date"))) }}</div>
+          <div>{{ fv("Tax Code", doc.get("tax_code")) }}</div>
+        </div>
+        {{ fv("Reason for non-deduction of tax", doc.get("non_deduction_reason")) }}
+      </div>
+    </div>
+  </div>
+</div>

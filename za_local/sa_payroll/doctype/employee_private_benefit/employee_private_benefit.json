@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2022-08-07 11:56:18.450442",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "column_break_2",
+  "naming_series",
+  "employee_name",
+  "section_break_4",
+  "medical_tax_benefit_section",
+  "private_medical_aid",
+  "column_break_7",
+  "medical_aid_dependant",
+  "section_break_7",
+  "effective_from",
+  "clearance_number",
+  "annuity_amount",
+  "column_break_10",
+  "to",
+  "disable",
+  "maximum_",
+  "maximum_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "maximum_",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Maximum %",
+   "mandatory_depends_on": "eval:doc.annuity_amount>0"
+  },
+  {
+   "description": "/ Year",
+   "fieldname": "maximum_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Maximum Amount",
+   "mandatory_depends_on": "eval:doc.annuity_amount>0"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable",
+   "fieldtype": "Check",
+   "label": "Disable"
+  },
+  {
+   "description": "/ Month",
+   "fieldname": "annuity_amount",
+   "fieldtype": "Currency",
+   "label": "Annuity Amount"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Effective From",
+   "mandatory_depends_on": "eval:doc.annuity_amount>0"
+  },
+  {
+   "fieldname": "to",
+   "fieldtype": "Date",
+   "label": "To"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Retirement Annuity"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "RA-.YYYY.-"
+  },
+  {
+   "fieldname": "medical_tax_benefit_section",
+   "fieldtype": "Section Break",
+   "label": "Medical Tax Benefit"
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "clearance_number",
+   "fieldtype": "Data",
+   "label": "Clearance Number"
+  },
+  {
+   "fieldname": "private_medical_aid",
+   "fieldtype": "Currency",
+   "label": "Private Medical Aid"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "medical_aid_dependant",
+   "fieldtype": "Int",
+   "label": "Medical Aid Dependant"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-02-18 21:28:53.061440",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Employee Private Benefit",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

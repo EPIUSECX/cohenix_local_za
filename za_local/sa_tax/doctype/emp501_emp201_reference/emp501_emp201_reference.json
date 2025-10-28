@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "creation": "2025-05-06 17:15:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "emp201_submission",
+  "submission_date",
+  "column_break_3",
+  "paye",
+  "sdl",
+  "uif",
+  "eti"
+ ],
+ "fields": [
+  {
+   "fieldname": "emp201_submission",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "EMP201 Submission",
+   "options": "EMP201 Submission",
+   "reqd": 1
+  },
+  {
+   "fieldname": "submission_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Submission Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "paye",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "PAYE",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sdl",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "SDL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uif",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "UIF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "eti",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "ETI",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-05-06 17:15:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Tax",
+ "name": "EMP501 EMP201 Reference",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

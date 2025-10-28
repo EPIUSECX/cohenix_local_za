@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:vendor_type",
+ "creation": "2025-05-06 17:33:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "vendor_type",
+  "description",
+  "section_break_3",
+  "filing_frequency",
+  "column_break_5",
+  "turnover_threshold",
+  "section_break_7",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "vendor_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Vendor Type",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "Default filing frequency for this vendor type",
+   "fieldname": "filing_frequency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Filing Frequency",
+   "options": "Monthly\nBi-Monthly\nQuarterly\nAnnually",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Annual turnover threshold for this vendor type",
+   "fieldname": "turnover_threshold",
+   "fieldtype": "Currency",
+   "label": "Turnover Threshold"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-06 17:33:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "VAT Vendor Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

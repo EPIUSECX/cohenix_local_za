@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2022-08-06 10:23:36.236101",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tax_rebates_rate",
+  "medical_tax_credit"
+ ],
+ "fields": [
+  {
+   "fieldname": "tax_rebates_rate",
+   "fieldtype": "Table",
+   "label": "Tax Rebates Rate",
+   "options": "Tax Rebates Rate"
+  },
+  {
+   "fieldname": "medical_tax_credit",
+   "fieldtype": "Table",
+   "label": "Medical Tax Credit",
+   "options": "Medical Tax Credit Rate"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2022-10-04 11:02:38.635178",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Tax Rebates and Medical Tax Credit",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

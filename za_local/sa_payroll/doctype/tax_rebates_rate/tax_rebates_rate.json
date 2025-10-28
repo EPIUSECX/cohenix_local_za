@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2022-08-06 10:47:33.558685",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "payroll_period",
+  "primary",
+  "secondary",
+  "tertiary"
+ ],
+ "fields": [
+  {
+   "fieldname": "primary",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Primary(Below 65)",
+   "reqd": 1
+  },
+  {
+   "description": "(65 and Older)",
+   "fieldname": "secondary",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Secondary(65 and older)",
+   "reqd": 1
+  },
+  {
+   "description": "(75 and Older)",
+   "fieldname": "tertiary",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Tertiary(75 and older)",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "payroll_period",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Payroll Period",
+   "options": "Payroll Period",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2022-10-04 11:04:39.701085",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Tax Rebates Rate",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

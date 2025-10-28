@@ -1,0 +1,245 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:OID-{employee}-{YYYY}-{#####}",
+ "creation": "2025-05-06 16:59:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee_details_section",
+  "employee",
+  "employee_name",
+  "id_number",
+  "column_break_5",
+  "company",
+  "company_name",
+  "injury_details_section",
+  "workplace_injury",
+  "injury_date",
+  "injury_type",
+  "column_break_12",
+  "injury_location",
+  "injury_description",
+  "claim_details_section",
+  "claim_reference",
+  "claim_date",
+  "claim_status",
+  "column_break_19",
+  "compensation_amount",
+  "payment_date",
+  "medical_details_section",
+  "medical_reports",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee_details_section",
+   "fieldtype": "Section Break",
+   "label": "Employee Details"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.custom_id_number",
+   "fieldname": "id_number",
+   "fieldtype": "Data",
+   "label": "ID Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "company.company_name",
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "injury_details_section",
+   "fieldtype": "Section Break",
+   "label": "Injury Details"
+  },
+  {
+   "fieldname": "workplace_injury",
+   "fieldtype": "Link",
+   "label": "Workplace Injury",
+   "options": "Workplace Injury"
+  },
+  {
+   "fieldname": "injury_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Injury Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "injury_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Injury Type",
+   "options": "Minor\nModerate\nSerious\nCritical\nFatal",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_12",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "injury_location",
+   "fieldtype": "Data",
+   "label": "Injury Location",
+   "reqd": 1
+  },
+  {
+   "fieldname": "injury_description",
+   "fieldtype": "Text Editor",
+   "label": "Injury Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "claim_details_section",
+   "fieldtype": "Section Break",
+   "label": "Claim Details"
+  },
+  {
+   "fieldname": "claim_reference",
+   "fieldtype": "Data",
+   "label": "Claim Reference"
+  },
+  {
+   "fieldname": "claim_date",
+   "fieldtype": "Date",
+   "label": "Claim Date"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "claim_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Claim Status",
+   "options": "Pending\nSubmitted\nUnder Review\nApproved\nRejected\nPaid",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_19",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "compensation_amount",
+   "fieldtype": "Currency",
+   "label": "Compensation Amount"
+  },
+  {
+   "fieldname": "payment_date",
+   "fieldtype": "Date",
+   "label": "Payment Date"
+  },
+  {
+   "fieldname": "medical_details_section",
+   "fieldtype": "Section Break",
+   "label": "Medical Details"
+  },
+  {
+   "fieldname": "medical_reports",
+   "fieldtype": "Table",
+   "label": "Medical Reports",
+   "options": "OID Medical Report"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "OID Claim",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-05-06 16:59:00.000000",
+ "modified_by": "Administrator",
+ "module": "COIDA",
+ "name": "OID Claim",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 1,
+   "export": 0,
+   "print": 1,
+   "read": 1,
+   "report": 0,
+   "role": "Employee",
+   "share": 0,
+   "write": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "creation": "2025-05-06 17:32:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "rate_name",
+  "rate",
+  "column_break_3",
+  "is_standard_rate",
+  "is_zero_rated",
+  "is_exempt",
+  "section_break_7",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "rate_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rate Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_standard_rate",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Standard Rate"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_zero_rated",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Zero Rated"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_exempt",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Exempt"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-05-06 17:32:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "South African VAT Rate",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

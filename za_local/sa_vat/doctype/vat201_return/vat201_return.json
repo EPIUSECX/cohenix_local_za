@@ -1,0 +1,322 @@
+{
+ "actions": [],
+ "autoname": "VAT201-.YY.-.MM.-.####",
+ "creation": "2025-05-06 17:34:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "vat_registration_number",
+  "column_break_3",
+  "tax_period",
+  "submission_date",
+  "section_break_6",
+  "standard_rated_supplies_tab",
+  "standard_rated_supplies",
+  "zero_rated_supplies",
+  "exempt_supplies",
+  "column_break_11",
+  "total_supplies",
+  "section_break_13",
+  "input_tax_tab",
+  "capital_goods_input",
+  "other_goods_services_input",
+  "change_in_use_input",
+  "bad_debts_input",
+  "column_break_19",
+  "total_input_tax",
+  "section_break_21",
+  "output_tax_tab",
+  "standard_rated_output",
+  "change_in_use_output",
+  "bad_debts_output",
+  "other_output",
+  "column_break_27",
+  "total_output_tax",
+  "section_break_29",
+  "calculation_tab",
+  "vat_payable",
+  "vat_refundable",
+  "column_break_33",
+  "diesel_refund",
+  "total_amount_payable",
+  "section_break_36",
+  "status_tab",
+  "status",
+  "column_break_39",
+  "submission_reference",
+  "section_break_41",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vat_registration_number",
+   "fieldtype": "Data",
+   "label": "VAT Registration Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_period",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Tax Period",
+   "options": "Monthly\nBi-Monthly\nQuarterly\nAnnually",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "submission_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Submission Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "standard_rated_supplies_tab",
+   "fieldtype": "Tab Break",
+   "label": "Supplies"
+  },
+  {
+   "fieldname": "standard_rated_supplies",
+   "fieldtype": "Currency",
+   "label": "Standard Rated Supplies",
+   "reqd": 1
+  },
+  {
+   "fieldname": "zero_rated_supplies",
+   "fieldtype": "Currency",
+   "label": "Zero Rated Supplies"
+  },
+  {
+   "fieldname": "exempt_supplies",
+   "fieldtype": "Currency",
+   "label": "Exempt Supplies"
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_supplies",
+   "fieldtype": "Currency",
+   "label": "Total Supplies",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_13",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "input_tax_tab",
+   "fieldtype": "Tab Break",
+   "label": "Input Tax"
+  },
+  {
+   "fieldname": "capital_goods_input",
+   "fieldtype": "Currency",
+   "label": "Capital Goods Input Tax"
+  },
+  {
+   "fieldname": "other_goods_services_input",
+   "fieldtype": "Currency",
+   "label": "Other Goods & Services Input Tax"
+  },
+  {
+   "fieldname": "change_in_use_input",
+   "fieldtype": "Currency",
+   "label": "Change in Use Input Tax"
+  },
+  {
+   "fieldname": "bad_debts_input",
+   "fieldtype": "Currency",
+   "label": "Bad Debts Input Tax"
+  },
+  {
+   "fieldname": "column_break_19",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_input_tax",
+   "fieldtype": "Currency",
+   "label": "Total Input Tax",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_21",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "output_tax_tab",
+   "fieldtype": "Tab Break",
+   "label": "Output Tax"
+  },
+  {
+   "fieldname": "standard_rated_output",
+   "fieldtype": "Currency",
+   "label": "Standard Rated Output Tax",
+   "read_only": 1
+  },
+  {
+   "fieldname": "change_in_use_output",
+   "fieldtype": "Currency",
+   "label": "Change in Use Output Tax"
+  },
+  {
+   "fieldname": "bad_debts_output",
+   "fieldtype": "Currency",
+   "label": "Bad Debts Output Tax"
+  },
+  {
+   "fieldname": "other_output",
+   "fieldtype": "Currency",
+   "label": "Other Output Tax"
+  },
+  {
+   "fieldname": "column_break_27",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_output_tax",
+   "fieldtype": "Currency",
+   "label": "Total Output Tax",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_29",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "calculation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Calculation"
+  },
+  {
+   "fieldname": "vat_payable",
+   "fieldtype": "Currency",
+   "label": "VAT Payable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_refundable",
+   "fieldtype": "Currency",
+   "label": "VAT Refundable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_33",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diesel_refund",
+   "fieldtype": "Currency",
+   "label": "Diesel Refund"
+  },
+  {
+   "fieldname": "total_amount_payable",
+   "fieldtype": "Currency",
+   "label": "Total Amount Payable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_36",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "status_tab",
+   "fieldtype": "Tab Break",
+   "label": "Status"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nPrepared\nSubmitted\nAccepted\nRejected",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_39",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "submission_reference",
+   "fieldtype": "Data",
+   "label": "Submission Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_41",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-06 17:34:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "VAT201 Return",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

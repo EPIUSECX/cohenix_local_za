@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2022-07-30 16:48:19.915166",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "payroll_period",
+  "one_dependant",
+  "two_dependant",
+  "additional_dependant"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "one_dependant",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "One Dependant",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "two_dependant",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Two Dependant",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "additional_dependant",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Additional Dependant",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "0",
+   "fieldname": "payroll_period",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Payroll Period",
+   "options": "Payroll Period",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2022-10-04 11:03:34.492006",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Medical Tax Credit Rate",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
