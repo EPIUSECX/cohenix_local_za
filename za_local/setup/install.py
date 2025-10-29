@@ -451,8 +451,16 @@ def insert_record(record):
 	
 	if not frappe.db.exists(doctype, name):
 		try:
+			# Suppress validation warnings during setup (e.g., "Accounts not set")
+			# These are expected and users will configure accounts later
+			_message_log = frappe.local.message_log
+			frappe.local.message_log = []
+			
 			doc = frappe.get_doc(record)
-			doc.insert(ignore_permissions=True)
+			doc.insert(ignore_permissions=True, ignore_mandatory=True)
+			
+			# Restore message log
+			frappe.local.message_log = _message_log
 		except Exception as e:
 			print(f"  Warning: Could not create {doctype} {name}: {e}")
 
