@@ -1,12 +1,8 @@
 frappe.provide("za_local.setup");
 
 frappe.setup.on("before_load", function () {
-	// Only add slide if country is South Africa
-	let country = frappe.wizard.values.country;
-	if (country !== "South Africa") {
-		return;
-	}
-	
+	// Always add slide when za_local is installed
+	// If user has za_local, they're running a SA company
 	frappe.setup.add_slide(za_local.setup.za_localization_slide);
 });
 
