@@ -429,6 +429,9 @@ def load_data_from_json(file_path):
 		# Dict with DocType as key
 		for doctype, records in data.items():
 			for record in records:
+				# Add doctype to record if not present
+				if "doctype" not in record:
+					record["doctype"] = doctype
 				insert_record(record)
 	elif isinstance(data, list):
 		# List of records
