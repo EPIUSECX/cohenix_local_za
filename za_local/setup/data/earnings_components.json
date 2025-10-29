@@ -1,0 +1,59 @@
+[
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Basic Salary",
+        "salary_component_abbr": "BS",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "description": "Basic monthly/hourly salary"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Housing Allowance",
+        "salary_component_abbr": "HA",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "description": "Housing/accommodation allowance"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Transport Allowance",
+        "salary_component_abbr": "TA",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "description": "Transport/travel allowance"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "13th Cheque",
+        "salary_component_abbr": "13TH",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "description": "Annual 13th cheque bonus"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Performance Bonus",
+        "salary_component_abbr": "BONUS",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "description": "Performance-based bonus"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Overtime",
+        "salary_component_abbr": "OT",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "description": "Overtime pay"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Commission",
+        "salary_component_abbr": "COMM",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "description": "Sales commission"
+    }
+]
+

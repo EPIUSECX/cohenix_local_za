@@ -1,0 +1,18 @@
+[
+    {
+        "doctype": "Tax Rebates and Medical Tax Credit",
+        "name": "2024-2025",
+        "tax_year": "2024-2025",
+        "primary_rebate": 17235,
+        "secondary_rebate": 9444,
+        "tertiary_rebate": 3145
+    },
+    {
+        "doctype": "Medical Tax Credit Rate",
+        "tax_year": "2024-2025",
+        "main_member_credit": 364,
+        "first_dependant_credit": 246,
+        "additional_dependant_credit": 246
+    }
+]
+

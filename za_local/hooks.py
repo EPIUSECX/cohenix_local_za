@@ -53,6 +53,12 @@ after_migrate = ["za_local.setup.install.after_migrate"]
 # ------------------
 after_uninstall = "za_local.setup.uninstall.after_uninstall"
 
+# Setup Wizard Integration
+# ------------------
+after_wizard_complete = [
+    "za_local.setup.setup_wizard.after_erpnext_setup"
+]
+
 # DocType Class Overrides
 # ------------------
 # Override standard doctype classes with South African implementations

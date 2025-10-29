@@ -353,3 +353,103 @@ def setup_default_retirement_funds():
 	
 	print("✓ Default retirement funds created")
 
+
+def run_za_local_setup(setup_doc):
+	"""
+	Execute za_local setup based on user selections.
+	Called from ZA Local Setup DocType when user completes the setup wizard.
+	
+	Args:
+		setup_doc: ZA Local Setup document instance
+	"""
+	import json
+	from pathlib import Path
+	
+	setup_doc.setup_status = "In Progress"
+	setup_doc.save()
+	frappe.db.commit()
+	
+	try:
+		data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
+		
+		# Load salary components
+		if setup_doc.load_salary_components:
+			load_data_from_json(data_dir / "salary_components.json")
+			print("✓ Loaded statutory salary components")
+		
+		if setup_doc.load_earnings_components:
+			load_data_from_json(data_dir / "earnings_components.json")
+			print("✓ Loaded earnings components")
+		
+		# Load tax configuration
+		if setup_doc.load_tax_slabs:
+			load_data_from_json(data_dir / "tax_slabs_2024.json")
+			print("✓ Loaded 2024-2025 tax slabs")
+		
+		if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
+			load_data_from_json(data_dir / "tax_rebates_2024.json")
+			print("✓ Loaded tax rebates and medical tax credits")
+		
+		# Load master data
+		if setup_doc.load_business_trip_regions:
+			from za_local.utils.csv_importer import import_csv_data
+			import_csv_data("Business Trip Region", "business_trip_region.csv")
+			print("✓ Loaded business trip regions")
+		
+		# Mark as completed
+		setup_doc.setup_status = "Completed"
+		setup_doc.setup_completed_on = frappe.utils.now()
+		setup_doc.save()
+		frappe.db.commit()
+		
+		frappe.msgprint("✅ South African localization setup completed successfully!")
+		
+	except Exception as e:
+		setup_doc.setup_status = "Pending"
+		setup_doc.save()
+		frappe.db.commit()
+		frappe.log_error(f"Setup failed: {str(e)}", "ZA Local Setup")
+		frappe.throw(f"Setup failed: {str(e)}")
+
+
+def load_data_from_json(file_path):
+	"""
+	Load data from JSON file and insert into database.
+	
+	Args:
+		file_path: Path to JSON file
+	"""
+	import json
+	
+	with open(file_path, "r") as f:
+		data = json.load(f)
+	
+	# Handle both list and dict formats
+	if isinstance(data, dict):
+		# Dict with DocType as key
+		for doctype, records in data.items():
+			for record in records:
+				insert_record(record)
+	elif isinstance(data, list):
+		# List of records
+		for record in data:
+			insert_record(record)
+
+
+def insert_record(record):
+	"""
+	Insert a single record, skip if exists.
+	
+	Args:
+		record: Dict with doctype and field values
+	"""
+	doctype = record.get("doctype")
+	name = record.get("name") or record.get("salary_component")
+	
+	if not frappe.db.exists(doctype, name):
+		try:
+			doc = frappe.get_doc(record)
+			doc.insert(ignore_permissions=True)
+		except Exception as e:
+			print(f"  Warning: Could not create {doctype} {name}: {e}")
+

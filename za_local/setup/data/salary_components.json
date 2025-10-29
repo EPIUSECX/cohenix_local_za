@@ -1,0 +1,39 @@
+[
+    {
+        "doctype": "Salary Component",
+        "salary_component": "4102 PAYE",
+        "salary_component_abbr": "PAYE",
+        "type": "Deduction",
+        "is_tax_applicable": 0,
+        "variable_based_on_taxable_salary": 1,
+        "description": "Pay As You Earn - Income Tax"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "4141 UIF Employee Contribution",
+        "salary_component_abbr": "UIF_EE",
+        "type": "Deduction",
+        "is_tax_applicable": 0,
+        "formula": "min(gross_pay * 0.01, 177.12)",
+        "description": "Unemployment Insurance Fund - Employee Contribution (1%)"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "4141 UIF Employer Contribution",
+        "salary_component_abbr": "UIF_ER",
+        "type": "Deduction",
+        "is_tax_applicable": 0,
+        "formula": "min(gross_pay * 0.01, 177.12)",
+        "description": "Unemployment Insurance Fund - Employer Contribution (1%)"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "4142 SDL Contribution",
+        "salary_component_abbr": "SDL",
+        "type": "Deduction",
+        "is_tax_applicable": 0,
+        "formula": "gross_pay * 0.01",
+        "description": "Skills Development Levy (1% of gross pay)"
+    }
+]
+

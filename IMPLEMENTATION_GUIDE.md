@@ -1,8 +1,8 @@
 # Complete Implementation Guide - za_local for Frappe HR
 
-**Version**: 3.1.0  
+**Version**: 3.2.0  
 **Last Updated**: January 29, 2025  
-**Estimated Setup Time**: 2-4 hours for complete configuration
+**Estimated Setup Time**: 15 minutes for basic setup, 2-4 hours for complete configuration with test data
 
 ---
 
@@ -105,10 +105,12 @@
 
 ### Estimated Setup Time
 
-- **Basic Installation**: 15-30 minutes
-- **Initial Configuration**: 1-2 hours
+- **Basic Installation** (with integrated wizard): 15 minutes
+- **Manual Configuration** (if needed): 1-2 hours
 - **Complete Setup with Test Data**: 2-4 hours
 - **First Live Payroll**: Allow 4-6 hours for verification
+
+> 💡 **New in v3.2**: The integrated setup wizard reduces initial setup time from 2-4 hours to just 15 minutes by automatically loading all essential defaults.
 
 ---
 
@@ -141,27 +143,38 @@ bench --site your-site.local install-app za_local
 # - Generate current year public holidays
 ```
 
-### Step 3: Run the Setup Wizard
+### Step 3: Complete za_local Setup
 
-After installation, run the interactive setup wizard:
+za_local integrates into ERPNext's setup wizard. When you select **"South Africa"** as your country during ERPNext setup, the za_local setup page appears automatically.
 
-```bash
-# Open bench console
-bench --site your-site.local console
+**For New Installations:**
+- Setup runs automatically after ERPNext wizard
+- Select which defaults to load (all recommended enabled)
+- Click Save to complete
 
-# Run the setup wizard
->>> from za_local.setup.setup_wizard import run_sa_compliance_wizard
->>> run_sa_compliance_wizard(company="Your Company Name")
-```
+**For Existing Installations:**
+1. Navigate to: **Setup > ZA Local Setup > New**
+2. Select your company
+3. Choose which defaults to load:
 
-The wizard will:
-1. ✅ Configure company statutory details
-2. ✅ Create BCEA leave types
-3. ✅ Setup salary components (PAYE, UIF, SDL, ETI)
-4. ✅ Load 2024-2025 tax slabs
-5. ✅ Generate public holidays
-6. ✅ Configure ETI slabs
-7. ✅ Create default retirement funds
+**Recommended Selections:**
+- ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
+- ✅ Create Earnings Components (Basic, Housing, Transport, etc.)
+- ✅ Load 2024-2025 Tax Slabs
+- ✅ Load Tax Rebates
+- ✅ Load Medical Tax Credits
+- ✅ Load Business Trip Regions
+
+**Optional Selections:**
+- ⬜ Load SETA List (if using Skills Development)
+- ⬜ Load Bargaining Councils (if applicable to your industry)
+
+The setup loads:
+1. ✅ Statutory salary components (PAYE, UIF, SDL)
+2. ✅ Common earnings components (Basic Salary, allowances, bonuses)
+3. ✅ 2024-2025 SARS tax brackets
+4. ✅ Current tax rebates and medical credits
+5. ✅ Business trip regions with SARS-compliant rates
 
 ### Step 4: Verify Installation
 
