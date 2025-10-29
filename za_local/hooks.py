@@ -55,8 +55,8 @@ after_uninstall = "za_local.setup.uninstall.after_uninstall"
 
 # Setup Wizard Integration
 # ------------------
-after_wizard_complete = [
-    "za_local.setup.setup_wizard.after_erpnext_setup"
+on_session_creation = [
+	"za_local.setup.setup_wizard.check_sa_setup_needed"
 ]
 
 # DocType Class Overrides
