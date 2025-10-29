@@ -86,10 +86,9 @@ bench restart
 **Recommended Selections (All Enabled by Default):**
 - ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
 - ✅ Create Earnings Components (Basic, Housing, Transport, Bonuses, etc.)
-- ✅ Load 2024-2025 Tax Slabs
-- ✅ Load Tax Rebates (Primary, Secondary, Tertiary)
-- ✅ Load Medical Tax Credits
-- ✅ Load Business Trip Regions
+- ✅ Load 2024-2025 Income Tax Slab (7 SARS brackets)
+- ✅ Load Tax Rebates & Medical Credits (linked to 2024-2025 Payroll Period)
+- ✅ Load Business Trip Regions (16 SA cities + 6 international zones)
 
 **Optional Selections:**
 - ⬜ Load SETA List (if using Skills Development)

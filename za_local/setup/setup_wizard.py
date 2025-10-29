@@ -316,19 +316,36 @@ def setup_za_localization(args):
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
 	
 	try:
-		if load_salary:
-			load_data_from_json(data_dir / "salary_components.json")
+		# Load in correct order (dependencies first)
 		
-		if load_earnings:
-			load_data_from_json(data_dir / "earnings_components.json")
-		
-		if load_tax_slabs:
-			load_data_from_json(data_dir / "tax_slabs_2024.json")
-		
+		# 1. Load Payroll Period first (required by Tax Rebates)
 		if load_tax_rebates or load_medical:
+			print("Loading Payroll Period...")
+			load_data_from_json(data_dir / "payroll_period_2024.json")
+		
+		# 2. Load Tax Rebates (depends on Payroll Period)
+		if load_tax_rebates or load_medical:
+			print("Loading Tax Rebates and Medical Credits...")
 			load_data_from_json(data_dir / "tax_rebates_2024.json")
 		
+		# 3. Load Income Tax Slab
+		if load_tax_slabs:
+			print("Loading Income Tax Slab...")
+			load_data_from_json(data_dir / "tax_slabs_2024.json")
+		
+		# 4. Load Salary Components
+		if load_salary:
+			print("Loading Salary Components...")
+			load_data_from_json(data_dir / "salary_components.json")
+		
+		# 5. Load Earnings Components
+		if load_earnings:
+			print("Loading Earnings Components...")
+			load_data_from_json(data_dir / "earnings_components.json")
+		
+		# 6. Load Master Data (Business Trip Regions)
 		if load_regions:
+			print("Loading Business Trip Regions...")
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
 		
 		frappe.msgprint(_("South African localization configured successfully!"))

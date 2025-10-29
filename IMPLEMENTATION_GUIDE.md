@@ -160,10 +160,9 @@ za_local integrates into ERPNext's setup wizard. When you select **"South Africa
 **Recommended Selections:**
 - ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
 - ✅ Create Earnings Components (Basic, Housing, Transport, etc.)
-- ✅ Load 2024-2025 Tax Slabs
-- ✅ Load Tax Rebates
-- ✅ Load Medical Tax Credits
-- ✅ Load Business Trip Regions
+- ✅ Load 2024-2025 Income Tax Slab (7 SARS brackets)
+- ✅ Load Tax Rebates & Medical Credits (with 2024-2025 Payroll Period)
+- ✅ Load Business Trip Regions (16 regions with SARS-compliant rates)
 
 **Optional Selections:**
 - ⬜ Load SETA List (if using Skills Development)

@@ -424,15 +424,20 @@ def load_data_from_json(file_path):
 	with open(file_path, "r") as f:
 		data = json.load(f)
 	
-	# Handle both list and dict formats
+	# Handle different JSON formats
 	if isinstance(data, dict):
-		# Dict with DocType as key
-		for doctype, records in data.items():
-			for record in records:
-				# Add doctype to record if not present
-				if "doctype" not in record:
-					record["doctype"] = doctype
-				insert_record(record)
+		# Check if it's a single record (has "doctype" key)
+		if "doctype" in data:
+			# Single record
+			insert_record(data)
+		else:
+			# Dict with DocType as key
+			for doctype, records in data.items():
+				for record in records:
+					# Add doctype to record if not present
+					if "doctype" not in record:
+						record["doctype"] = doctype
+					insert_record(record)
 	elif isinstance(data, list):
 		# List of records
 		for record in data:
@@ -442,6 +447,7 @@ def load_data_from_json(file_path):
 def insert_record(record):
 	"""
 	Insert a single record, skip if exists.
+	Handles both regular DocTypes and Single DocTypes.
 	
 	Args:
 		record: Dict with doctype and field values
@@ -449,18 +455,46 @@ def insert_record(record):
 	doctype = record.get("doctype")
 	name = record.get("name") or record.get("salary_component")
 	
-	if not frappe.db.exists(doctype, name):
-		try:
-			# Suppress validation warnings during setup (e.g., "Accounts not set")
-			# These are expected and users will configure accounts later
-			_message_log = frappe.local.message_log
-			frappe.local.message_log = []
-			
-			doc = frappe.get_doc(record)
-			doc.insert(ignore_permissions=True, ignore_mandatory=True)
-			
-			# Restore message log
-			frappe.local.message_log = _message_log
-		except Exception as e:
-			print(f"  Warning: Could not create {doctype} {name}: {e}")
+	# Check if it's a Single DocType
+	meta = frappe.get_meta(doctype)
+	is_single = meta.issingle
+	
+	# Handle company field - set to first company if empty
+	if "company" in record and not record.get("company"):
+		companies = frappe.get_all("Company", limit=1)
+		if companies:
+			record["company"] = companies[0].name
+	
+	try:
+		# Suppress validation warnings during setup (e.g., "Accounts not set")
+		# These are expected and users will configure accounts later
+		_message_log = frappe.local.message_log
+		frappe.local.message_log = []
+		
+		if is_single:
+			# For Single DocTypes, always update (don't check exists)
+			doc = frappe.get_single(doctype)
+			# Update fields from record
+			for key, value in record.items():
+				if key != "doctype":
+					doc.set(key, value)
+			doc.save(ignore_permissions=True)
+			print(f"  ✓ Updated Single DocType: {doctype}")
+		else:
+			# For regular DocTypes, check if exists
+			if not frappe.db.exists(doctype, name):
+				doc = frappe.get_doc(record)
+				doc.insert(ignore_permissions=True, ignore_mandatory=True)
+				print(f"  ✓ Created {doctype}: {name}")
+			else:
+				print(f"  ⊙ Skipped {doctype}: {name} (already exists)")
+		
+		# Restore message log
+		frappe.local.message_log = _message_log
+	except Exception as e:
+		# Restore message log even on error
+		frappe.local.message_log = _message_log
+		print(f"  ✗ Error with {doctype} {name}: {e}")
+		import traceback
+		traceback.print_exc()
 
