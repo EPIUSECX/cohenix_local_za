@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:region_name",
+ "creation": "2025-01-29 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "region_name",
+  "country",
+  "column_break_3",
+  "is_active",
+  "allowance_section",
+  "daily_allowance_rate",
+  "column_break_7",
+  "incidental_allowance_rate",
+  "description_section",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "region_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Region Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "allowance_section",
+   "fieldtype": "Section Break",
+   "label": "Daily Allowance Rates"
+  },
+  {
+   "description": "Per diem rate for meals",
+   "fieldname": "daily_allowance_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Daily Allowance Rate",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Daily rate for incidental expenses",
+   "fieldname": "incidental_allowance_rate",
+   "fieldtype": "Currency",
+   "label": "Incidental Allowance Rate",
+   "precision": "2"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-01-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "Business Trip Region",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Employee",
+   "share": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+

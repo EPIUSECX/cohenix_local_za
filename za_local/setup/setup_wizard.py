@@ -70,8 +70,8 @@ def run_sa_compliance_wizard(company=None):
     
     # Step 5: Public Holidays
     try:
-        from za_local.setup.install_phases_1_3 import setup_public_holidays_for_current_year
-        setup_public_holidays_for_current_year()
+        from za_local.setup.leave_types import setup_public_holidays
+        setup_public_holidays()
         steps_completed.append("Public Holidays")
         print("✓ Step 5: SA public holidays generated")
     except Exception as e:
@@ -87,7 +87,7 @@ def run_sa_compliance_wizard(company=None):
     
     # Step 7: Default Retirement Funds
     try:
-        from za_local.setup.install_phases_1_3 import setup_default_retirement_funds
+        from za_local.setup.install import setup_default_retirement_funds
         setup_default_retirement_funds()
         steps_completed.append("Retirement Funds")
         print("✓ Step 7: Default retirement funds created")

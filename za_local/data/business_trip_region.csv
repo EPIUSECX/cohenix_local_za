@@ -1,0 +1,18 @@
+region_name,country,daily_allowance_rate,incidental_allowance_rate
+"Johannesburg","South Africa",500,50
+"Cape Town","South Africa",500,50
+"Durban","South Africa",450,50
+"Pretoria","South Africa",450,50
+"Port Elizabeth","South Africa",400,50
+"Bloemfontein","South Africa",350,50
+"East London","South Africa",350,50
+"Polokwane","South Africa",300,50
+"Nelspruit","South Africa",300,50
+"Kimberley","South Africa",300,50
+"International - Africa","",800,100
+"International - Europe","",1200,150
+"International - Asia","",1000,120
+"International - Americas","",1300,150
+"International - Middle East","",1100,130
+"International - Oceania","",1200,150
+

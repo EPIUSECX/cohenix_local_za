@@ -79,6 +79,14 @@ def remove_custom_fields():
         "Employee-za_payroll_column_break",
         "Employee-za_hours_per_month",
         "Employee-za_payroll_payable_bank_account",
+        "Employee-za_personal_information_section",
+        "Employee-za_nationality",
+        "Employee-za_working_hours_per_week",
+        "Employee-za_has_children",
+        "Employee-za_additional_column_break",
+        "Employee-za_has_other_employments",
+        "Employee-za_number_of_dependants",
+        "Employee-za_highest_qualification",
         
         # Company
         "Company-za_south_african_registration_section",
@@ -93,6 +101,9 @@ def remove_custom_fields():
         
         # Salary Structure Assignment
         "Salary Structure Assignment-za_annual_bonus",
+        
+        # Expense Claim
+        "Expense Claim-business_trip",
         
         # IRP5 Certificate - No custom fields added
         
@@ -124,28 +135,28 @@ def remove_property_setters():
     """
     print("Removing property setters...")
     
-    # Define property setters we created
-    property_setters = [
-        # No property setters were created
-    ]
+    from za_local.setup.property_setters import get_property_setters
     
     count = 0
-    for ps_def in property_setters:
-        ps_name = frappe.db.get_value(
-            "Property Setter",
-            {
-                "doc_type": ps_def["doc_type"],
-                "field_name": ps_def["field_name"],
-                "property": ps_def["property"]
-            }
-        )
-        
-        if ps_name:
-            try:
-                frappe.delete_doc("Property Setter", ps_name, ignore_permissions=True, force=True)
-                count += 1
-            except Exception as e:
-                print(f"  Warning: Could not delete property setter {ps_name}: {e}")
+    for doctypes, property_setters in get_property_setters().items():
+        if isinstance(doctypes, str):
+            doctypes = (doctypes,)
+
+        for doctype in doctypes:
+            for property_setter in property_setters:
+                try:
+                    frappe.db.delete(
+                        "Property Setter",
+                        {
+                            "doc_type": doctype,
+                            "field_name": property_setter[0],
+                            "property": property_setter[1],
+                            "value": property_setter[2],
+                        },
+                    )
+                    count += 1
+                except Exception as e:
+                    print(f"  Warning: Could not delete property setter for {doctype}.{property_setter[0]}: {e}")
     
     frappe.db.commit()
     print(f"✓ Removed {count} property setters")

@@ -2,3 +2,10 @@
 
 [post_model_sync]
 za_local.setup.install.setup_custom_fields
+
+# Version 3.1.0 - Gap Analysis Implementation
+za_local.patches.v3_1.create_property_setters
+za_local.patches.v3_1.add_employee_additional_fields
+za_local.patches.v3_1.add_business_trip_custom_field
+za_local.patches.v3_1.import_master_data
+za_local.patches.v3_1.insert_doctype_links

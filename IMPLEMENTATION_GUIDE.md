@@ -1,7 +1,7 @@
 # Complete Implementation Guide - za_local for Frappe HR
 
-**Version**: 3.0.0  
-**Last Updated**: January 2025  
+**Version**: 3.1.0  
+**Last Updated**: January 29, 2025  
 **Estimated Setup Time**: 2-4 hours for complete configuration
 
 ---
@@ -713,8 +713,8 @@ The setup wizard creates 12 holidays for the current year:
 2. Verify dates (especially Easter-based holidays)
 3. If missing, run: 
    ```python
-   from za_local.setup.install_phases_1_3 import setup_public_holidays_for_current_year
-   setup_public_holidays_for_current_year()
+   from za_local.setup.leave_types import setup_public_holidays
+   setup_public_holidays()
    ```
 
 ### Step 4: Configure Holiday Lists
@@ -2506,25 +2506,1823 @@ Click **Fetch Completed Training** button
 
 ---
 
-[Content continues with sections 15-25 in the same detailed format...]
+## 15. Employee Termination Workflow
 
-**Note**: Due to length constraints, I'm creating sections 15-25 in a condensed format. Would you like me to continue with the remaining sections in the same detailed format?
+### Overview
 
-### Quick Summary of Remaining Sections:
+za_local provides comprehensive support for BCEA-compliant employee terminations including notice periods, severance pay calculations, leave payouts, and UIF declarations.
 
-- **Section 15**: Employee Termination (BCEA notice, severance, UIF U19)
-- **Section 16**: COIDA Management (injury tracking, claims)
-- **Section 17**: VAT Management (VAT201 returns)
-- **Section 18**: Sectoral Compliance (bargaining councils, NAEDO)
-- **Section 19**: Reports & Analytics (payroll register, department costs)
-- **Section 20**: Advanced Features (EFT, SARS XML exports)
-- **Section 21**: Quick Reference (workflows cheat sheet)
-- **Section 22**: Troubleshooting (common issues & fixes)
-- **Section 23**: Compliance Calendar (all deadlines)
-- **Section 24**: Best Practices (backups, security)
-- **Section 25**: Support & Resources (contacts, links)
+### Termination Types
+
+1. **Resignation** - Employee initiated
+2. **Dismissal - Misconduct** - Employer initiated (poor performance/conduct)
+3. **Dismissal - Operational** - Retrenchment/business reasons
+4. **Mutual Agreement** - Both parties agree
+5. **End of Contract** - Fixed-term contract expires
+
+### Step 1: Create Employee Separation
+
+**Navigate to:** HR > Employee Separation > New
+
+#### Required Information
+- **Employee**: Select employee leaving
+- **Resignation Letter Date**: Date notice was received
+- **Relieving Date**: Last day of employment
+- **Reason for Leaving**: Resignation/Dismissal/Retrenchment
+- **Termination Type**: Select from list above
+
+#### Automatic BCEA Calculations
+
+za_local automatically calculates:
+
+**Notice Periods (BCEA Section 37):**
+- **< 6 months service**: 1 week notice
+- **6 months - 1 year**: 2 weeks notice
+- **> 1 year service**: 4 weeks notice
+
+**Severance Pay (BCEA Section 41):**
+- **Retrenchment**: 1 week per year of service
+- **Tax-free portion**: First R500,000
+- **Taxable portion**: Above R500,000 at special rates
+
+**Leave Payout:**
+- All unused annual leave
+- Proportional 13th cheque (if applicable)
+- No payout for unused sick leave
+
+### Step 2: Generate Final Settlement
+
+**Navigate to:** SA Payroll > Employee Final Settlement > New
+
+#### Fields Auto-Populated
+1. **Link to Employee Separation**: Select separation record
+2. **Employee Details**: Auto-loaded
+3. **Final Working Date**: From separation
+4. **Notice Period Pay**: Calculated if not worked
+5. **Severance Pay**: If retrenchment (1 week × years)
+6. **Leave Payout**: All unused annual leave days
+7. **13th Cheque**: Pro-rata for year
+8. **Deductions**: Outstanding loans, advances
+
+#### Tax Treatment
+
+**Notice Pay:**
+- Taxed at normal PAYE rates
+- Added to regular payslip
+
+**Severance Pay:**
+- Tax-free up to R500,000
+- Above R500,000: Special tax table applies
+- Separate IRP5 code (3704)
+
+**Leave Payout:**
+- Taxed at normal PAYE rates
+- Averaged with previous 12 months
+
+### Step 3: Process Final Payslip
+
+Create final salary slip including:
+
+```
+EARNINGS:
+- Regular salary (pro-rata)
+- Notice pay (if applicable)
+- Leave payout
+- Pro-rata bonus
+
+DEDUCTIONS:
+- PAYE (on taxable portions)
+- UIF (on normal earnings only)
+- Outstanding loans
+
+COMPANY CONTRIBUTIONS:
+- UIF Employer (on normal earnings)
+- No SDL on severance
+```
+
+### Step 4: Create UIF U19 Declaration
+
+**Navigate to:** SA Tax > UIF U19 Declaration > New
+
+#### Required Fields
+- **Employee**: Terminated employee
+- **Employment Start Date**: From employee record
+- **Employment End Date**: Last working day
+- **Reason for Leaving**: 
+  - Resignation
+  - Dismissal
+  - Retrenchment
+  - End of Contract
+- **Total UIF Contributions**: Auto-calculated from payslips
+- **Last Remuneration**: Final month's salary
+
+#### Submission to DOL
+
+1. **Save** and **Submit** U19 declaration
+2. **Print** form (DOL-U19)
+3. **Employee** takes form to Department of Labour
+4. **Keep copy** for company records (audit trail)
+
+### Step 5: Exit Interview & Documentation
+
+**Checklist:**
+- ✅ Exit interview completed
+- ✅ Company assets returned (laptop, access card, etc.)
+- ✅ Final settlement agreement signed
+- ✅ UIF U19 provided to employee
+- ✅ Reference letter (if requested)
+- ✅ Certificate of Service
+- ✅ Copy of IRP5 (if mid-year termination)
+
+### Compliance Notes
+
+**⚠️ BCEA Requirements:**
+- Notice period cannot be waived without compensation
+- Severance pay mandatory for operational dismissals
+- Leave payout mandatory for all unused annual leave
+- Medical certificate rules still apply during notice
+
+**⚠️ UIF Requirements:**
+- Employer must provide U19 declaration
+- Employee must claim within 6 months
+- Total contributions must be accurate
+- Reason for leaving affects claim eligibility
+
+### Common Scenarios
+
+**Scenario 1: Resignation (3 years service)**
+```
+Notice Period: 4 weeks
+Severance Pay: R0 (not applicable)
+Leave Payout: 10 days × daily rate
+Pro-rata 13th: 8/12 × annual 13th
+Tax: Normal PAYE + averaged leave
+```
+
+**Scenario 2: Retrenchment (5 years service)**
+```
+Notice Period: 4 weeks (or pay in lieu)
+Severance Pay: 5 weeks gross salary (tax-free)
+Leave Payout: 15 days × daily rate
+Pro-rata 13th: Current YTD
+Tax: Severance tax-free, rest at normal PAYE
+```
+
+**Scenario 3: Dismissal - Misconduct (2 years service)**
+```
+Notice Period: 4 weeks (can be waived by employer)
+Severance Pay: R0 (not applicable)
+Leave Payout: 8 days × daily rate
+Pro-rata 13th: None (discretionary)
+Tax: Normal PAYE
+```
+
+### Success Indicators
+
+- ✅ Employee Separation record created and submitted
+- ✅ BCEA notice periods correctly calculated
+- ✅ Severance pay accurate (if applicable)
+- ✅ Final Settlement generated and approved
+- ✅ Final payslip processed with all components
+- ✅ UIF U19 provided to employee
+- ✅ All company assets returned
+- ✅ Employee record status set to "Left"
 
 ---
 
-*For the complete guide with all 25 sections, please refer to the full IMPLEMENTATION_GUIDE.md document.*
+## 16. COIDA Management
+
+### Overview
+
+COIDA (Compensation for Occupational Injuries and Diseases Act) provides no-fault insurance for work-related injuries and diseases. All employers must register and pay annual assessments.
+
+### Step 1: Initial COIDA Setup
+
+**Navigate to:** COIDA > COIDA Settings > New (Single)
+
+#### Required Configuration
+- **Company**: Select company
+- **COIDA Registration Number**: From Compensation Fund (format: CF123456)
+- **Industry Classification**: Select from list (determines assessment rate)
+- **Risk Class**: 1 (low risk) to 4 (high risk)
+- **Assessment Rate**: % of annual payroll (e.g., 1.25%)
+- **Annual Payroll**: Estimated for assessment calculation
+
+#### Industry Classifications & Rates
+
+| Industry | Risk Class | Typical Rate |
+|----------|------------|--------------|
+| Office/Administration | 1 | 0.27% - 0.35% |
+| Retail/Services | 1-2 | 0.43% - 0.58% |
+| Manufacturing | 2-3 | 0.81% - 1.45% |
+| Construction | 3-4 | 2.16% - 4.31% |
+| Mining | 4 | 4.31% - 8.87% |
+
+### Step 2: Record Workplace Injuries
+
+**Navigate to:** COIDA > Workplace Injury > New
+
+#### When to Record
+- Any injury requiring medical attention
+- Any incident causing 3+ days absence
+- Any fatality or serious injury
+- Any occupational disease diagnosis
+
+#### Required Information
+- **Employee**: Injured employee
+- **Injury Date**: When incident occurred
+- **Injury Time**: Approximate time
+- **Location**: Where injury occurred
+- **Injury Type**: 
+  - Minor (first aid only)
+  - Moderate (medical treatment)
+  - Serious (hospitalization)
+  - Permanent disablement
+  - Fatality
+- **Body Part Affected**: Select from list
+- **Injury Description**: Detailed description
+- **Witnesses**: Names of witnesses
+- **Immediate Action Taken**: First aid, hospital, etc.
+
+#### Automatic Actions
+
+On save, za_local:
+1. Creates incident report
+2. Notifies HR Manager
+3. Checks if reportable to Compensation Fund
+4. Creates timeline for follow-up
+
+### Step 3: Submit OID Claim
+
+**Navigate to:** COIDA > OID Claim > New
+
+**OID = Occupational Injuries and Diseases**
+
+#### When to Submit
+- Employee unable to work for 3+ days
+- Permanent disablement resulted
+- Employee requires ongoing medical care
+- Employee claims compensation
+
+#### Required Documents
+1. **W.Cl.2** - Employer's Report of Accident
+2. **W.Cl.3** - Employee's Notice of Accident
+3. **W.Cl.4** - Doctor's First Report
+4. **W.Cl.22** - Medical Report (if hospitalized)
+5. **Wage details** - Last 12 months payslips
+
+#### Claim Information
+- **Link to Workplace Injury**: Select injury record
+- **Claim Type**:
+  - Temporary Total Disablement (TTD)
+  - Temporary Partial Disablement (TPD)
+  - Permanent Disablement
+  - Medical Expenses
+  - Death Benefits
+- **Claim Amount**: If known
+- **Expected Return to Work Date**: Estimate
+- **Status**: Draft/Submitted/Approved/Paid/Rejected
+
+#### Submission Process
+
+1. **Complete all forms** (W.Cl.2, W.Cl.3, W.Cl.4)
+2. **Attach medical reports**
+3. **Submit to Compensation Fund**:
+   - Online: https://secure.cfonline.org.za
+   - Email: claims@compensation.gov.za
+   - Post: Compensation Fund regional office
+4. **Update claim status** in za_local
+5. **Track progress** via Compensation Fund portal
+
+### Step 4: Annual COIDA Return
+
+**Navigate to:** COIDA > COIDA Annual Return > New
+
+**Due Date:** March 31 annually (for previous tax year)
+
+#### Information Required
+- **Assessment Year**: Previous tax year (e.g., 2024/2025)
+- **Total Annual Payroll**: Sum of all gross salaries
+- **Number of Employees**: Average for year
+- **Assessment Rate**: Current rate from settings
+- **Assessment Due**: Payroll × Rate
+- **Provisional Payments Made**: Quarterly payments
+- **Balance Due/Refund**: Calculation
+
+#### Calculation Example
+
+```
+Annual Payroll: R12,500,000
+Assessment Rate: 1.25%
+Assessment Due: R12,500,000 × 1.25% = R156,250
+Provisional Paid: R150,000
+Balance Due: R6,250
+```
+
+#### Submission
+
+1. **Complete ROE (Return of Earnings)** form
+2. **Submit to Compensation Fund**:
+   - Online: https://secure.cfonline.org.za
+   - By March 31
+3. **Pay balance** (if due)
+4. **Claim refund** (if overpaid)
+5. **Keep proof of submission** (audit requirement)
+
+### Compliance Requirements
+
+**⚠️ Mandatory:**
+- Register within 7 days of starting business
+- Submit ROE annually by March 31
+- Report all injuries within 7 days
+- Keep injury register for 4 years
+- Display COIDA certificate in workplace
+- Notify fund of payroll increases
+
+**⚠️ Penalties:**
+- Late ROE submission: 10% penalty
+- Non-registration: Criminal offense
+- False information: R4,000 fine or 12 months imprisonment
+- Late injury reporting: Claim may be rejected
+
+### Success Indicators
+
+- ✅ COIDA Settings configured with correct rate
+- ✅ All workplace injuries recorded within 24 hours
+- ✅ OID claims submitted within 7 days
+- ✅ Annual return submitted by March 31
+- ✅ Assessment paid in full
+- ✅ COIDA certificate displayed
+- ✅ Injury register maintained
+
+---
+
+## 17. VAT Management
+
+### Overview
+
+For VAT-registered companies, za_local provides VAT201 return preparation, vendor classification, and VAT analysis tools.
+
+### Step 1: VAT Settings
+
+**Navigate to:** SA VAT > South African VAT Settings > New (Single)
+
+#### Configuration
+- **Company**: Select company
+- **VAT Number**: 10-digit VAT number (e.g., 4123456789)
+- **VAT Registration Date**: Date registered for VAT
+- **Standard VAT Rate**: 15% (current SA rate)
+- **VAT Filing Frequency**: Monthly or Bi-monthly
+- **Filing Category**:
+  - Category A: Monthly (turnover > R30m)
+  - Category B: Bi-monthly (turnover R1.5m - R30m)
+  - Category C: Bi-monthly (turnover < R1.5m)
+
+### Step 2: Configure VAT Rates
+
+**Navigate to:** SA VAT > South African VAT Rate > New
+
+Create rates for different scenarios:
+
+**Standard Rate (15%)**
+```
+Rate Name: Standard VAT
+Rate: 15%
+Account: VAT Collected - Sales
+Valid From: Current date
+```
+
+**Zero-Rated (0%)**
+```
+Rate Name: Zero-Rated Supplies
+Rate: 0%
+Account: VAT on Zero-Rated Sales
+Examples: Exports, basic foodstuffs, petrol
+```
+
+**Exempt (N/A)**
+```
+Rate Name: Exempt Supplies
+Rate: 0% (no VAT charged or claimed)
+Examples: Financial services, residential rent
+```
+
+### Step 3: Classify VAT Vendors
+
+**Navigate to:** SA VAT > VAT Vendor Type > New
+
+Create vendor classifications:
+
+1. **Registered VAT Vendor** - Can claim input VAT
+2. **Non-VAT Vendor** - Cannot claim VAT
+3. **Foreign Supplier** - Import VAT applicable
+4. **Government Entity** - Special VAT rules
+
+**Assign to Suppliers:**
+- Open each Supplier record
+- Set "VAT Vendor Type" field
+- Save
+
+### Step 4: Process VAT201 Return
+
+**Navigate to:** SA VAT > VAT201 Return > New
+
+#### Information Required
+- **Period**: Month or bi-month (e.g., "January 2025")
+- **From Date**: Start of period
+- **To Date**: End of period
+
+#### Click "Fetch Data"
+
+System automatically populates:
+
+**OUTPUT VAT (Box 1-7):**
+- Box 1: Standard-rated supplies (15%)
+- Box 2: Zero-rated supplies (0%)
+- Box 3: Exempt supplies
+- Box 4: Total supplies
+- Box 5: Input tax claimed
+- Box 6: Net VAT payable/(refundable)
+
+**INPUT VAT (Box 14-19):**
+- Box 14: Capital goods acquired
+- Box 15: Other goods/services
+- Box 16: Total input tax
+- Box 17: Adjustments
+- Box 18: Net VAT refundable
+
+#### Reconciliation
+
+**Common Issues:**
+- Missing invoices (scan purchase invoices)
+- Incorrect VAT rates (check supplier setup)
+- Non-deductible VAT (entertainment, private use)
+- Import VAT (customs declarations)
+
+### Step 5: Submit VAT Return
+
+#### Filing Options
+
+**Option A: eFiling (Recommended)**
+1. **Export VAT201** from za_local (CSV format)
+2. **Login** to SARS eFiling: www.sarsefiling.co.za
+3. **Navigate** to Returns > VAT201
+4. **Upload** CSV file
+5. **Review** and **Submit**
+6. **Pay** via EFT (if VAT payable)
+
+**Option B: Manual Filing**
+1. **Print** VAT201 form from za_local
+2. **Complete** manually
+3. **Submit** to SARS branch
+4. **Pay** at bank (if VAT payable)
+
+#### Payment Details
+
+**If VAT Payable:**
+```
+Beneficiary: SARS VAT
+Bank: ABSA
+Branch Code: 632005
+Account: 4072 173 468
+Reference: VAT NUMBER + PERIOD (e.g., 4123456789012025)
+```
+
+**Payment Deadline:**
+- **Monthly**: 25th of following month
+- **Bi-monthly**: 25th of month after period end
+
+### VAT Analysis Report
+
+**Navigate to:** SA VAT > Reports > VAT Analysis
+
+**Filters:**
+- Period (monthly/quarterly)
+- Company
+- VAT category (Standard/Zero/Exempt)
+
+**Output:**
+- Total sales by VAT category
+- Total purchases by VAT category
+- Net VAT position
+- Reconciliation to GL
+
+### Common VAT Scenarios
+
+**Scenario 1: Standard Business**
+```
+Sales (incl VAT): R115,000
+VAT Output (15%): R15,000
+
+Purchases (incl VAT): R57,500
+VAT Input (15%): R7,500
+
+Net VAT Payable: R15,000 - R7,500 = R7,500
+```
+
+**Scenario 2: Mixed Supplies**
+```
+Standard-rated sales: R100,000 (VAT: R15,000)
+Zero-rated exports: R50,000 (VAT: R0)
+Total sales: R150,000
+VAT output: R15,000
+
+Apportionment: 100,000/150,000 = 66.67% of input VAT claimable
+```
+
+**Scenario 3: Import VAT**
+```
+Import value: $10,000
+Exchange rate: R18/$
+Rand value: R180,000
+Customs duty (10%): R18,000
+VAT (15% on R198,000): R29,700
+Total payable to SARS: R47,700
+VAT claimable on next return: R29,700
+```
+
+### Success Indicators
+
+- ✅ VAT Settings configured correctly
+- ✅ All suppliers classified (VAT vendor status)
+- ✅ VAT rates set up (15%, 0%, exempt)
+- ✅ VAT201 generated monthly/bi-monthly
+- ✅ Reconciliation to GL complete
+- ✅ Returns submitted by 25th
+- ✅ VAT payments made on time
+- ✅ Proof of submission retained
+
+---
+
+## 18. Business Trip Management (New in v3.1)
+
+### Overview
+
+za_local v3.1 introduces comprehensive Business Trip management with SARS-compliant travel allowances, mileage claims, and automatic expense claim generation.
+
+### Features
+
+✅ **SARS-Compliant Rates**
+- Mileage allowance: R4.25/km (2024 rate)
+- Regional per diem rates (16 SA cities + international)
+- Incidental expense allowances
+
+✅ **Complete Workflow**
+- Trip planning and approval
+- Allowance tracking by region/day
+- Journey tracking (mileage/flights/trains)
+- Accommodation expense tracking
+- Auto-generate Expense Claims
+
+✅ **Integration**
+- Links to Expense Claims
+- Connects to Payroll (taxable portions)
+- Audit trail for SARS
+
+### Step 1: Configure Business Trip Settings
+
+**Navigate to:** SA Payroll > Business Trip Settings
+
+**Mileage Allowance:**
+- **Mileage Allowance Rate**: R4.25 per km (SARS 2024 rate)
+- **Mileage Expense Claim Type**: "Travel" or create new
+
+**Daily Allowances:**
+- **Meal Expense Claim Type**: "Travel"
+- **Incidental Expense Claim Type**: "Others"
+
+**Workflow Settings:**
+- **Require Manager Approval**: ✅ Checked (recommended)
+- **Auto Create Expense Claim on Submit**: ✅ Checked (saves time)
+
+**Save** settings.
+
+### Step 2: Set Up Business Trip Regions
+
+**Navigate to:** SA Payroll > Business Trip Region
+
+**Pre-loaded Regions (16):**
+
+| Region | Daily Allowance | Incidental | Location |
+|--------|----------------|------------|----------|
+| Johannesburg | R1,500 | R100 | Gauteng |
+| Cape Town | R1,400 | R100 | Western Cape |
+| Durban | R1,300 | R100 | KZN |
+| Pretoria | R1,200 | R100 | Gauteng |
+| Port Elizabeth | R1,100 | R100 | Eastern Cape |
+| Bloemfontein | R1,000 | R100 | Free State |
+| International - Africa | R2,200 | R200 | Africa |
+| International - Europe | R3,300 | R300 | Europe |
+| ... | ... | ... | ... |
+
+**Add Custom Region:**
+1. Click **New**
+2. **Region Name**: e.g., "Rustenburg"
+3. **Country**: "South Africa"
+4. **Daily Allowance Rate**: R1,000
+5. **Incidental Allowance Rate**: R100
+6. **Is Active**: ✅
+7. **Save**
+
+### Step 3: Create a Business Trip
+
+**Navigate to:** SA Payroll > Business Trip > New
+
+#### Basic Details
+- **Employee**: Select traveling employee
+- **Company**: Auto-filled
+- **Trip Purpose**: e.g., "Client Meeting - Cape Town"
+- **From Date**: 2025-02-10
+- **To Date**: 2025-02-12
+- **Status**: Draft (auto-set)
+
+#### Click "Generate Allowances" Button
+
+System creates one row per day:
+
+| Date | Region | Daily Rate | Incidental | Total |
+|------|--------|-----------|------------|-------|
+| 2025-02-10 | (select) | R0 | R0 | R0 |
+| 2025-02-11 | (select) | R0 | R0 | R0 |
+| 2025-02-12 | (select) | R0 | R0 | R0 |
+
+**Select Region for each day:**
+1. Click **Region** dropdown for Day 1
+2. Select "Cape Town"
+3. **Daily Rate** auto-fills: R1,400
+4. **Incidental Rate** auto-fills: R100
+5. **Total** calculates: R1,500
+6. Repeat for remaining days
+
+**Allowances Table (completed):**
+
+| Date | Region | Daily Rate | Incidental | Total |
+|------|--------|-----------|------------|-------|
+| 2025-02-10 | Cape Town | R1,400 | R100 | R1,500 |
+| 2025-02-11 | Cape Town | R1,400 | R100 | R1,500 |
+| 2025-02-12 | Cape Town | R1,400 | R100 | R1,500 |
+
+**Total Allowances:** R4,500
+
+### Step 4: Add Journey Details
+
+**Journeys & Transport Section:**
+
+**Day 1: Flight to Cape Town**
+- **Date**: 2025-02-10
+- **From Location**: Johannesburg
+- **To Location**: Cape Town
+- **Transport Mode**: Flight
+- **Receipt Amount**: R2,800
+- **Receipt Attached**: ✅
+
+**Day 3: Flight back**
+- **Date**: 2025-02-12
+- **From Location**: Cape Town
+- **To Location**: Johannesburg
+- **Transport Mode**: Flight
+- **Receipt Amount**: R2,600
+- **Receipt Attached**: ✅
+
+**Local Travel (Uber)**
+- **Date**: 2025-02-11
+- **From Location**: Hotel
+- **To Location**: Client Office
+- **Transport Mode**: Uber/Bolt
+- **Receipt Amount**: R250
+- **Receipt Attached**: ✅
+
+**Total Transport:** R5,650
+
+**Mileage Example (Private Car):**
+```
+Date: 2025-02-11
+From Location: Hotel
+To Location: Client Office (Return)
+Transport Mode: Car (Private)
+Distance (km): 45
+Mileage Rate: R4.25 (auto-filled from settings)
+Mileage Claim: R191.25 (auto-calculated)
+```
+
+### Step 5: Add Accommodation
+
+**Accommodation Section:**
+
+**Night 1:**
+- **Date**: 2025-02-10
+- **Hotel Name**: Protea Hotel V&A Waterfront
+- **City**: Cape Town
+- **Amount**: R1,800
+- **Receipt Attached**: ✅
+
+**Night 2:**
+- **Date**: 2025-02-11
+- **Hotel Name**: Protea Hotel V&A Waterfront
+- **City**: Cape Town
+- **Amount**: R1,800
+- **Receipt Attached**: ✅
+
+**Total Accommodation:** R3,600
+
+### Step 6: Add Other Expenses
+
+**Other Expenses Section:**
+
+**Parking:**
+- **Date**: 2025-02-11
+- **Description**: Airport Parking
+- **Amount**: R180
+- **Receipt Required**: ✅
+
+**Wi-Fi:**
+- **Date**: 2025-02-10
+- **Description**: Hotel Wi-Fi
+- **Amount**: R150
+- **Receipt Required**: ✅
+
+**Total Other:** R330
+
+### Step 7: Review & Submit
+
+**Summary Totals:**
+
+| Category | Amount |
+|----------|--------|
+| Daily Allowances | R4,200 |
+| Incidental Allowances | R300 |
+| Transport (Flights/Uber) | R5,650 |
+| Accommodation | R3,600 |
+| Other Expenses | R330 |
+| **GRAND TOTAL** | **R14,080** |
+
+**Actions:**
+1. **Save** business trip
+2. **Submit** for approval (if required)
+3. **Manager approves** via workflow
+4. System **Auto-Creates Expense Claim**
+
+### Step 8: Expense Claim Auto-Generation
+
+**Navigate to:** HR > Expense Claim > [Auto-generated]
+
+System creates Expense Claim with:
+
+**Expenses Table:**
+
+| Date | Description | Type | Amount |
+|------|-------------|------|--------|
+| 2025-02-12 | Business Trip Allowances: Client Meeting | Travel | R4,500 |
+| 2025-02-12 | Transport (Flights/Trains/Rental) | Travel | R5,650 |
+| 2025-02-12 | Accommodation | Travel | R3,600 |
+| 2025-02-12 | Other Expenses | Others | R330 |
+
+**Total Claim:** R14,080
+
+**Status:** Draft (ready for manager approval)
+
+**Link:** Business Trip field populated with trip reference
+
+### Tax Treatment of Travel Allowances
+
+**SARS Rules:**
+
+**Reimbursive Allowances (Actual):**
+- Employee keeps receipts
+- Company reimburses exact amounts
+- **Not taxable** to employee
+- **za_local default method**
+
+**Fixed Travel Allowance (80/20):**
+- Monthly fixed amount (e.g., R5,000/month)
+- 80% taxable, 20% non-taxable
+- Employee must keep logbook
+- Different SARS rules apply
+
+**Mileage Allowance:**
+- Up to R4.25/km is **tax-free**
+- Above R4.25/km is **taxable**
+- Must be for business purposes only
+
+### Reports
+
+**Business Trip Summary Report:**
+```
+Navigate to: SA Payroll > Reports > Business Trip Summary
+
+Filters:
+- Date Range: 2025-01-01 to 2025-12-31
+- Employee: All or specific
+- Company: Select company
+
+Output:
+- Number of trips
+- Total allowances paid
+- Total mileage claims
+- Total accommodation
+- Average trip cost
+- Export to Excel
+```
+
+### Common Scenarios
+
+**Scenario 1: Day Trip (No Accommodation)**
+```
+From: Johannesburg
+To: Pretoria (120km round trip)
+Transport: Private Car
+
+Mileage: 120km × R4.25 = R510
+Lunch: R200 (incidental)
+Total: R710 (tax-free)
+```
+
+**Scenario 2: International Trip**
+```
+Destination: London (5 days)
+Flights: R18,000
+Accommodation: £120/night × 5 = R12,000
+Daily allowance: R3,300 × 5 = R16,500
+Total: R46,500
+
+Tax treatment:
+- Flights: Reimbursive (not taxable)
+- Accommodation: Reimbursive (not taxable)
+- Allowances: May be taxable if exceeds SARS rates
+```
+
+**Scenario 3: Conference + Leisure**
+```
+Business days: 3 days (claimable)
+Leisure days: 2 days (not claimable)
+
+Claim:
+- 3 days allowances ✅
+- Flights: Apportion 60% ✅
+- Accommodation: 3 nights only ✅
+```
+
+### Best Practices
+
+**Before the Trip:**
+- ✅ Create Business Trip record in advance
+- ✅ Get manager approval if required
+- ✅ Set daily budget expectations
+- ✅ Book flights/accommodation in advance
+
+**During the Trip:**
+- ✅ Keep ALL receipts (photo backup)
+- ✅ Note mileage if using private car
+- ✅ Document business purpose
+- ✅ Keep receipts separate from personal
+
+**After the Trip:**
+- ✅ Complete Business Trip within 5 days
+- ✅ Attach all receipts
+- ✅ Submit for approval
+- ✅ Process expense claim promptly
+
+### Success Indicators
+
+- ✅ Business Trip Settings configured (R4.25/km)
+- ✅ 16 regions loaded with current rates
+- ✅ Business Trip created and submitted
+- ✅ All receipts attached
+- ✅ Expense Claim auto-generated
+- ✅ Manager approved claim
+- ✅ Employee reimbursed
+- ✅ Audit trail maintained for SARS
+
+---
+
+## 19. Sectoral Compliance
+
+### Overview
+
+Certain industries in South Africa have additional compliance requirements through Bargaining Councils or Sectoral Determinations that set minimum wages and working conditions.
+
+### Step 1: Configure Bargaining Council
+
+**Navigate to:** SA Payroll > Bargaining Council
+
+**Pre-loaded Councils (11):**
+- MEIBC (Metal and Engineering)
+- NBCRFLI (Road Freight and Logistics)
+- CCMA
+- National Bargaining Council for the Textile Industry
+- And 7 more...
+
+**Add Custom Council:**
+1. Click **New**
+2. **Council Name**: e.g., "Western Cape Clothing BC"
+3. **Full Name**: Western Cape Clothing Industry Bargaining Council
+4. **Registration Date**: When registered
+5. **Contribution Rate**: e.g., 2% of payroll
+6. **Payment Frequency**: Monthly
+7. **Save**
+
+### Step 2: Assign Company to Bargaining Council
+
+**Navigate to:** Setup > Company > [Your Company]
+
+**SA Registration Details Section:**
+- **Bargaining Council**: Select council (e.g., "MEIBC")
+- **Sectoral Determination**: If applicable (e.g., "Domestic Workers")
+
+**Save** company record.
+
+### Step 3: Configure Sectoral Minimum Wages
+
+**Navigate to:** SA Payroll > Sectoral Minimum Wage > New
+
+**Example: Domestic Workers (2024)**
+```
+Sector: Domestic Workers
+Job Category: Domestic Worker
+Area: Urban
+Minimum Hourly Rate: R25.42
+Minimum Monthly (full-time): R4,651.67
+Effective From: 2024-03-01
+Valid Until: 2025-02-28
+```
+
+**Example: Farm Workers (2024)**
+```
+Sector: Agriculture
+Job Category: Farm Worker
+Area: All areas
+Minimum Hourly Rate: R27.58
+Minimum Monthly (full-time): R5,049.27
+Effective From: 2024-03-01
+Valid Until: 2025-02-28
+```
+
+### Step 4: Configure Industry-Specific Contributions
+
+**Navigate to:** SA Payroll > Industry Specific Contribution > New
+
+**Example: MEIBC Contributions**
+```
+Bargaining Council: MEIBC
+Contribution Type: Sick Pay Fund
+Employee Contribution: 1%
+Employer Contribution: 1%
+Maximum Monthly: R500
+Effective From: 2024-01-01
+```
+
+**Add to Salary Structure:**
+1. Open **Salary Structure**
+2. Add row in **Deductions**:
+   - Component: "MEIBC Sick Pay - Employee"
+   - Formula: `base * 0.01` (1%)
+   - Condition: Bargaining Council = "MEIBC"
+3. Add row in **Company Contributions**:
+   - Component: "MEIBC Sick Pay - Employer"
+   - Formula: `base * 0.01` (1%)
+
+### Step 5: Monthly Compliance Submissions
+
+**MEIBC Example:**
+
+**Submit by 7th of month:**
+1. **Payroll Report** - All employee wages
+2. **Sick Pay Fund Contributions**
+3. **Skills Development Contributions**
+4. **Bargaining Council Levies**
+
+**Online Submission:**
+- Portal: https://meibc.co.za
+- Upload CSV from za_local
+- Payment via EFT
+
+### NAEDO Debit Orders
+
+**NAEDO = National Authenticated Early Debit Order**
+
+Used for:
+- Garnishee orders (court-ordered deductions)
+- Child maintenance
+- Debt repayments
+- Loan repayments
+
+**Navigate to:** SA Payroll > NAEDO Deduction > New
+
+#### Required Information
+- **Employee**: Select employee
+- **Order Type**: Garnishee/Maintenance/Debt
+- **Order Number**: Court order number
+- **Beneficiary Name**: Recipient
+- **Bank Details**: Beneficiary account
+- **Deduction Amount**: Monthly amount
+- **Start Date**: When deductions begin
+- **End Date**: When deductions end (if known)
+- **Priority**: 1 (highest) to 10 (lowest)
+
+#### Deduction Priority (BCEA)
+
+**Legal order of deductions:**
+1. Tax (PAYE)
+2. Maintenance orders
+3. Garnishee orders
+4. Other debts
+5. Voluntary deductions (loans, etc.)
+
+**Maximum total deductions:**
+- PAYE: No limit
+- Other deductions: Maximum 25% of net pay
+- Exception: Maintenance can exceed 25%
+
+#### Process in Payroll
+
+On payroll processing:
+1. System fetches active NAEDO deductions
+2. Applies deductions in priority order
+3. Respects 25% limit (except maintenance)
+4. Creates EFT payment entries
+5. Generates NAEDO file for bank
+
+### Success Indicators
+
+- ✅ Bargaining Council configured (if applicable)
+- ✅ Sectoral minimum wages set
+- ✅ Industry-specific contributions in salary structure
+- ✅ Monthly returns submitted by deadline
+- ✅ NAEDO deductions correctly prioritized
+- ✅ Maximum deduction limits respected
+- ✅ All statutory payments made on time
+
+---
+
+## 20. Reports & Analytics
+
+### Overview
+
+za_local provides comprehensive reports for payroll analysis, compliance monitoring, and decision-making.
+
+### Payroll Register
+
+**Navigate to:** SA Payroll > Reports > Payroll Register
+
+**Purpose:** Complete payroll breakdown for period
+
+**Filters:**
+- **Period**: Select month/payroll period
+- **Company**: Select company
+- **Department**: All or specific
+- **Employee**: All or specific
+
+**Output Columns:**
+- Employee ID, Name, Department
+- Basic Salary, Allowances, Gross Pay
+- PAYE, UIF, SDL, Other Deductions
+- Net Pay, Bank Details
+- Company Contributions (UIF, SDL)
+- Total Cost to Company
+
+**Export:** Excel, PDF, CSV
+
+**Use Cases:**
+- Monthly payroll review
+- Budget vs actual analysis
+- Departmental cost allocation
+- Audit trail
+
+### Department Cost Analysis
+
+**Navigate to:** SA Payroll > Reports > Department Cost Analysis
+
+**Purpose:** Analyze payroll costs by department
+
+**Filters:**
+- **From Date**: 2025-01-01
+- **To Date**: 2025-12-31
+- **Company**: Select
+- **Cost Center**: Optional
+
+**Output:**
+
+| Department | Employees | Gross Salary | Company Contrib | Total Cost | Avg per Employee |
+|------------|-----------|--------------|----------------|------------|------------------|
+| Engineering | 25 | R1,250,000 | R125,000 | R1,375,000 | R55,000 |
+| Sales | 15 | R900,000 | R90,000 | R990,000 | R66,000 |
+| Operations | 30 | R1,500,000 | R150,000 | R1,650,000 | R55,000 |
+| HR | 8 | R400,000 | R40,000 | R440,000 | R55,000 |
+| **Total** | **78** | **R4,050,000** | **R405,000** | **R4,455,000** | **R57,115** |
+
+**Chart:** Pie chart of cost distribution
+
+### Statutory Submissions Summary
+
+**Navigate to:** SA Payroll > Reports > Statutory Submissions Summary
+
+**Purpose:** Track all statutory submissions and payments
+
+**Filters:**
+- **Tax Year**: 2024-2025
+- **Company**: Select
+
+**Output:**
+
+| Month | EMP201 Status | PAYE Amount | UIF Amount | SDL Amount | Payment Status | Submission Date |
+|-------|---------------|-------------|------------|-----------|----------------|-----------------|
+| Mar 2024 | Submitted | R125,000 | R25,000 | R12,500 | Paid | 2024-04-05 |
+| Apr 2024 | Submitted | R128,000 | R26,000 | R13,000 | Paid | 2024-05-06 |
+| May 2024 | Submitted | R130,000 | R26,500 | R13,250 | Paid | 2024-06-04 |
+| ... | ... | ... | ... | ... | ... | ... |
+| **Total** | **12/12** | **R1,545,000** | **R309,000** | **R154,500** | **All Paid** | - |
+
+**Alerts:**
+- 🔴 Outstanding submissions
+- 🟡 Late submissions
+- 🟢 All compliant
+
+### EEA2 Income Differentials
+
+**Navigate to:** SA EE > Reports > EEA2 Income Differentials
+
+**Purpose:** Analyze pay equity for EE reporting
+
+**Filters:**
+- **Company**: Select
+- **As at Date**: 2025-02-28
+
+**Output Matrix:**
+
+| Occupational Level | African Male | African Female | Coloured Male | ... | White Female | Pay Gap |
+|--------------------|--------------|----------------|---------------|-----|--------------|---------|
+| Top Management | R95,000 | R92,000 | - | ... | R98,000 | 6.5% |
+| Senior Management | R75,000 | R72,000 | R76,000 | ... | R78,000 | 8.3% |
+| Professionally Qualified | R45,000 | R43,000 | R46,000 | ... | R47,000 | 9.3% |
+| **Average** | **R55,000** | **R52,000** | **R57,000** | ... | **R58,000** | **10.9%** |
+
+**Analysis:**
+- Identifies pay gaps by race and gender
+- Flags areas for attention
+- Export for EEA2 submission
+- Supports equity planning
+
+### EEA4 Employment Equity Plan
+
+**Navigate to:** SA EE > Reports > EEA4 Employment Equity Plan
+
+**Purpose:** Workforce demographics for EE Act compliance
+
+**Output:**
+
+| Occupational Level | Total | Male | Female | African | Coloured | Indian | White | Disabled |
+|--------------------|-------|------|--------|---------|----------|--------|-------|----------|
+| Top Management | 8 | 6 (75%) | 2 (25%) | 2 (25%) | 0 | 1 (13%) | 5 (63%) | 0 |
+| Senior Management | 15 | 10 (67%) | 5 (33%) | 6 (40%) | 2 (13%) | 2 (13%) | 5 (33%) | 1 (7%) |
+| Professionally Qualified | 45 | 28 (62%) | 17 (38%) | 20 (44%) | 8 (18%) | 5 (11%) | 12 (27%) | 3 (7%) |
+| **Total** | **150** | **95 (63%)** | **55 (37%)** | **68 (45%)** | **22 (15%)** | **15 (10%)** | **45 (30%)** | **12 (8%)** |
+
+**Targets vs Achieved:**
+- Track progress against EE plan targets
+- Identify under-represented groups
+- Set future hiring targets
+
+### EE Workforce Profile
+
+**Navigate to:** SA EE > Reports > EE Workforce Profile
+
+**Purpose:** Visual workforce demographics
+
+**Charts:**
+1. **Pie Chart:** Race distribution
+2. **Bar Chart:** Gender per level
+3. **Line Chart:** Representation trends over time
+4. **Heat Map:** Under-representation areas
+
+### Custom Reports
+
+**Create Custom Report:**
+1. Navigate to: Setup > Report Builder
+2. Select DocType: "Salary Slip"
+3. Add fields: employee, gross_pay, net_pay, paye
+4. Add filters: posting_date, company
+5. Save report
+6. Run and export
+
+### Success Indicators
+
+- ✅ Payroll Register generated monthly
+- ✅ Department costs tracked and analyzed
+- ✅ Statutory submissions tracked
+- ✅ All EMP201s submitted on time
+- ✅ EEA2 report prepared (if required)
+- ✅ EEA4 report prepared (if required)
+- ✅ Pay equity gaps identified and addressed
+- ✅ Reports exported for audit
+
+---
+
+## 21. Advanced Features
+
+### EFT File Generation
+
+**Navigate to:** SA Payroll > Payroll Payment Batch > New
+
+**Purpose:** Generate bank file for salary payments
+
+**Supported Banks:**
+- Standard Bank (CSV format)
+- ABSA (CSV format)
+- FNB (TXT format)
+- Nedbank (CSV format)
+
+**Process:**
+1. **Select Payroll Entry**: Choose submitted payroll
+2. **Payment Date**: Date for bank processing
+3. **Bank**: Select bank
+4. **Click "Generate EFT File"**
+5. **Download** file
+6. **Upload** to bank's online banking portal
+
+**File Contents:**
+```
+Employee Name, Bank, Branch, Account, Amount, Reference
+John Doe, FNB, 250655, 62123456789, 25000.00, Salary Feb 2025
+Jane Smith, Standard, 051001, 123456789, 30000.00, Salary Feb 2025
+...
+```
+
+### SARS XML Export
+
+**EMP501 XML Export:**
+```python
+Navigate to: SA Tax > EMP501 Reconciliation > [Select record]
+Click: "Export XML for SARS eFiling"
+Download: EMP501_2024_2025.xml
+Upload to SARS eFiling portal
+```
+
+**IRP5 Bulk XML Export:**
+```python
+Navigate to: SA Tax > IRP5 Certificate > List View
+Select: All employee certificates
+Actions > "Export Bulk XML"
+Download: IRP5_Bulk_2024_2025.xml
+Upload to SARS eFiling portal
+```
+
+### Data Import Templates
+
+**Import Employees (CSV):**
+```csv
+employee_id,first_name,last_name,za_id_number,date_of_joining,department
+EMP001,John,Doe,9001015009087,2024-01-15,Engineering
+EMP002,Jane,Smith,8508225009081,2024-02-01,Sales
+```
+
+**Import Salary Structures (CSV):**
+```csv
+employee,base,housing_allowance,travel_allowance,from_date
+EMP001,25000,5000,3000,2024-03-01
+EMP002,30000,6000,0,2024-03-01
+```
+
+### API Integration
+
+**Payroll API Endpoints:**
+```python
+# Get employee payroll data
+GET /api/resource/Salary Slip?employee=EMP001&filters=[["posting_date",">=","2024-01-01"]]
+
+# Create additional salary
+POST /api/resource/Additional Salary
+{
+    "employee": "EMP001",
+    "salary_component": "Bonus",
+    "amount": 5000,
+    "payroll_date": "2024-03-31"
+}
+
+# Get EMP201 data
+GET /api/resource/EMP201 Submission/EMP201-00001
+```
+
+### Scheduled Compliance Checks
+
+**Automated Daily Tasks:**
+- Tax directive expiry warnings (30 days)
+- ETI eligibility changes (age/tenure)
+
+**Automated Weekly Tasks:**
+- ID number validation (checksum + duplicates)
+
+**Automated Monthly Tasks:**
+- SARS rate update reminders
+- COIDA rate review alerts
+
+**Automated Quarterly Tasks:**
+- EEA reporting deadline reminders
+
+**Check Status:**
+```bash
+bench execute za_local.tasks.daily
+bench execute za_local.tasks.weekly
+bench execute za_local.tasks.monthly
+```
+
+---
+
+## 22. Common Workflows Quick Reference
+
+### Monthly Payroll (5-Step Process)
+
+```
+1. PREPARE (Week 1)
+   └─ Update employee changes (joins/leaves/promotions)
+   └─ Process additional salaries (bonuses/deductions)
+   └─ Apply tax directives
+   └─ Review leave applications
+
+2. PROCESS (Week 3)
+   └─ Create Payroll Entry
+   └─ Get Employees
+   └─ Create Salary Slips
+   └─ Review for accuracy
+
+3. APPROVE (Week 3)
+   └─ Manager reviews salary slips
+   └─ HR confirms totals
+   └─ Submit Payroll Entry
+
+4. PAY (Week 4)
+   └─ Generate EFT file
+   └─ Upload to bank
+   └─ Confirm payments processed
+
+5. REPORT (Week 4)
+   └─ Create EMP201
+   └─ Submit to SARS by 7th
+   └─ Pay SARS by 7th
+   └─ Archive payslips
+```
+
+### Annual Tax Cycle
+
+```
+MARCH (Tax Year Start)
+└─ Update tax rebates for new year
+└─ Update ETI slabs
+└─ Update UIF threshold
+
+MAY (IRP5 Season)
+└─ Generate IRP5 certificates (all employees)
+└─ Review and correct errors
+└─ Submit EMP501 reconciliation
+└─ Deadline: May 31
+
+JUNE-JULY
+└─ Submit IRP5 bulk file to SARS
+└─ Distribute IRP5s to employees
+└─ Handle SARS queries
+
+NOVEMBER
+└─ Second EMP501 submission (if 2nd period)
+└─ Reconcile provisional tax
+```
+
+### Employee Lifecycle
+
+```
+HIRE
+└─ Create Employee record
+└─ Employment Equity classification
+└─ Assign to Bargaining Council (if applicable)
+└─ Create Salary Structure Assignment
+└─ Allocate leave
+└─ Generate employment contract
+
+MANAGE
+└─ Process monthly payroll
+└─ Track leave applications
+└─ Record training (Skills Development)
+└─ Annual performance reviews
+└─ Salary increases
+
+TERMINATE
+└─ Employee Separation record
+└─ Calculate notice period (BCEA)
+└─ Final Settlement (severance/leave)
+└─ Final payslip
+└─ UIF U19 declaration
+└─ IRP5 certificate
+```
+
+---
+
+## 23. Troubleshooting & FAQs
+
+### Common Issues
+
+**Q: ETI not calculating on salary slip**
+
+A: Check:
+1. Employee age < 30 (ETI eligibility)
+2. Employment tenure < 24 months
+3. ETI slabs exist for tax year
+4. Salary within ETI bands (R2,000-R6,500)
+5. Payroll Settings > "Disable ETI" = unchecked
+
+**Q: PAYE amount seems incorrect**
+
+A: Verify:
+1. Employee tax rebates configured
+2. Medical tax credits applied (if dependants)
+3. Tax directive active (overrides standard PAYE)
+4. Annual taxable income calculation method
+5. Previous months YTD figures correct
+
+**Q: UIF deduction exceeds R177.12**
+
+A: Check:
+1. Salary component formula: `min(gross_pay * 0.01, 177.12)`
+2. UIF threshold updated (R17,712 monthly cap)
+3. Additional salaries not double-counting
+
+**Q: IRP5 totals don't match EMP201**
+
+A: Reconcile:
+1. IRP5 = per employee for tax year
+2. EMP201 = monthly submissions total
+3. Check for missed months
+4. Verify employee count
+5. Review mid-year joins/leaves
+
+**Q: Business Trip not generating Expense Claim**
+
+A: Check:
+1. Business Trip Settings > "Auto Create Expense Claim" = ✅
+2. Business Trip status = "Submitted"
+3. Expense Claim Type configured
+4. Employee has manager assigned (if approval required)
+
+**Q: CSV import failing for Business Trip Regions**
+
+A: Verify:
+1. CSV file encoding (UTF-8)
+2. Numeric values in correct format (1500 not "1,500")
+3. Required fields: region_name, daily_allowance_rate
+4. File path: `za_local/data/business_trip_region.csv`
+
+### Error Messages
+
+**Error:** "Document Links Row #1: Invalid doctype or fieldname"
+
+**Solution:** This error during installation means a DocType Link references a non-existent field. Check `hooks.py` for invalid link configurations. All DocType Links have been validated in v3.1.
+
+**Error:** "Custom field already exists"
+
+**Solution:** During reinstall, custom fields may already exist. The system skips duplicates automatically. If persistent, manually delete custom fields via Customize Form before reinstall.
+
+**Error:** "'<' not supported between instances of 'str' and 'int'"
+
+**Solution:** CSV import type conversion issue (fixed in v3.1). Ensure `csv_importer.py` includes `convert_csv_types()` function.
+
+### Performance Optimization
+
+**Large Payroll (500+ employees):**
+1. Process payroll in batches (by department)
+2. Increase timeout settings
+3. Schedule during off-peak hours
+4. Use background jobs
+
+**Slow Reports:**
+1. Add database indexes on frequently queried fields
+2. Limit date ranges
+3. Filter by company/department
+4. Export to Excel for complex analysis
+
+---
+
+## 24. Compliance Calendar
+
+### Monthly Deadlines
+
+| Date | Task | Authority | Penalty for Late |
+|------|------|-----------|------------------|
+| 7th | EMP201 Submission | SARS | R250/day + 10% penalty |
+| 7th | PAYE Payment | SARS | Interest + penalty |
+| 7th | UIF/SDL Payment | SARS | Interest + penalty |
+| 15th | COIDA Payment (if monthly) | Compensation Fund | 10% penalty |
+| 25th | VAT201 Return (monthly) | SARS | R250/day |
+| 25th | VAT Payment | SARS | 10% penalty + interest |
+| Last day | Payroll Processing | Internal | Employee dissatisfaction |
+
+### Quarterly Deadlines
+
+| Month | Task | Authority |
+|-------|------|-----------|
+| Jan/Apr/Jul/Oct | COIDA Payment (quarterly) | Compensation Fund |
+| End of Quarter | Provisional Tax (if applicable) | SARS |
+
+### Annual Deadlines
+
+| Date | Task | Authority | Penalty |
+|------|------|-----------|---------|
+| **March 31** | COIDA Annual Return (ROE) | Compensation Fund | 10% + interest |
+| **April 30** | WSP Submission | SETA | Loss of Mandatory Grant |
+| **April 30** | ATR Submission | SETA | Loss of Discretionary Grant |
+| **May 31** | IRP5 Generation | Internal (SARS by June 15) | Employee complaints |
+| **May 31** | EMP501 Reconciliation (Period 1) | SARS | R250/day |
+| **November 30** | EMP501 Reconciliation (Period 2) | SARS | R250/day |
+| **January 15** | EEA Report Submission (if designated) | DOL | Up to R2.7M fine |
+
+### Tax Year Dates
+
+**South African Tax Year:**
+- **Starts:** March 1
+- **Ends:** February 28/29
+
+**Important Tax Year Tasks:**
+- **March:** Update tax tables, rebates, thresholds
+- **February:** Year-end preparations, provisional reconciliations
+
+### Reminder: Enable Scheduled Tasks
+
+Ensure scheduled tasks are running:
+```bash
+bench --site your-site enable-scheduler
+bench doctor  # Verify scheduler is active
+```
+
+---
+
+## 25. Best Practices
+
+### Data Backup
+
+**Daily Backups:**
+```bash
+bench --site your-site backup
+# Stores in: sites/your-site/private/backups/
+```
+
+**Off-site Storage:**
+- Copy backups to cloud storage (Dropbox/Google Drive)
+- Retain for minimum 5 years (SARS requirement)
+
+**Test Restores:**
+- Quarterly restore test on staging environment
+- Document restore procedure
+
+### Security
+
+**User Access Control:**
+- HR Manager: Full access
+- Payroll Officer: Payroll + Tax only
+- Employee: View own payslips only
+- Manager: Approve team leave/expense claims
+
+**Sensitive Data:**
+- ID numbers encrypted at rest
+- Salary information role-restricted
+- Audit log for all payroll changes
+
+**Password Policy:**
+- Minimum 10 characters
+- 2FA for admin users
+- Password rotation every 90 days
+
+### Audit Trail
+
+**Maintain:**
+- All payroll reports (5 years)
+- All EMP201 submissions (5 years)
+- All IRP5 certificates (5 years)
+- Employee records (3 years after termination)
+- COIDA injury reports (4 years)
+
+### Month-End Checklist
+
+**Before Processing:**
+- [ ] All leave applications approved/rejected
+- [ ] All additional salaries created
+- [ ] All employee changes processed (joins/leaves)
+- [ ] Tax directives updated
+- [ ] Bank account changes verified
+
+**During Processing:**
+- [ ] Payroll Entry created
+- [ ] All employees included
+- [ ] Salary slips reviewed (spot-check 10%)
+- [ ] Totals reconciled to budget
+- [ ] Manager approval obtained
+
+**After Processing:**
+- [ ] Payroll submitted
+- [ ] EFT file generated and sent to bank
+- [ ] Employee payslips distributed (email)
+- [ ] EMP201 created and submitted
+- [ ] SARS payment made
+- [ ] Reports archived
+
+**Reconciliation:**
+- [ ] Payroll to GL reconciliation
+- [ ] Bank statement reconciliation
+- [ ] SARS payment confirmation
+- [ ] Outstanding variances resolved
+
+### Year-End Checklist
+
+**February (Year-End):**
+- [ ] Review all employee records for accuracy
+- [ ] Confirm all payrolls processed (12 months)
+- [ ] Verify YTD totals on salary slips
+- [ ] Generate preliminary IRP5s for review
+
+**March (New Tax Year):**
+- [ ] Update tax tables/rebates/thresholds
+- [ ] Update ETI slabs for new year
+- [ ] Review salary structures
+- [ ] Annual leave reset (if applicable)
+
+**May (IRP5 Season):**
+- [ ] Generate final IRP5s
+- [ ] Employee review and corrections
+- [ ] EMP501 reconciliation
+- [ ] Submit to SARS by May 31
+- [ ] Distribute IRP5s to employees
+
+### Performance Tips
+
+**Optimize Payroll Processing:**
+1. Process in batches (max 100 employees)
+2. Use filters (department/branch)
+3. Clear browser cache regularly
+4. Schedule large processes during off-peak
+
+**Database Maintenance:**
+```bash
+bench --site your-site mariadb
+ANALYZE TABLE `tabSalary Slip`;
+ANALYZE TABLE `tabEmployee`;
+```
+
+**Regular Cleanup:**
+- Archive old payroll data (> 5 years)
+- Delete draft salary slips after submit
+- Clear system logs (> 90 days)
+
+---
+
+## 26. Support & Resources
+
+### Documentation
+
+- **README.md**: Quick overview and features
+- **QUICK_SETUP_CHECKLIST.md**: 2-hour setup guide
+- **FEATURE_COMPARISON.md**: vs erpnext_germany
+- **VALIDATION_REPORT_v3.1.md**: System validation
+- **TUTORIAL_OUTLINE.md**: Video tutorial scripts
+- **FINAL_SUMMARY.md**: Implementation summary
+
+### Official Resources
+
+**SARS (Tax):**
+- Website: www.sars.gov.za
+- eFiling: www.sarsefiling.co.za
+- Contact: 0800 00 SARS (7277)
+
+**Department of Labour:**
+- Website: www.labour.gov.za
+- CCMA: www.ccma.org.za
+- Contact: 0860 105 090
+
+**Department of Employment & Labour:**
+- UIF: www.ufiling.co.za
+- Contact: 0800 030 007
+
+**Compensation Fund (COIDA):**
+- Website: www.labour.gov.za/compensation-fund
+- Online: secure.cfonline.org.za
+- Contact: 012 319 5000
+
+**National Minimum Wage Commission:**
+- Website: www.thepresidency.gov.za
+
+### za_local Support
+
+**Community Support:**
+- **GitHub Issues**: Report bugs, request features
+- **Frappe Forum**: Community discussions
+- **Stack Overflow**: Tag `frappe` + `za-local`
+
+**Professional Support:**
+- **Email**: info@cohenix.com
+- **Website**: www.cohenix.com
+- **Implementation Services**: Custom setup, training, migration
+- **Support Plans**: Hourly/monthly retainer options
+
+### Training Resources
+
+**Video Tutorials** (See TUTORIAL_OUTLINE.md):
+1. Quick Start (5 min)
+2. Complete Setup (15 min)
+3. Monthly Payroll (10 min)
+4. Annual Tax Reconciliation (10 min)
+5. Employee Termination (5 min)
+6. Business Trips (8 min)
+7. Employment Equity (12 min)
+
+**Webinars:**
+- Monthly compliance updates
+- Feature deep-dives
+- Q&A sessions
+
+### Legal Disclaimer
+
+This software is provided "as is" without warranty. While za_local aims for full compliance with South African labour and tax laws, users are responsible for:
+
+1. Verifying calculations against current legislation
+2. Consulting with tax professionals for complex scenarios
+3. Maintaining proper records for audits
+4. Submitting all returns to authorities
+5. Making all statutory payments on time
+
+Cohenix and the za_local contributors are not liable for penalties, interest, or losses resulting from misconfiguration or misuse of the software.
+
+**Always consult qualified professionals** (accountants, tax attorneys, labour consultants) for complex compliance matters.
+
+### Updates & Changelog
+
+**Current Version:** 3.1.0 (January 2025)
+
+**Recent Updates:**
+- ✅ Business Trip Management (8 DocTypes)
+- ✅ Document deletion protection (SARS audit)
+- ✅ Property setters (40+ DocTypes)
+- ✅ Enhanced employee fields (7 fields)
+- ✅ Automated compliance tasks (5 scheduled)
+- ✅ CSV master data import (51 records)
+- ✅ Bidirectional DocType links (21 links)
+
+**Coming Soon (Roadmap):**
+- 🔄 SARS API integration (direct eFiling)
+- 🔄 Advanced BEE scorecard calculator
+- 🔄 Pension fund integrations
+- 🔄 Mobile app (employee self-service)
+- 🔄 Advanced analytics dashboard
+
+### Contributing
+
+za_local is open-source (MIT License). Contributions welcome:
+
+1. **Fork** repository
+2. **Create** feature branch
+3. **Test** thoroughly
+4. **Submit** pull request
+5. **Document** changes
+
+**Code Standards:**
+- PEP 8 for Python
+- ESLint for JavaScript
+- Frappe coding guidelines
+- Comprehensive docstrings
+
+### Acknowledgments
+
+- **Frappe Community**: Excellent framework
+- **erpnext_germany**: Inspiration and benchmarking
+- **SA Business Community**: Compliance requirements and feedback
+- **Contributors**: All developers and testers
+
+---
+
+## 🎉 Congratulations!
+
+You've completed the za_local Implementation Guide. You now have the knowledge to:
+
+✅ Install and configure za_local  
+✅ Process monthly payroll with full SARS compliance  
+✅ Manage employee lifecycle (hire to termination)  
+✅ Handle tax submissions (EMP201, EMP501, IRP5)  
+✅ Track fringe benefits and travel  
+✅ Generate Employment Equity reports  
+✅ Manage COIDA and VAT compliance  
+✅ Process employee terminations (BCEA-compliant)  
+✅ Create business trips with expense claims  
+✅ Generate comprehensive reports  
+
+**Your Next Steps:**
+1. Complete Quick Setup Checklist (2 hours)
+2. Create test data and practice
+3. Process first production payroll
+4. Schedule monthly compliance tasks
+5. Train your team
+
+**Support:** If you need help, refer to Section 26 for resources.
+
+---
+
+**Built with ❤️ by Cohenix for the South African ERPNext community** 🇿🇦
+
+**za_local v3.1.0** - World-Class South African Localization
+
+---
+
+*End of Implementation Guide*
 

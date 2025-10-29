@@ -68,10 +68,39 @@ override_doctype_class = {
 # ------------------
 # Hook on document methods and events
 doc_events = {
+    # Journal Entry events (existing)
     "Journal Entry": {
         "on_trash": "za_local.overrides.journal_entry.on_trash",
         "on_cancel": "za_local.overrides.journal_entry.on_cancel"
-    }
+    },
+    
+    # Sales document deletion protection (SARS audit trail)
+    "Quotation": {
+        "on_trash": "za_local.custom.sales.on_trash",
+    },
+    "Sales Order": {
+        "on_trash": "za_local.custom.sales.on_trash",
+    },
+    "Sales Invoice": {
+        "on_trash": "za_local.custom.sales.on_trash",
+    },
+    
+    # Purchase document deletion protection (SARS audit trail)
+    "Request for Quotation": {
+        "on_trash": "za_local.custom.purchase.on_trash",
+    },
+    "Supplier Quotation": {
+        "on_trash": "za_local.custom.purchase.on_trash",
+    },
+    "Purchase Order": {
+        "on_trash": "za_local.custom.purchase.on_trash",
+    },
+    "Purchase Receipt": {
+        "on_trash": "za_local.custom.purchase.on_trash",
+    },
+    "Purchase Invoice": {
+        "on_trash": "za_local.custom.purchase.on_trash",
+    },
 }
 
 # Monkey Patching
@@ -81,16 +110,250 @@ from hrms.payroll.doctype.payroll_entry import payroll_entry as _payroll_entry
 from za_local.overrides import payroll_entry as _za_payroll_entry
 _payroll_entry.get_payroll_entry_bank_entries = _za_payroll_entry.get_payroll_entry_bank_entries
 
+# Custom Records (DocType Links for Bidirectional Connections)
+# ------------------
+# Creates links between za_local DocTypes and standard DocTypes
+# These appear in the "Connections" tab of documents
+za_local_custom_records = [
+	# Employee-related DocTypes (13 links)
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Tax & Compliance",
+		"link_doctype": "Tax Directive",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Benefits",
+		"link_doctype": "Fringe Benefit",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Benefits",
+		"link_doctype": "Company Car Benefit",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Benefits",
+		"link_doctype": "Housing Benefit",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Benefits",
+		"link_doctype": "Low Interest Loan Benefit",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Benefits",
+		"link_doctype": "Cellphone Benefit",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Benefits",
+		"link_doctype": "Fuel Card Benefit",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Benefits",
+		"link_doctype": "Bursary Benefit",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Payroll",
+		"link_doctype": "Leave Encashment SA",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Separation",
+		"link_doctype": "Employee Final Settlement",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Tax & Compliance",
+		"link_doctype": "UIF U19 Declaration",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Payroll",
+		"link_doctype": "NAEDO Deduction",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Employee",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Training & Development",
+		"link_doctype": "Skills Development Record",
+		"link_fieldname": "employee",
+		"custom": 1,
+	},
+	
+	# Company-related DocTypes (5 links)
+	{
+		"doctype": "DocType Link",
+		"parent": "Company",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Tax & Compliance",
+		"link_doctype": "IT3b Certificate",
+		"link_fieldname": "company",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Company",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Payroll",
+		"link_doctype": "Retirement Fund",
+		"link_fieldname": "company",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Company",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Payroll",
+		"link_doctype": "Travel Allowance Rate",
+		"link_fieldname": "company",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Company",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Training & Development",
+		"link_doctype": "Workplace Skills Plan",
+		"link_fieldname": "company",
+		"custom": 1,
+	},
+	{
+		"doctype": "DocType Link",
+		"parent": "Company",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Training & Development",
+		"link_doctype": "Annual Training Report",
+		"link_fieldname": "company",
+		"custom": 1,
+	},
+	
+	# Payroll Entry-related DocTypes (1 link)
+	# Note: EMP201 Submission link removed - field doesn't exist in DocType
+	{
+		"doctype": "DocType Link",
+		"parent": "Payroll Entry",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Payroll",
+		"link_doctype": "Payroll Payment Batch",
+		"link_fieldname": "payroll_entry",
+		"custom": 1,
+	},
+	
+	# Bargaining Council-related (1 link)
+	{
+		"doctype": "DocType Link",
+		"parent": "Bargaining Council",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Sectoral Compliance",
+		"link_doctype": "Industry Specific Contribution",
+		"link_fieldname": "bargaining_council",
+		"custom": 1,
+	},
+	
+	# Expense Claim link to Business Trip
+	{
+		"doctype": "DocType Link",
+		"parent": "Expense Claim",
+		"parentfield": "links",
+		"parenttype": "DocType",
+		"group": "Travel",
+		"link_doctype": "Business Trip",
+		"link_fieldname": "expense_claim",
+		"custom": 1,
+	},
+]
+
 # Scheduled Tasks
 # ------------------
-# scheduler_events = {
-#     "daily": [
-#         "za_local.tasks.daily"
-#     ],
-#     "monthly": [
-#         "za_local.tasks.monthly"
-#     ]
-# }
+# Automated compliance monitoring and reminders
+scheduler_events = {
+	"all": [
+		"za_local.tasks.all"
+	],
+	"daily": [
+		"za_local.tasks.daily"
+	],
+	"weekly": [
+		"za_local.tasks.weekly"
+	],
+	"monthly": [
+		"za_local.tasks.monthly"
+	]
+}
 
 # Permissions
 # ------------------

@@ -7,7 +7,13 @@ for the South African localization app.
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.customize_form.customize_form import (
+	docfield_properties,
+	doctype_properties,
+)
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from za_local.setup.custom_fields import setup_custom_fields
+from za_local.setup.property_setters import get_property_setters
 
 
 def before_install():
@@ -26,10 +32,15 @@ def after_install():
     
     Sets up:
     - Custom fields for South African compliance
+    - Property setters for default values
     - Default data (ETI slabs, tax rebates, etc.)
+    - Master data from CSV files
     """
     setup_custom_fields()
+    make_property_setters()
     setup_default_data()
+    import_master_data()
+    insert_custom_records()
     frappe.db.commit()
     print("\n" + "="*80)
     print("South African Localization installed successfully!")
@@ -39,6 +50,7 @@ def after_install():
     print("2. Set up Payroll Settings with SA statutory components")
     print("3. Configure ETI Slabs and Tax Rebates")
     print("4. Set up COIDA and VAT settings if applicable")
+    print("5. Configure Business Trip Settings for travel allowances")
     print("="*80 + "\n")
 
 
@@ -237,4 +249,107 @@ def setup_default_salary_components():
     
     for component in components:
         create_salary_component_if_not_exists(component)
+
+
+def make_property_setters():
+	"""
+	Create property setters for South African localization.
+	
+	Sets default values and customizations for standard DocTypes:
+	- Default currency to ZAR
+	- Hide irrelevant fields
+	- Protect attachments on compliance documents
+	"""
+	print("Creating property setters...")
+	
+	for doctypes, property_setters in get_property_setters().items():
+		if isinstance(doctypes, str):
+			doctypes = (doctypes,)
+
+		for doctype in doctypes:
+			for property_setter in property_setters:
+				if property_setter[0]:
+					for_doctype = False
+					property_type = docfield_properties[property_setter[1]]
+				else:
+					for_doctype = True
+					property_type = doctype_properties[property_setter[1]]
+
+				make_property_setter(
+					doctype=doctype,
+					fieldname=property_setter[0],
+					property=property_setter[1],
+					value=property_setter[2],
+					property_type=property_type,
+					for_doctype=for_doctype,
+				)
+	
+	print("✓ Property setters created successfully")
+
+
+def import_master_data():
+	"""
+	Import master data from CSV files.
+	
+	Loads predefined data for:
+	- Business Trip Regions (SA cities and international rates)
+	- SETA list
+	- Bargaining Councils
+	"""
+	print("Importing master data...")
+	
+	try:
+		from za_local.utils.csv_importer import import_all_master_data
+		import_all_master_data()
+	except Exception as e:
+		print(f"  Warning: Could not import master data: {e}")
+		print("  Master data can be imported manually later.")
+
+
+def insert_custom_records():
+	"""
+	Insert custom records like DocType Links for bidirectional connections.
+	
+	Creates links between za_local DocTypes and standard ERPNext DocTypes
+	so that related records show in the Connections tab.
+	"""
+	print("Inserting custom records...")
+	
+	for custom_record in frappe.get_hooks("za_local_custom_records"):
+		filters = custom_record.copy()
+		# Clean up filters. They need to be a plain dict without nested dicts or lists.
+		for key, value in custom_record.items():
+			if isinstance(value, (list, dict)):
+				del filters[key]
+
+		if not frappe.db.exists(filters):
+			frappe.get_doc(custom_record).insert(ignore_if_duplicate=True)
+	
+	print("✓ Custom records inserted successfully")
+
+
+def setup_default_retirement_funds():
+	"""Create default retirement fund types for South African retirement planning"""
+	retirement_funds = [
+		{"fund_name": "Company Pension Fund", "fund_type": "Pension"},
+		{"fund_name": "Company Provident Fund", "fund_type": "Provident"},
+		{"fund_name": "Retirement Annuity", "fund_type": "Retirement Annuity"},
+	]
+	
+	for fund in retirement_funds:
+		if not frappe.db.exists("Retirement Fund", {"fund_name": fund["fund_name"]}):
+			try:
+				doc = frappe.get_doc({
+					"doctype": "Retirement Fund",
+					**fund,
+					"employee_contribution_percentage": 7.5,
+					"employer_contribution_percentage": 10.0,
+					"tax_deductible_limit": 27.5,  # 27.5% of taxable income
+					"company": frappe.defaults.get_defaults().get("company")
+				})
+				doc.insert(ignore_permissions=True)
+			except Exception as e:
+				print(f"! Could not create retirement fund {fund['fund_name']}: {e}")
+	
+	print("✓ Default retirement funds created")
 
