@@ -39,7 +39,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Setup Status",
-   "options": "Pending\nIn Progress\nCompleted\nSkipped",
+   "options": "Pending\nIn Progress\nCompleted",
    "reqd": 1
   },
   {

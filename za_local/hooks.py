@@ -55,9 +55,8 @@ after_uninstall = "za_local.setup.uninstall.after_uninstall"
 
 # Setup Wizard Integration
 # ------------------
-on_session_creation = [
-	"za_local.setup.setup_wizard.check_sa_setup_needed"
-]
+setup_wizard_requires = "assets/za_local/js/setup_wizard.js"
+setup_wizard_stages = "za_local.setup.setup_wizard.get_sa_localization_stages"
 
 # DocType Class Overrides
 # ------------------

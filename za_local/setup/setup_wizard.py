@@ -261,107 +261,79 @@ def get_wizard_status(company=None):
     return status
 
 
-def check_sa_setup_needed(login_manager=None):
+def get_sa_localization_stages(args):
 	"""
-	Called on every session creation (login).
-	Checks if this is first login after ERPNext setup for a South African company.
-	Only redirects once to za_local setup page.
+	Return za_local setup stage for the wizard.
+	Only returns a stage if country is South Africa.
 	
-	Args:
-		login_manager: Frappe login manager object (passed by hook)
+	Called by Frappe's setup wizard via setup_wizard_stages hook.
 	"""
 	import frappe
 	from frappe import _
 	
-	# Don't run for Guest user or if not in request context
-	if not frappe.session or frappe.session.user == "Guest":
-		return
+	# Only add stage if country is South Africa
+	country = args.get("country")
+	if country != "South Africa":
+		return []
 	
-	# Check if za_local is installed
-	if "za_local" not in frappe.get_installed_apps():
-		return
-	
-	# Check if this is a fresh setup (company exists but < 10 docs total)
-	# This indicates we just completed setup wizard
-	companies = frappe.get_all("Company", filters={"country": "South Africa"}, limit=1)
-	
-	if not companies:
-		return  # No South African companies
-	
-	company_name = companies[0].name
-	
-	# Check if setup already exists or was shown
-	if frappe.db.exists("ZA Local Setup", {"company": company_name}):
-		return  # Already created setup doc
-	
-	# Check if user has dismissed setup
-	# Using cache to avoid repeated database queries
-	cache_key = f"za_setup_dismissed_{company_name}"
-	if frappe.cache().get(cache_key):
-		return
-	
-	# Create setup document and redirect
-	try:
-		setup_doc = frappe.get_doc({
-			"doctype": "ZA Local Setup",
-			"company": company_name,
-			"setup_status": "Pending",
-			"country": "South Africa",
-			# Default selections (all recommended items enabled)
-			"load_salary_components": 1,
-			"load_earnings_components": 1,
-			"load_tax_slabs": 1,
-			"load_tax_rebates": 1,
-			"load_medical_credits": 1,
-			"load_business_trip_regions": 1,
-			"load_seta_list": 0,  # Optional
-			"load_bargaining_councils": 0  # Optional
-		})
-		setup_doc.insert(ignore_permissions=True)
-		frappe.db.commit()
-		
-		# Set message to show in UI
-		frappe.msgprint(
-			_("Welcome! Let's configure your South African payroll and compliance settings."),
-			title=_("ZA Localization Setup"),
-			indicator="blue"
-		)
-		
-		# Redirect happens via client-side after msgprint is shown
-		frappe.local.response["redirect_to"] = f"/app/za-local-setup/{setup_doc.name}"
-		
-	except Exception as e:
-		# Log error but don't break the login process
-		frappe.log_error(f"Failed to create ZA Local Setup: {str(e)}", "ZA Local Setup Wizard")
+	return [
+		{
+			"status": _("Configuring South African Localization"),
+			"fail_msg": _("Failed to configure SA localization"),
+			"tasks": [
+				{
+					"fn": setup_za_localization,
+					"args": args,
+					"fail_msg": _("Failed to setup SA localization")
+				}
+			]
+		}
+	]
 
 
-@frappe.whitelist()
-def dismiss_setup_wizard():
+def setup_za_localization(args):
 	"""
-	Mark the setup wizard as dismissed so it doesn't appear again.
-	Called when user clicks 'Skip Setup' button.
+	Execute za_local setup during the wizard.
+	Loads salary components, tax slabs, and master data.
+	
+	Args:
+		args: Dictionary from setup wizard containing user selections
 	"""
 	import frappe
+	from frappe import _
+	from za_local.setup.install import load_data_from_json, insert_record
+	from za_local.utils.csv_importer import import_csv_data
+	from pathlib import Path
 	
-	# Get current company
-	companies = frappe.get_all("Company", filters={"country": "South Africa"}, limit=1)
+	# Get user selections from args (passed from JavaScript)
+	load_salary = args.get("za_load_salary_components", 1)
+	load_earnings = args.get("za_load_earnings_components", 1)
+	load_tax_slabs = args.get("za_load_tax_slabs", 1)
+	load_tax_rebates = args.get("za_load_tax_rebates", 1)
+	load_medical = args.get("za_load_medical_credits", 1)
+	load_regions = args.get("za_load_business_trip_regions", 1)
 	
-	if companies:
-		company_name = companies[0].name
-		# Set cache flag to prevent showing again
-		cache_key = f"za_setup_dismissed_{company_name}"
-		frappe.cache().set(cache_key, 1, expires_in_sec=31536000)  # 1 year
+	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
+	
+	try:
+		if load_salary:
+			load_data_from_json(data_dir / "salary_components.json")
 		
-		# Also create a skipped setup record for audit trail
-		if not frappe.db.exists("ZA Local Setup", {"company": company_name}):
-			setup_doc = frappe.get_doc({
-				"doctype": "ZA Local Setup",
-				"company": company_name,
-				"setup_status": "Skipped",
-				"country": "South Africa"
-			})
-			setup_doc.insert(ignore_permissions=True)
-			frappe.db.commit()
-	
-	return {"status": "dismissed"}
+		if load_earnings:
+			load_data_from_json(data_dir / "earnings_components.json")
+		
+		if load_tax_slabs:
+			load_data_from_json(data_dir / "tax_slabs_2024.json")
+		
+		if load_tax_rebates or load_medical:
+			load_data_from_json(data_dir / "tax_rebates_2024.json")
+		
+		if load_regions:
+			import_csv_data("Business Trip Region", "business_trip_region.csv")
+		
+		frappe.msgprint(_("South African localization configured successfully!"))
+		
+	except Exception as e:
+		frappe.log_error(f"SA Localization setup failed: {str(e)}", "ZA Local Setup")
+		raise
 
