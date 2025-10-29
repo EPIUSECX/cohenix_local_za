@@ -67,7 +67,7 @@ frappe.ui.form.on('EMP501 Reconciliation', {
             // Add button to download CSV for SARS e-Filing
             frm.add_custom_button(__('Download CSV for e-Filing'), function() {
                 frappe.call({
-                    method: 'kartoza.kartoza.utils.emp501_utils.generate_emp501_csv',
+                    method: 'za_local.utils.emp501_utils.generate_emp501_csv',
                     args: {
                         emp501: frm.doc.name
                     },
@@ -95,7 +95,7 @@ frappe.ui.form.on('EMP501 Reconciliation', {
 
     get_dates: function(frm) {
         frappe.call({
-            method: "kartoza.kartoza.doctype.emp501_reconciliation.emp501_reconciliation.get_period_dates",
+            method: "za_local.sa_tax.doctype.emp501_reconciliation.emp501_reconciliation.get_period_dates",
             args: {
                 tax_year: frm.doc.tax_year,
                 reconciliation_period: frm.doc.reconciliation_period
@@ -119,7 +119,7 @@ frappe.ui.form.on('EMP501 Reconciliation', {
             frm.company_set = frm.doc.company;
 
             frappe.call({
-                method: 'kartoza.kartoza.doctype.emp501_reconciliation.emp501_reconciliation.get_company_tax_details',
+                method: 'za_local.sa_tax.doctype.emp501_reconciliation.emp501_reconciliation.get_company_tax_details',
                 args: {
                     company: frm.doc.company
                 },

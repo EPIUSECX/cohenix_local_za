@@ -1,0 +1,10 @@
+# ZA Local Dependencies
+# South African Localization for ERPNext and Frappe HR
+
+# PDF Generation (for IRP5 certificates, reports, exports)
+PyPDF2>=3.0.0
+reportlab>=4.0.0
+
+# Date/Time utilities (usually included with Frappe, but listed for completeness)
+python-dateutil>=2.8.2
+

@@ -336,7 +336,7 @@ class IRP5Certificate(Document):
         # ... (rest of generate_irp5_pdf method remains largely the same)
         # Ensure all self.field references are valid and handle None for amounts
         if not pdf_generation_available: frappe.throw(_("PDF generation libraries not installed."))
-        template_path = frappe.get_app_path("kartoza", "kartoza", "print_format", "irp5_certificate", "Template_Employee Income Payroll Certificate - IRP5 form.pdf")
+        template_path = frappe.get_app_path("za_local", "za_local", "print_format", "irp5_certificate", "Template_Employee Income Payroll Certificate - IRP5 form.pdf")
         if not os.path.exists(template_path): frappe.throw(_("IRP5 template not found..."))
             
         packet = BytesIO()

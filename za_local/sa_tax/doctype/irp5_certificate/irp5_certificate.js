@@ -8,14 +8,10 @@ frappe.ui.form.on('IRP5 Certificate', {
             frm.set_df_property('income_details', 'hidden', 1);
             frm.set_df_property('deduction_details', 'hidden', 1);
             frm.set_df_property('company_contribution_details', 'hidden', 1);
-            // Show summary if available
-            frm.refresh_field('bulk_generation_summary');
         } else {
             frm.set_df_property('income_details', 'hidden', 0);
             frm.set_df_property('deduction_details', 'hidden', 0);
             frm.set_df_property('company_contribution_details', 'hidden', 0);
-            frm.set_value('bulk_generation_summary', null);
-            frm.refresh_field('bulk_generation_summary');
         }
         // Add unified Generate Certificate Data button in Draft state
         if (frm.doc.docstatus === 0) {
@@ -30,30 +26,44 @@ frappe.ui.form.on('IRP5 Certificate', {
                         reconciliation_period: frm.doc.reconciliation_period
                     };
                     frappe.call({
-                        method: 'kartoza.kartoza.doctype.irp5_certificate.irp5_certificate.bulk_generate_certificates',
+                        method: 'za_local.sa_tax.doctype.irp5_certificate.irp5_certificate.bulk_generate_certificates',
                         args: { filters_json: JSON.stringify(filters) },
                         freeze: true,
                         freeze_message: __('Generating IRP5 Certificates for all matching employees...'),
                         callback: function(r) {
-                    let summary = '';
-                    if (r.message) {
-                        summary = `<b>${__(r.message.message || r.message.error || 'Bulk generation complete.')}</b><br>`;
-                        if (r.message.created && r.message.created.length) {
-                            summary += __('Created: ') + r.message.created.join(', ') + '<br>';
-                        }
-                        if (r.message.updated && r.message.updated.length) {
-                            summary += __('Updated: ') + r.message.updated.join(', ') + '<br>';
-                        }
-                        if (r.message.errors && r.message.errors.length) {
-                            summary += __('Errors: ') + JSON.stringify(r.message.errors) + '<br>';
-                        }
-                    }
-                    if (!summary) {
-                        summary = __('No certificates were created or updated.');
-                    }
-                    frm.set_value('bulk_generation_summary', summary);
-                    frm.refresh();
-                    frm.refresh_field('bulk_generation_summary');
+                            if (r.message) {
+                                let msg = r.message.message || 'Bulk generation complete.';
+                                let details = [];
+                                
+                                if (r.message.created && r.message.created.length) {
+                                    details.push(__('Created: ') + r.message.created.length);
+                                }
+                                if (r.message.updated && r.message.updated.length) {
+                                    details.push(__('Updated: ') + r.message.updated.length);
+                                }
+                                if (r.message.errors && r.message.errors.length) {
+                                    details.push(__('Errors: ') + r.message.errors.length);
+                                }
+                                
+                                let full_message = msg;
+                                if (details.length > 0) {
+                                    full_message += '<br>' + details.join(', ');
+                                }
+                                
+                                frappe.msgprint({
+                                    title: __('Bulk Generation Complete'),
+                                    message: full_message,
+                                    indicator: r.message.errors && r.message.errors.length ? 'orange' : 'green'
+                                });
+                                
+                                frm.refresh();
+                            } else {
+                                frappe.msgprint({
+                                    title: __('Bulk Generation'),
+                                    message: __('No certificates were created or updated.'),
+                                    indicator: 'blue'
+                                });
+                            }
                         }
                     });
                 } else {
@@ -158,14 +168,11 @@ frappe.ui.form.on('IRP5 Certificate', {
             frm.set_df_property('income_details', 'hidden', 1);
             frm.set_df_property('deduction_details', 'hidden', 1);
             frm.set_df_property('company_contribution_details', 'hidden', 1);
-            frm.refresh_field('bulk_generation_summary');
         } else {
             frm.set_df_property('employee', 'hidden', 0);
             frm.set_df_property('income_details', 'hidden', 0);
             frm.set_df_property('deduction_details', 'hidden', 0);
             frm.set_df_property('company_contribution_details', 'hidden', 0);
-            frm.set_value('bulk_generation_summary', null);
-            frm.refresh_field('bulk_generation_summary');
         }
         frm.refresh_fields();
     },

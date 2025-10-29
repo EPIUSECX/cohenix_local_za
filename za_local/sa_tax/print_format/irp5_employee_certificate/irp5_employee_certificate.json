@@ -11,7 +11,7 @@
   "align_labels_right": 0,
   "font": "Default",
   "print_style": "",
-  "html": "{% include \"kartoza/templates/print_format/irp5_employee_certificate.html\" %}",
+  "html": "{% include \"za_local/templates/print_format/irp5_employee_certificate.html\" %}",
   "css": "",
   "raw_printing": 0,
   "line_breaks": 0,
