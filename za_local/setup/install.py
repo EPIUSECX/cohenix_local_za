@@ -40,6 +40,7 @@ def after_install():
     setup_custom_fields()
     make_property_setters()
     setup_default_data()
+    apply_statutory_formulas()
     import_master_data()
     insert_custom_records()
     frappe.db.commit()
@@ -63,6 +64,7 @@ def after_migrate():
     """
     cleanup_invalid_doctype_links()
     setup_custom_fields()
+    apply_statutory_formulas()
     frappe.db.commit()
 
 
@@ -324,6 +326,50 @@ def make_property_setters():
 	print("✓ Property setters created successfully")
 
 
+def apply_statutory_formulas():
+    """Ensure statutory Salary Components and Company Contribution rows carry correct formulas.
+    - UIF Employer: (BS)/100 capped at 177.12
+    - SDL: (BS)/100
+    Also enable Amount based on Formula on these components and child rows.
+    """
+    print("Applying statutory formulas to salary components and company contribution rows...")
+    components_to_update = [
+        {
+            "name": "4141 UIF Employer Contribution",
+            "formula": "(BS)/100 if (BS)<=17712 else 177.12",
+        },
+        {
+            "name": "4142 SDL Contribution",
+            "formula": "(BS)/100",
+        },
+    ]
+    for comp in components_to_update:
+        if frappe.db.exists("Salary Component", comp["name"]):
+            try:
+                frappe.db.set_value(
+                    "Salary Component", comp["name"], {
+                        "amount_based_on_formula": 1,
+                        "formula": comp["formula"],
+                    }
+                )
+            except Exception as e:
+                print(f"  ! Could not update Salary Component {comp['name']}: {e}")
+    # Update existing Salary Structure child rows
+    try:
+        for comp in components_to_update:
+            frappe.db.sql(
+                """
+                UPDATE `tabCompany Contribution`
+                SET amount_based_on_formula = 1, formula = %(formula)s
+                WHERE salary_component = %(name)s
+                """,
+                comp,
+            )
+        frappe.db.commit()
+    except Exception as e:
+        print(f"  ! Could not update Company Contribution child rows: {e}")
+    print("✓ Statutory formulas applied")
+
 def import_master_data():
 	"""
 	Import master data from CSV files.
@@ -423,7 +469,7 @@ def run_za_local_setup(setup_doc):
 			load_data_from_json(data_dir / "tax_slabs_2024.json")
 			print("✓ Loaded 2024-2025 tax slabs")
 		
-		if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
+        if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
 			load_data_from_json(data_dir / "tax_rebates_2024.json")
 			print("✓ Loaded tax rebates and medical tax credits")
 		

@@ -205,13 +205,11 @@ def import_all_master_data():
 	"""
 	print("\nImporting master data from CSV files...")
 	
-	data_files = [
-		("Business Trip Region", "business_trip_region.csv"),
-		# SETA list is not a DocType yet, will be added when SETA DocType is created
-		# ("SETA", "seta_list.csv"),
-		# Bargaining Council list
-		# ("Bargaining Council", "bargaining_council_list.csv"),
-	]
+    data_files = [
+        ("Business Trip Region", "business_trip_region.csv"),
+        ("SETA", "seta_list.csv"),
+        ("Bargaining Council", "bargaining_council_list.csv"),
+    ]
 	
 	total_stats = {
 		"created": 0,

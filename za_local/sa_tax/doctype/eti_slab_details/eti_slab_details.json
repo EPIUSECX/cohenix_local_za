@@ -8,6 +8,8 @@
  "field_order": [
   "from_amount",
   "to_amount",
+  "eti_amount",
+  "percentage",
   "first_qualifying_12_months",
   "second_qualifying_12_months"
  ],
@@ -25,15 +27,27 @@
    "label": "To Amount"
   },
   {
+   "fieldname": "eti_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "ETI Amount"
+  },
+  {
+   "fieldname": "percentage",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Percentage"
+  },
+  {
    "fieldname": "first_qualifying_12_months",
    "fieldtype": "Small Text",
-   "in_list_view": 1,
+   "in_list_view": 0,
    "label": "First Qualifying 12 Months"
   },
   {
    "fieldname": "second_qualifying_12_months",
    "fieldtype": "Small Text",
-   "in_list_view": 1,
+   "in_list_view": 0,
    "label": "Second Qualifying 12 Months"
   }
  ],

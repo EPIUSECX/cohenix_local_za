@@ -1,32 +1,28 @@
 {
  "actions": [],
- "creation": "2025-01-28 14:00:00",
+ "allow_rename": 1,
+ "autoname": "format:{seta_name}",
+ "creation": "2025-10-30 00:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "council_name",
-  "industry_sector",
-  "registration_number",
+  "seta_name",
+  "code",
   "contact_person",
   "contact_email",
   "contact_phone"
  ],
  "fields": [
   {
-   "fieldname": "council_name",
+   "fieldname": "seta_name",
    "fieldtype": "Data",
-   "label": "Council Name",
+   "label": "SETA Name",
    "reqd": 1
   },
   {
-   "fieldname": "industry_sector",
+   "fieldname": "code",
    "fieldtype": "Data",
-   "label": "Industry Sector"
-  },
-  {
-   "fieldname": "registration_number",
-   "fieldtype": "Data",
-   "label": "Registration Number"
+   "label": "Code"
   },
   {
    "fieldname": "contact_person",
@@ -45,10 +41,11 @@
   }
  ],
  "index_web_pages_for_search": 1,
- "modified": "2025-01-28 14:00:00",
+ "is_submittable": 0,
+ "modified": "2025-10-30 00:00:00",
  "modified_by": "Administrator",
  "module": "SA Payroll",
- "name": "Bargaining Council",
+ "name": "SETA",
  "owner": "Administrator",
  "permissions": [
   {
@@ -78,6 +75,7 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1,
- "autoname": "format:{council_name}"
+ "track_changes": 1
 }
+
+

@@ -552,6 +552,8 @@ Go to **Payroll > Salary Structure**
 
 **Company Contributions Table:**
 
+Note: In HRMS with ZA Local, the Salary Structure includes a child table `company_contribution` (DocType: `Company Contribution`). Each row supports `Condition`, `Amount based on formula`, and `Formula`, mirroring Salary Component behavior.
+
 | Component | Condition | Formula |
 |-----------|-----------|---------|
 | UIF Employer | Always | `base <= 17712 ? base * 0.01 : 177.12` |

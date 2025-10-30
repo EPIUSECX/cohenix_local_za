@@ -316,6 +316,8 @@ class ZASalarySlip(SalarySlip):
                     "salary_component": contrib.salary_component,
                     "amount": flt(contrib.amount)
                 })
+        # Rollup total
+        self.total_company_contribution = sum(flt(row.amount) for row in self.get("company_contribution", []))
     
     def add_additional_salary_components(self, component_type):
         """

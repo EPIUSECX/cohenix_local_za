@@ -155,6 +155,123 @@ class ZAPayrollEntry(PayrollEntry):
         
         self.number_of_employees = len(self.employees)
         return self.get_employees_with_unmarked_attendance()
+
+    @frappe.whitelist()
+    def make_company_contribution_entry(self):
+        """
+        Create a consolidated Journal Entry for Company Contributions (UIF ER, SDL, etc.).
+        - Debits: Salary Component Account totals by component
+        - Credit: Payroll Payable Account
+        Also marks `Payroll Employee Detail.za_is_company_contribution_created` for all rows.
+        """
+        self.check_permission("write")
+
+        SalarySlip = frappe.qb.DocType("Salary Slip")
+        Comp = frappe.qb.DocType("Company Contribution")
+
+        slips = (
+            frappe.qb.from_(SalarySlip)
+            .select(SalarySlip.name)
+            .where(
+                (SalarySlip.docstatus == 1)
+                & (SalarySlip.start_date >= self.start_date)
+                & (SalarySlip.end_date <= self.end_date)
+                & (SalarySlip.payroll_entry == self.name)
+            )
+        ).run(pluck=True)
+
+        if not slips:
+            frappe.throw("No submitted Salary Slips found for this Payroll Entry.")
+
+        # Aggregate by component account
+        totals_by_account = {}
+        rows = (
+            frappe.qb.from_(Comp)
+            .select(Comp.parent, Comp.salary_component, Comp.amount)
+            .where(Comp.parent.isin(slips))
+        ).run(as_dict=True)
+
+        for r in rows:
+            account = frappe.db.get_value(
+                "Salary Component Account",
+                {"parent": r.salary_component, "company": self.company},
+                "account",
+            )
+            if not account:
+                frappe.throw(
+                    frappe._("Please set account in Salary Component {0}").format(
+                        frappe.get_desk_link("Salary Component", r.salary_component)
+                    )
+                )
+            totals_by_account[account] = totals_by_account.get(account, 0) + float(r.amount or 0)
+
+        if not totals_by_account:
+            frappe.throw("No company contributions found on the salary slips.")
+
+        # Build JE accounts
+        precision = frappe.get_precision("Journal Entry Account", "debit_in_account_currency")
+        accounts = []
+        currencies = []
+        company_currency = frappe.get_cached_value("Company", self.company, "default_currency")
+
+        # Debits per component account
+        for account, amount in totals_by_account.items():
+            exchange_rate, amt = self.get_amount_and_exchange_rate_for_journal_entry(
+                account, amount, company_currency, currencies
+            )
+            if amt:
+                accounts.append(
+                    self.update_accounting_dimensions(
+                        {
+                            "account": account,
+                            "debit_in_account_currency": round(amt, precision),
+                            "exchange_rate": exchange_rate,
+                            "cost_center": self.cost_center,
+                        },
+                        get_accounting_dimensions() if hasattr(self, "get_accounting_dimensions") else [],
+                    )
+                )
+
+        # Single credit to payroll payable
+        total_credit = sum(a["debit_in_account_currency"] for a in accounts)
+        exchange_rate, amt = self.get_amount_and_exchange_rate_for_journal_entry(
+            self.payroll_payable_account, total_credit, company_currency, currencies
+        )
+        accounts.append(
+            self.update_accounting_dimensions(
+                {
+                    "account": self.payroll_payable_account,
+                    "credit_in_account_currency": round(amt, precision),
+                    "exchange_rate": exchange_rate,
+                    "reference_type": self.doctype,
+                    "reference_name": self.name,
+                    "cost_center": self.cost_center,
+                },
+                get_accounting_dimensions() if hasattr(self, "get_accounting_dimensions") else [],
+            )
+        )
+
+        # Create and submit JE
+        je = self.make_journal_entry(
+            accounts,
+            currencies,
+            payroll_payable_account=self.payroll_payable_account,
+            voucher_type="Journal Entry",
+            user_remark=_("Company Contribution for {0} to {1}").format(self.start_date, self.end_date),
+            submit_journal_entry=True,
+        )
+
+        # Mark flags for employees in this payroll entry
+        for ped in self.employees:
+            frappe.db.set_value(
+                "Payroll Employee Detail",
+                {"parent": self.name, "employee": ped.employee},
+                "za_is_company_contribution_created",
+                1,
+            )
+
+        frappe.msgprint(_(f"Created Company Contribution Journal Entry: {je.name}"))
+        return je.name
     
     @frappe.whitelist()
     def create_salary_slips(self):

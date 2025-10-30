@@ -70,6 +70,16 @@ def setup_custom_fields():
             }
         ],
         
+        "Salary Component": [
+            {
+                "fieldname": "is_company_contribution",
+                "label": "Is Company Contribution",
+                "fieldtype": "Check",
+                "insert_after": "is_tax_applicable",
+                "description": "Marks this component as an employer/company contribution"
+            }
+        ],
+        
         "Payroll Settings": [
             {
                 "fieldname": "za_south_african_settings_section",
@@ -264,6 +274,45 @@ def setup_custom_fields():
             }
         ],
         
+        "Salary Structure": [
+            {
+                "fieldname": "company_contribution_section",
+                "label": "Company Contribution Section",
+                "fieldtype": "Section Break",
+                "insert_after": "deductions"
+            },
+            {
+                "fieldname": "company_contribution",
+                "label": "Company Contribution",
+                "fieldtype": "Table",
+                "options": "Company Contribution",
+                "insert_after": "company_contribution_section"
+            }
+        ],
+        
+        "Salary Slip": [
+            {
+                "fieldname": "company_contribution_section",
+                "label": "Company Contribution Section",
+                "fieldtype": "Section Break",
+                "insert_after": "deductions"
+            },
+            {
+                "fieldname": "company_contribution",
+                "label": "Company Contribution",
+                "fieldtype": "Table",
+                "options": "Company Contribution",
+                "insert_after": "company_contribution_section"
+            },
+            {
+                "fieldname": "total_company_contribution",
+                "label": "Total Company Contribution",
+                "fieldtype": "Currency",
+                "read_only": 1,
+                "insert_after": "company_contribution"
+            }
+        ],
+        
         "Company": [
             {
                 "fieldname": "za_south_african_registration_section",
@@ -305,6 +354,35 @@ def setup_custom_fields():
                 "fieldtype": "Data",
                 "insert_after": "za_sdl_reference_number",
                 "description": "Unemployment Insurance Fund Reference Number"
+            },
+            {
+                "fieldname": "za_additional_configuration_section",
+                "label": "Additional Configuration",
+                "fieldtype": "Section Break",
+                "insert_after": "za_uif_reference_number",
+                "collapsible": 1
+            },
+            {
+                "fieldname": "za_seta",
+                "label": "SETA",
+                "fieldtype": "Link",
+                "options": "SETA",
+                "insert_after": "za_additional_configuration_section",
+                "description": "Skills Education Training Authority"
+            },
+            {
+                "fieldname": "za_bargaining_council",
+                "label": "Bargaining Council",
+                "fieldtype": "Link",
+                "options": "Bargaining Council",
+                "insert_after": "za_seta"
+            },
+            {
+                "fieldname": "za_sectoral_determination",
+                "label": "Sectoral Determination",
+                "fieldtype": "Select",
+                "options": "\nDomestic Workers\nFarm Workers\nPrivate Security\nHospitality\nWholesale/Retail\nOther",
+                "insert_after": "za_bargaining_council"
             }
         ],
         

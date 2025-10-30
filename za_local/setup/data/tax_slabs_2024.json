@@ -9,32 +9,37 @@
     "slabs": [
       {
         "from_amount": 0,
-        "to_amount": 237100,
+        "to_amount": 95750.99,
+        "percent_deduction": 0
+      },
+      {
+        "from_amount": 95751,
+        "to_amount": 237100.99,
         "percent_deduction": 18
       },
       {
         "from_amount": 237101,
-        "to_amount": 370500,
+        "to_amount": 370500.99,
         "percent_deduction": 26
       },
       {
         "from_amount": 370501,
-        "to_amount": 512800,
+        "to_amount": 512800.99,
         "percent_deduction": 31
       },
       {
         "from_amount": 512801,
-        "to_amount": 673000,
+        "to_amount": 673000.99,
         "percent_deduction": 36
       },
       {
         "from_amount": 673001,
-        "to_amount": 857900,
+        "to_amount": 857900.99,
         "percent_deduction": 39
       },
       {
         "from_amount": 857901,
-        "to_amount": 1817000,
+        "to_amount": 1817000.99,
         "percent_deduction": 41
       },
       {
