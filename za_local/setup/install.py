@@ -36,6 +36,7 @@ def after_install():
     - Default data (ETI slabs, tax rebates, etc.)
     - Master data from CSV files
     """
+    cleanup_invalid_doctype_links()
     setup_custom_fields()
     make_property_setters()
     setup_default_data()
@@ -60,8 +61,44 @@ def after_migrate():
     
     Ensures custom fields are always up to date after migrations.
     """
+    cleanup_invalid_doctype_links()
     setup_custom_fields()
     frappe.db.commit()
+
+
+def cleanup_invalid_doctype_links():
+    """
+    Remove invalid DocType Links from the database.
+    
+    These links may exist from previous installations and cause
+    validation errors when creating property setters.
+    """
+    print("\nCleaning up invalid DocType Links...")
+    
+    # List of invalid links to remove: (parent_doctype, link_doctype, link_fieldname)
+    invalid_links = [
+        ("Payroll Entry", "EMP201 Submission", "payroll_entry"),
+    ]
+    
+    for parent_dt, link_dt, link_field in invalid_links:
+        # Find and delete invalid links
+        links_to_delete = frappe.db.sql("""
+            SELECT name 
+            FROM `tabDocType Link` 
+            WHERE parent = %s 
+                AND link_doctype = %s 
+                AND link_fieldname = %s
+        """, (parent_dt, link_dt, link_field), as_dict=1)
+        
+        for link in links_to_delete:
+            try:
+                frappe.delete_doc("DocType Link", link.name, force=True, ignore_permissions=True)
+                print(f"  ✓ Removed invalid link: {parent_dt} → {link_dt}.{link_field}")
+            except Exception as e:
+                print(f"  ! Error removing link {link.name}: {e}")
+    
+    frappe.db.commit()
+    print("  ✓ Invalid DocType Links cleaned up\n")
 
 
 def create_company_contribution_doctype():
