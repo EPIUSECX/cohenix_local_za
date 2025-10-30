@@ -10,13 +10,15 @@ This module is built with clean architecture, modular design, and following mode
 
 - **🚀 Integrated Setup Wizard**: Automatic activation during ERPNext setup - no bench commands required
 - **📦 Default Data**: Pre-configured salary components, tax slabs, and master data - ready in 15 minutes
-- **💰 SARS Tax Compliance**: PAYE calculations, EMP201 monthly submissions, EMP501 bi-annual reconciliations, IRP5 tax certificates
+- **🖨️ SA-Compliant Print Formats**: SARS-compliant invoices (Full/Abridged), quotations, orders, and all client-facing documents - automatically set as default
+- **💰 SARS Tax Compliance**: PAYE calculations, EMP201 monthly submissions, EMP501 bi-annual reconciliations, IRP5/IT3(b) tax certificates with PDF generation
 - **🎯 Employment Tax Incentive (ETI)**: Automated ETI eligibility checking and calculations
 - **💼 Payroll Management**: UIF, SDL, and frequency-based payroll processing with full automation
 - **🏥 COIDA Management**: Workplace injury tracking, OID claims, annual returns
-- **📊 VAT Management**: VAT201 returns, VAT analysis, vendor classification
+- **📊 VAT Management**: VAT201 returns, VAT analysis, vendor classification, VAT-compliant invoicing
 - **🏛️ Employment Equity & BEE**: Complete EE reporting, workforce demographics, BEE scorecard
 - **✈️ Business Trip Management**: SARS-compliant mileage and allowance tracking
+- **⚡ Bulk Generation Tools**: IT3(b) Certificate bulk generation with progress tracking
 - **🏗️ Modern Architecture**: Modular structure with 5 focused modules (SA Payroll, SA Tax, SA VAT, COIDA, SA EE)
 
 ---

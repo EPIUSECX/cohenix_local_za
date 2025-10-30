@@ -1,0 +1,278 @@
+{%- set company_doc = frappe.get_doc("Company", doc.company) -%}
+{%- set supplier_doc = frappe.get_doc("Supplier", doc.supplier) if doc.supplier else None -%}
+
+<style>
+	.sa-purchase {
+		font-family: Arial, Helvetica, sans-serif;
+		font-size: 11pt;
+		line-height: 1.5;
+		color: #000;
+	}
+	.sa-purchase .header {
+		margin-bottom: 30px;
+		border-bottom: 2px solid #e67e22;
+		padding-bottom: 15px;
+	}
+	.sa-purchase .company-logo {
+		max-width: 200px;
+		max-height: 80px;
+		margin-bottom: 10px;
+	}
+	.sa-purchase .company-name {
+		font-size: 18pt;
+		font-weight: bold;
+		color: #e67e22;
+		margin-bottom: 5px;
+	}
+	.sa-purchase .invoice-title {
+		font-size: 24pt;
+		font-weight: bold;
+		text-align: center;
+		color: #e67e22;
+		margin: 20px 0;
+		text-transform: uppercase;
+	}
+	.sa-purchase .address-section {
+		display: table;
+		width: 100%;
+		margin-bottom: 20px;
+	}
+	.sa-purchase .from-to, .sa-purchase .invoice-details {
+		display: table-cell;
+		vertical-align: top;
+		width: 50%;
+	}
+	.sa-purchase .from-to {
+		padding-right: 20px;
+	}
+	.sa-purchase .section-label {
+		font-weight: bold;
+		font-size: 10pt;
+		color: #74808b;
+		text-transform: uppercase;
+		margin-bottom: 8px;
+	}
+	.sa-purchase .vat-number {
+		font-weight: bold;
+		color: #e67e22;
+	}
+	.sa-purchase table.items {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 20px 0;
+	}
+	.sa-purchase table.items th {
+		background-color: #e67e22;
+		color: white;
+		padding: 10px;
+		text-align: left;
+		font-weight: bold;
+		border: 1px solid #d35400;
+	}
+	.sa-purchase table.items td {
+		padding: 8px 10px;
+		border: 1px solid #ddd;
+	}
+	.sa-purchase table.items tr:nth-child(even) {
+		background-color: #f9f9f9;
+	}
+	.sa-purchase .text-right {
+		text-align: right;
+	}
+	.sa-purchase .text-center {
+		text-align: center;
+	}
+	.sa-purchase .totals-section {
+		float: right;
+		width: 40%;
+		margin-top: 20px;
+	}
+	.sa-purchase .totals-table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+	.sa-purchase .totals-table td {
+		padding: 8px;
+		border-bottom: 1px solid #ddd;
+	}
+	.sa-purchase .totals-table .label {
+		text-align: right;
+		font-weight: bold;
+	}
+	.sa-purchase .totals-table .amount {
+		text-align: right;
+		width: 40%;
+	}
+	.sa-purchase .totals-table .grand-total {
+		font-size: 14pt;
+		font-weight: bold;
+		background-color: #e67e22;
+		color: white;
+	}
+	.sa-purchase .footer {
+		clear: both;
+		margin-top: 40px;
+		padding-top: 20px;
+		border-top: 2px solid #e67e22;
+	}
+	@media print {
+		.sa-purchase {
+			font-size: 10pt;
+		}
+	}
+</style>
+
+<div class="sa-purchase">
+	<!-- Header Section -->
+	<div class="header">
+		<table style="width: 100%; border: none;">
+			<tr>
+				<td style="width: 50%; vertical-align: top; border: none;">
+					<div class="section-label">Supplier:</div>
+					<div class="company-name">{{ doc.supplier_name }}</div>
+					{% if doc.supplier_address %}
+						{{ doc.supplier_address | replace("\n", "<br>") | safe }}
+					{% endif %}
+					{% if supplier_doc and supplier_doc.tax_id %}
+					<div style="margin-top: 8px;">
+						<span class="section-label">Supplier VAT Number:</span><br>
+						<span class="vat-number">{{ supplier_doc.tax_id }}</span>
+					</div>
+					{% endif %}
+				</td>
+				<td style="width: 50%; vertical-align: top; text-align: right; border: none;">
+					{% if company_doc.company_logo %}
+					<img src="{{ company_doc.company_logo }}" class="company-logo" alt="{{ company_doc.name }}">
+					{% endif %}
+					<div><strong>{{ company_doc.name }}</strong></div>
+					<div>{{ company_doc.address_line1 or "" }}</div>
+					{% if company_doc.address_line2 %}
+					<div>{{ company_doc.address_line2 }}</div>
+					{% endif %}
+					{% if company_doc.tax_id %}
+					<div style="margin-top: 8px;">
+						<span class="section-label">VAT Number:</span><br>
+						<span class="vat-number">{{ company_doc.tax_id }}</span>
+					</div>
+					{% endif %}
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<!-- Invoice Title -->
+	<div class="invoice-title">PURCHASE INVOICE</div>
+
+	<!-- Invoice Details -->
+	<div class="address-section">
+		<div class="from-to">
+			<table style="width: 100%; border: none;">
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Bill No:</div></td>
+					<td style="border: none; padding: 4px;"><strong>{{ doc.bill_no or doc.name }}</strong></td>
+				</tr>
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Bill Date:</div></td>
+					<td style="border: none; padding: 4px;">{{ doc.get_formatted("bill_date") if doc.bill_date else doc.get_formatted("posting_date") }}</td>
+				</tr>
+			</table>
+		</div>
+		<div class="invoice-details">
+			<table style="width: 100%; border: none;">
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Purchase Invoice:</div></td>
+					<td style="border: none; padding: 4px;"><strong>{{ doc.name }}</strong></td>
+				</tr>
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Posting Date:</div></td>
+					<td style="border: none; padding: 4px;">{{ doc.get_formatted("posting_date") }}</td>
+				</tr>
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Due Date:</div></td>
+					<td style="border: none; padding: 4px;">{{ doc.get_formatted("due_date") if doc.due_date else "N/A" }}</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+
+	<!-- Items Table -->
+	<table class="items">
+		<thead>
+			<tr>
+				<th style="width: 5%;" class="text-center">No.</th>
+				<th style="width: 45%;">Description</th>
+				<th style="width: 10%;" class="text-center">Qty</th>
+				<th style="width: 15%;" class="text-right">Unit Price</th>
+				<th style="width: 10%;" class="text-center">VAT %</th>
+				<th style="width: 15%;" class="text-right">Amount</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for item in doc.items %}
+			<tr>
+				<td class="text-center">{{ loop.index }}</td>
+				<td>
+					<strong>{{ item.item_code }}</strong>
+					{% if item.item_name and item.item_name != item.item_code %}
+					<br>{{ item.item_name }}
+					{% endif %}
+					{% if item.description and item.description != item.item_name %}
+					<br><span style="font-size: 9pt; color: #666;">{{ item.description }}</span>
+					{% endif %}
+				</td>
+				<td class="text-center">{{ item.qty }} {{ item.uom or "" }}</td>
+				<td class="text-right">{{ item.get_formatted("rate") }}</td>
+				<td class="text-center">
+					{% set item_tax_rate = 0 %}
+					{% if doc.taxes %}
+						{% for tax in doc.taxes %}
+							{% if "VAT" in tax.description or "Tax" in tax.description %}
+								{% set item_tax_rate = tax.rate %}
+							{% endif %}
+						{% endfor %}
+					{% endif %}
+					{{ "%.1f"|format(item_tax_rate) }}%
+				</td>
+				<td class="text-right">{{ item.get_formatted("amount") }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<!-- Totals Section -->
+	<div class="totals-section">
+		<table class="totals-table">
+			<tr>
+				<td class="label">Subtotal (Excl. VAT):</td>
+				<td class="amount">{{ doc.get_formatted("net_total") }}</td>
+			</tr>
+			{% if doc.discount_amount and doc.discount_amount > 0 %}
+			<tr>
+				<td class="label">Discount:</td>
+				<td class="amount">({{ doc.get_formatted("discount_amount") }})</td>
+			</tr>
+			{% endif %}
+			{% for tax in doc.taxes %}
+			<tr>
+				<td class="label">
+					{{ tax.description }}
+					{% if tax.rate %}@ {{ "%.1f"|format(tax.rate) }}%{% endif %}:
+				</td>
+				<td class="amount">{{ tax.get_formatted("tax_amount") }}</td>
+			</tr>
+			{% endfor %}
+			<tr class="grand-total">
+				<td class="label">TOTAL (Incl. VAT):</td>
+				<td class="amount">{{ doc.get_formatted("grand_total") }}</td>
+			</tr>
+		</table>
+	</div>
+
+	<!-- Footer Section -->
+	<div class="footer">
+		<div style="font-size: 9pt; color: #999; text-align: center;">
+			This document serves as proof of purchase for accounting and tax purposes.
+		</div>
+	</div>
+</div>
+

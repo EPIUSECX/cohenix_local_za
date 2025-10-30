@@ -8,3 +8,4 @@ reportlab>=4.0.0
 # Date/Time utilities (usually included with Frappe, but listed for completeness)
 python-dateutil>=2.8.2
 
+

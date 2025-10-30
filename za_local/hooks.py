@@ -20,6 +20,25 @@ fixtures = [
     
     # Property Setters
     {"dt": "Property Setter", "filters": [["module", "in", ["SA Payroll", "SA Tax", "SA VAT", "COIDA"]]]},
+    
+    # SA-compliant Print Formats
+    {
+        "dt": "Print Format",
+        "filters": [
+            ["name", "in", [
+                "SA Sales Invoice",
+                "SA Quotation",
+                "SA Sales Order",
+                "SA Delivery Note",
+                "SA Purchase Invoice",
+                "SA Purchase Order",
+                "SA Payment Entry",
+                "SA Credit Note",
+                "SA Debit Note",
+                "IT3b Certificate Print"
+            ]]
+        ]
+    },
 ]
 
 # Includes in <head>

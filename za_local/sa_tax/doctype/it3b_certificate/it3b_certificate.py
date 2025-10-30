@@ -130,7 +130,48 @@ class IT3bCertificate(Document):
 	@frappe.whitelist()
 	def export_pdf(self):
 		"""Export IT3b certificate as PDF"""
-		# TODO: Implement PDF export using Print Format
-		frappe.msgprint(_("PDF export functionality to be implemented"))
-		return
+		try:
+			# Generate PDF using print format
+			from frappe.utils.pdf import get_pdf
+			
+			# Get the IT3b Certificate Print format HTML
+			html = frappe.get_print(
+				"IT3b Certificate",
+				self.name,
+				print_format="IT3b Certificate Print",
+				doc=self,
+				no_letterhead=False
+			)
+			
+			# Generate PDF
+			pdf = get_pdf(html)
+			
+			# Save as file attachment
+			file_name = f"IT3B_{self.certificate_number or self.name}.pdf"
+			
+			# Create file doc
+			file_doc = frappe.get_doc({
+				"doctype": "File",
+				"file_name": file_name,
+				"attached_to_doctype": "IT3b Certificate",
+				"attached_to_name": self.name,
+				"content": pdf,
+				"is_private": 1
+			})
+			file_doc.save(ignore_permissions=True)
+			
+			frappe.msgprint(
+				_("PDF generated successfully: {0}").format(file_name),
+				indicator="green",
+				alert=True
+			)
+			
+			return {
+				"file_url": file_doc.file_url,
+				"file_name": file_name
+			}
+			
+		except Exception as e:
+			frappe.log_error(f"IT3b PDF Generation Error: {str(e)}", "IT3b Certificate PDF Export")
+			frappe.throw(_("Failed to generate PDF: {0}").format(str(e)))
 

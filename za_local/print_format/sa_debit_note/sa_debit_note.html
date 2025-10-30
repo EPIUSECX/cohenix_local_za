@@ -1,0 +1,44 @@
+{%- set company_doc = frappe.get_doc("Company", doc.company) -%}
+{%- include "za_local/print_format/sa_credit_note/sa_credit_note.html" with context -%}
+{# Reuse Credit Note template but override title and colors #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	var titleEl = document.querySelector('.sa-credit .credit-title');
+	if (titleEl) {
+		titleEl.textContent = 'DEBIT NOTE';
+		titleEl.style.color = '#d35400';
+	}
+	var noticeBox = document.querySelector('.sa-credit .notice-box');
+	if (noticeBox) {
+		noticeBox.textContent = 'This Debit Note increases the amount owed to the supplier';
+		noticeBox.style.backgroundColor = '#fdebd0';
+		noticeBox.style.borderLeftColor = '#d35400';
+	}
+	var headerBorder = document.querySelector('.sa-credit .header');
+	if (headerBorder) {
+		headerBorder.style.borderBottomColor = '#d35400';
+	}
+	var tableThs = document.querySelectorAll('.sa-credit table.items th');
+	tableThs.forEach(function(th) {
+		th.style.backgroundColor = '#d35400';
+		th.style.borderColor = '#ba4a00';
+	});
+	var grandTotal = document.querySelector('.sa-credit .grand-total');
+	if (grandTotal) {
+		grandTotal.style.backgroundColor = '#d35400';
+		var labelCell = grandTotal.querySelector('.label');
+		if (labelCell) {
+			labelCell.textContent = 'DEBIT AMOUNT:';
+		}
+	}
+	var companyName = document.querySelector('.sa-credit .company-name');
+	if (companyName) {
+		companyName.style.color = '#d35400';
+	}
+	var vatNumbers = document.querySelectorAll('.sa-credit .vat-number');
+	vatNumbers.forEach(function(vat) {
+		vat.style.color = '#d35400';
+	});
+});
+</script>
+

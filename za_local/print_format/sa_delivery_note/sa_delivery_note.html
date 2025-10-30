@@ -1,0 +1,249 @@
+{%- set company_doc = frappe.get_doc("Company", doc.company) -%}
+
+<style>
+	.sa-delivery {
+		font-family: Arial, Helvetica, sans-serif;
+		font-size: 11pt;
+		line-height: 1.5;
+		color: #000;
+	}
+	.sa-delivery .header {
+		margin-bottom: 30px;
+		border-bottom: 2px solid #16a085;
+		padding-bottom: 15px;
+	}
+	.sa-delivery .company-logo {
+		max-width: 200px;
+		max-height: 80px;
+		margin-bottom: 10px;
+	}
+	.sa-delivery .company-name {
+		font-size: 18pt;
+		font-weight: bold;
+		color: #16a085;
+		margin-bottom: 5px;
+	}
+	.sa-delivery .delivery-title {
+		font-size: 24pt;
+		font-weight: bold;
+		text-align: center;
+		color: #16a085;
+		margin: 20px 0;
+		text-transform: uppercase;
+	}
+	.sa-delivery .address-section {
+		display: table;
+		width: 100%;
+		margin-bottom: 20px;
+	}
+	.sa-delivery .deliver-to, .sa-delivery .delivery-details {
+		display: table-cell;
+		vertical-align: top;
+		width: 50%;
+	}
+	.sa-delivery .deliver-to {
+		padding-right: 20px;
+	}
+	.sa-delivery .section-label {
+		font-weight: bold;
+		font-size: 10pt;
+		color: #74808b;
+		text-transform: uppercase;
+		margin-bottom: 8px;
+	}
+	.sa-delivery table.items {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 20px 0;
+	}
+	.sa-delivery table.items th {
+		background-color: #16a085;
+		color: white;
+		padding: 10px;
+		text-align: left;
+		font-weight: bold;
+		border: 1px solid #138d75;
+	}
+	.sa-delivery table.items td {
+		padding: 8px 10px;
+		border: 1px solid #ddd;
+	}
+	.sa-delivery table.items tr:nth-child(even) {
+		background-color: #f9f9f9;
+	}
+	.sa-delivery .text-right {
+		text-align: right;
+	}
+	.sa-delivery .text-center {
+		text-align: center;
+	}
+	.sa-delivery .footer {
+		margin-top: 40px;
+		padding-top: 20px;
+		border-top: 2px solid #16a085;
+	}
+	.sa-delivery .signature-box {
+		margin-top: 50px;
+		border: 1px solid #ddd;
+		padding: 30px;
+		background-color: #f9f9f9;
+	}
+	@media print {
+		.sa-delivery {
+			font-size: 10pt;
+		}
+	}
+</style>
+
+<div class="sa-delivery">
+	<!-- Header Section -->
+	<div class="header">
+		<table style="width: 100%; border: none;">
+			<tr>
+				<td style="width: 50%; vertical-align: top; border: none;">
+					{% if company_doc.company_logo %}
+					<img src="{{ company_doc.company_logo }}" class="company-logo" alt="{{ company_doc.name }}">
+					{% endif %}
+					<div class="company-name">{{ company_doc.name }}</div>
+					<div>{{ company_doc.address_line1 or "" }}</div>
+					{% if company_doc.address_line2 %}
+					<div>{{ company_doc.address_line2 }}</div>
+					{% endif %}
+					<div>{{ company_doc.city or "" }}{% if company_doc.state %}, {{ company_doc.state }}{% endif %} {{ company_doc.pincode or "" }}</div>
+					{% if company_doc.phone %}
+					<div>Phone: {{ company_doc.phone }}</div>
+					{% endif %}
+				</td>
+				<td style="width: 50%; vertical-align: top; text-align: right; border: none;">
+					{% if company_doc.tax_id %}
+					<div class="section-label">VAT Number</div>
+					<div style="font-weight: bold;">{{ company_doc.tax_id }}</div>
+					{% endif %}
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<!-- Delivery Title -->
+	<div class="delivery-title">DELIVERY NOTE</div>
+
+	<!-- Deliver To and Delivery Details -->
+	<div class="address-section">
+		<div class="deliver-to">
+			<div class="section-label">Deliver To:</div>
+			<div><strong>{{ doc.customer_name }}</strong></div>
+			{% if doc.shipping_address %}
+				{{ doc.shipping_address_name }}<br>
+				{{ doc.shipping_address | replace("\n", "<br>") | safe }}
+			{% elif doc.address_display %}
+				{{ doc.address_display | replace("\n", "<br>") | safe }}
+			{% endif %}
+			{% if doc.contact_display %}
+			<div style="margin-top: 8px;">
+				<strong>Contact:</strong> {{ doc.contact_display }}
+			</div>
+			{% endif %}
+			{% if doc.contact_mobile %}
+			<div><strong>Mobile:</strong> {{ doc.contact_mobile }}</div>
+			{% endif %}
+		</div>
+		<div class="delivery-details">
+			<table style="width: 100%; border: none;">
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Delivery Note:</div></td>
+					<td style="border: none; padding: 4px;"><strong>{{ doc.name }}</strong></td>
+				</tr>
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Date:</div></td>
+					<td style="border: none; padding: 4px;">{{ doc.get_formatted("posting_date") }}</td>
+				</tr>
+				{% if doc.lr_no %}
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">Transport LR No:</div></td>
+					<td style="border: none; padding: 4px;">{{ doc.lr_no }}</td>
+				</tr>
+				{% endif %}
+				{% if doc.lr_date %}
+				<tr>
+					<td style="border: none; padding: 4px;"><div class="section-label">LR Date:</div></td>
+					<td style="border: none; padding: 4px;">{{ doc.get_formatted("lr_date") }}</td>
+				</tr>
+				{% endif %}
+			</table>
+		</div>
+	</div>
+
+	<!-- Items Table -->
+	<table class="items">
+		<thead>
+			<tr>
+				<th style="width: 5%;" class="text-center">No.</th>
+				<th style="width: 50%;">Description</th>
+				<th style="width: 15%;" class="text-center">Qty Ordered</th>
+				<th style="width: 15%;" class="text-center">Qty Delivered</th>
+				<th style="width: 15%;">Serial No / Batch</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for item in doc.items %}
+			<tr>
+				<td class="text-center">{{ loop.index }}</td>
+				<td>
+					<strong>{{ item.item_code }}</strong>
+					{% if item.item_name and item.item_name != item.item_code %}
+					<br>{{ item.item_name }}
+					{% endif %}
+					{% if item.description and item.description != item.item_name %}
+					<br><span style="font-size: 9pt; color: #666;">{{ item.description }}</span>
+					{% endif %}
+				</td>
+				<td class="text-center">{{ item.qty }} {{ item.uom or "" }}</td>
+				<td class="text-center"><strong>{{ item.qty }} {{ item.uom or "" }}</strong></td>
+				<td style="font-size: 9pt;">
+					{% if item.serial_no %}
+					{{ item.serial_no | replace("\n", ", ") }}
+					{% elif item.batch_no %}
+					{{ item.batch_no }}
+					{% else %}
+					-
+					{% endif %}
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<!-- Footer Section -->
+	<div class="footer">
+		{% if doc.transporter_name %}
+		<div style="margin-bottom: 15px;">
+			<div class="section-label">Transporter:</div>
+			<div>{{ doc.transporter_name }}</div>
+		</div>
+		{% endif %}
+
+		<!-- Signature Box -->
+		<div class="signature-box">
+			<div style="font-weight: bold; margin-bottom: 20px;">GOODS RECEIVED IN GOOD CONDITION</div>
+			<table style="width: 100%; border: none;">
+				<tr>
+					<td style="width: 50%; border: none; padding-right: 20px;">
+						<div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px;">
+							Received By (Print Name)
+						</div>
+					</td>
+					<td style="width: 50%; border: none;">
+						<div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px;">
+							Signature & Date
+						</div>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		<div style="margin-top: 20px; font-size: 9pt; color: #999; text-align: center;">
+			This delivery note is for goods receipt verification purposes.
+		</div>
+	</div>
+</div>
+

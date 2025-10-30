@@ -1,0 +1,26 @@
+{%- set company_doc = frappe.get_doc("Company", doc.company) -%}
+{%- include "za_local/print_format/sa_purchase_invoice/sa_purchase_invoice.html" with context -%}
+{# Reuse Purchase Invoice template but override title #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	var titleEl = document.querySelector('.sa-purchase .invoice-title');
+	if (titleEl) {
+		titleEl.textContent = 'PURCHASE ORDER';
+		titleEl.style.color = '#8e44ad';
+	}
+	var headerBorder = document.querySelector('.sa-purchase .header');
+	if (headerBorder) {
+		headerBorder.style.borderBottomColor = '#8e44ad';
+	}
+	var tableThs = document.querySelectorAll('.sa-purchase table.items th');
+	tableThs.forEach(function(th) {
+		th.style.backgroundColor = '#8e44ad';
+		th.style.borderColor = '#7d3c98';
+	});
+	var grandTotal = document.querySelector('.sa-purchase .grand-total');
+	if (grandTotal) {
+		grandTotal.style.backgroundColor = '#8e44ad';
+	}
+});
+</script>
+

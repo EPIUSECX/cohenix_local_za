@@ -261,6 +261,38 @@ def get_wizard_status(company=None):
     return status
 
 
+def setup_sa_print_formats():
+	"""Set SA-compliant print formats as default for South African companies"""
+	import frappe
+	
+	print("\n→ Setting up SA-compliant print formats...")
+	
+	# Map of DocType to SA Print Format
+	print_format_mapping = {
+		"Sales Invoice": "SA Sales Invoice",
+		"Quotation": "SA Quotation",
+		"Sales Order": "SA Sales Order",
+		"Delivery Note": "SA Delivery Note",
+		"Purchase Invoice": "SA Purchase Invoice",
+		"Purchase Order": "SA Purchase Order",
+		"Payment Entry": "SA Payment Entry",
+		"IT3b Certificate": "IT3b Certificate Print"
+	}
+	
+	for doctype, print_format in print_format_mapping.items():
+		try:
+			# Check if print format exists
+			if frappe.db.exists("Print Format", print_format):
+				# Set as default
+				frappe.db.set_value("DocType", doctype, "default_print_format", print_format)
+				print(f"  ✓ Set {print_format} as default for {doctype}")
+		except Exception as e:
+			print(f"  ! Error setting print format for {doctype}: {e}")
+	
+	frappe.db.commit()
+	print("  ✓ SA print formats configured successfully")
+
+
 def get_sa_localization_stages(args):
 	"""
 	Return za_local setup stage for the wizard.
@@ -275,6 +307,10 @@ def get_sa_localization_stages(args):
 	country = args.get("country")
 	if country != "South Africa":
 		return []
+	
+	# Default to using SA print formats
+	if "use_sa_print_formats" not in args:
+		args["use_sa_print_formats"] = True
 	
 	return [
 		{
@@ -316,9 +352,12 @@ def setup_za_localization(args):
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
 	
 	try:
+		# Step 1: Setup SA print formats as default
+		setup_sa_print_formats()
+		
 		# Load in correct order (dependencies first)
 		
-		# 1. Load Payroll Period first (required by Tax Rebates)
+		# 2. Load Payroll Period first (required by Tax Rebates)
 		if load_tax_rebates or load_medical:
 			print("Loading Payroll Period...")
 			load_data_from_json(data_dir / "payroll_period_2024.json")
