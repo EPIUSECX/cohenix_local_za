@@ -109,6 +109,11 @@ doc_events = {
         "on_trash": "za_local.custom.sales.on_trash",
     },
     
+    # Customer validation for SA VAT numbers
+    "Customer": {
+        "validate": "za_local.custom.customer.validate",
+    },
+    
     # Purchase document deletion protection (SARS audit trail)
     "Request for Quotation": {
         "on_trash": "za_local.custom.purchase.on_trash",

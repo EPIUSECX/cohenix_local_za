@@ -378,6 +378,24 @@ def setup_custom_fields():
                 "insert_after": "za_is_payroll_entry",
                 "description": "Mark as company contribution entry"
             }
+        ],
+        
+        "Customer": [
+            {
+                "fieldname": "za_company_registration",
+                "label": "Company Registration Number",
+                "fieldtype": "Data",
+                "insert_after": "tax_id",
+                "description": "CIPC company registration number"
+            },
+            {
+                "fieldname": "za_is_vat_vendor",
+                "label": "Is VAT Vendor",
+                "fieldtype": "Check",
+                "insert_after": "za_company_registration",
+                "default": 0,
+                "description": "Check if customer is registered for VAT in South Africa"
+            }
         ]
     }
     
@@ -402,6 +420,12 @@ def setup_property_setters():
         },
         "Salary Slip": {
             "payroll_entry": {"hidden": 0}
+        },
+        "Customer": {
+            "tax_id": {
+                "label": "VAT Registration Number",
+                "description": "South African VAT registration number (format: 4XXXXXXXXXX)"
+            }
         }
         # IRP5 Certificate - No property setters needed (bulk generation handled programmatically)
     }
