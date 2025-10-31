@@ -1,0 +1,87 @@
+[
+  {
+    "doctype": "ETI Slab",
+    "title": "ETI 2025-2026 First 12 Months",
+    "start_date": "2025-03-01",
+    "minimum_age": 18,
+    "maximum_age": 29,
+    "hours_in_a_month": 160,
+    "eti_slab_details": [
+      {
+        "from_amount": 0,
+        "to_amount": 2000,
+        "eti_amount": 0,
+        "percentage": 50,
+        "first_qualifying_12_months": "50% of monthly remuneration",
+        "second_qualifying_12_months": ""
+      },
+      {
+        "from_amount": 2001,
+        "to_amount": 4500,
+        "eti_amount": 1000,
+        "percentage": 0,
+        "first_qualifying_12_months": "R1,000 fixed",
+        "second_qualifying_12_months": ""
+      },
+      {
+        "from_amount": 4501,
+        "to_amount": 6500,
+        "eti_amount": 1000,
+        "percentage": 50,
+        "first_qualifying_12_months": "R1,000 - (50% × (Remuneration - R4,500))",
+        "second_qualifying_12_months": ""
+      },
+      {
+        "from_amount": 6501,
+        "to_amount": 999999999,
+        "eti_amount": 0,
+        "percentage": 0,
+        "first_qualifying_12_months": "R0",
+        "second_qualifying_12_months": ""
+      }
+    ]
+  },
+  {
+    "doctype": "ETI Slab",
+    "title": "ETI 2025-2026 Second 12 Months",
+    "start_date": "2025-03-01",
+    "minimum_age": 18,
+    "maximum_age": 29,
+    "hours_in_a_month": 160,
+    "eti_slab_details": [
+      {
+        "from_amount": 0,
+        "to_amount": 2000,
+        "eti_amount": 0,
+        "percentage": 25,
+        "first_qualifying_12_months": "",
+        "second_qualifying_12_months": "25% of monthly remuneration"
+      },
+      {
+        "from_amount": 2001,
+        "to_amount": 4500,
+        "eti_amount": 500,
+        "percentage": 0,
+        "first_qualifying_12_months": "",
+        "second_qualifying_12_months": "R500 fixed"
+      },
+      {
+        "from_amount": 4501,
+        "to_amount": 6500,
+        "eti_amount": 500,
+        "percentage": 25,
+        "first_qualifying_12_months": "",
+        "second_qualifying_12_months": "R500 - (25% × (Remuneration - R4,500))"
+      },
+      {
+        "from_amount": 6501,
+        "to_amount": 999999999,
+        "eti_amount": 0,
+        "percentage": 0,
+        "first_qualifying_12_months": "",
+        "second_qualifying_12_months": "R0"
+      }
+    ]
+  }
+]
+

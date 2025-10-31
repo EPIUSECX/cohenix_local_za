@@ -144,8 +144,8 @@ def calculate_eti_amount(employee, salary_slip, monthly_remuneration):
     months_employed = eligibility["months_employed"]
     remuneration = flt(monthly_remuneration)
     
-    # Get ETI slab for calculation
-    eti_slab = get_eti_slab()
+    # Get ETI slab for calculation (based on employment period)
+    eti_slab = get_eti_slab(months_employed)
     
     if not eti_slab:
         frappe.log_error("ETI Slab not configured", "ETI Calculation")
@@ -157,29 +157,38 @@ def calculate_eti_amount(employee, salary_slip, monthly_remuneration):
     eti_amount = 0
     
     # Apply ETI formulas based on remuneration brackets
-    for detail in eti_slab.details:
-        if is_first_period and detail.period != "First 12 Months":
-            continue
-        if not is_first_period and detail.period != "Second 12 Months":
-            continue
+    # Note: eti_slab_details is the child table name in ETI Slab DocType
+    for detail in eti_slab.eti_slab_details:
+        from_amt = flt(detail.from_amount)
+        to_amt = flt(detail.to_amount)
         
-        min_rem = flt(detail.min_remuneration)
-        max_rem = flt(detail.max_remuneration)
-        
-        if min_rem <= remuneration <= max_rem:
-            # Evaluate the formula
-            if detail.formula:
-                try:
-                    # Make remuneration available in formula
-                    eti_amount = eval(detail.formula, {"__builtins__": None}, {
-                        "remuneration": remuneration,
-                        "R": remuneration  # Alias for formulas
-                    })
-                except Exception as e:
-                    frappe.log_error(f"ETI formula error: {e}", "ETI Calculation")
-                    eti_amount = 0
+        # Check if remuneration falls within this bracket
+        if from_amt <= remuneration <= to_amt:
+            # First 12 months or Second 12 months
+            # For first 12 months, use first_qualifying_12_months field
+            # For second 12 months, use second_qualifying_12_months field
+            if is_first_period and not detail.first_qualifying_12_months:
+                continue
+            if not is_first_period and not detail.second_qualifying_12_months:
+                continue
+            
+            # Calculate ETI amount based on bracket
+            if detail.percentage and detail.percentage > 0:
+                # Percentage-based calculation
+                if detail.eti_amount and detail.eti_amount > 0:
+                    # Declining formula: base amount - (percentage * (remuneration - from_amount))
+                    decline_amount = (flt(detail.percentage) / 100) * (remuneration - from_amt)
+                    eti_amount = flt(detail.eti_amount) - decline_amount
+                    eti_amount = max(0, eti_amount)  # Cannot be negative
+                else:
+                    # Simple percentage: percentage * remuneration
+                    eti_amount = (flt(detail.percentage) / 100) * remuneration
+            elif detail.eti_amount:
+                # Fixed amount
+                eti_amount = flt(detail.eti_amount)
             else:
-                eti_amount = flt(detail.amount)
+                # No ETI for this bracket
+                eti_amount = 0
             
             break
     
@@ -217,16 +226,40 @@ def calculate_months_employed(joining_date, current_date):
     return max(0, months)
 
 
-def get_eti_slab():
+def get_eti_slab(months_employed=1):
     """
-    Get the current ETI Slab configuration.
+    Get the current ETI Slab configuration based on employment period.
+    
+    Args:
+        months_employed (int): Number of months employed (determines first/second 12 months)
     
     Returns:
-        Document: ETI Slab document
+        Document: ETI Slab document for the appropriate period
     """
+    # Determine if first 12 or second 12 months
+    period_keyword = "First" if months_employed <= 12 else "Second"
+    
+    # Get ETI Slab for the appropriate period
     slabs = frappe.get_all(
         "ETI Slab",
+        filters={
+            "docstatus": 1,  # Only submitted slabs
+            "title": ["like", f"%{period_keyword}%"]
+        },
+        fields=["name", "start_date"],
+        order_by="start_date desc",
+        limit=1
+    )
+    
+    if slabs:
+        return frappe.get_doc("ETI Slab", slabs[0].name)
+    
+    # Fallback: get any active slab
+    slabs = frappe.get_all(
+        "ETI Slab",
+        filters={"docstatus": 1},
         fields=["name"],
+        order_by="start_date desc",
         limit=1
     )
     

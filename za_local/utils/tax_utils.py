@@ -89,7 +89,7 @@ def get_tax_rebate(salary_slip, date_of_birth):
     # Get tax rebate settings
     rebate_settings = frappe.get_doc("Tax Rebates and Medical Tax Credit")
     
-    if not rebate_settings or not rebate_settings.rebate_rates:
+    if not rebate_settings or not rebate_settings.tax_rebates_rate:
         frappe.log_error("Tax rebate settings not configured", "Tax Calculation")
         return 0
     
@@ -104,14 +104,20 @@ def get_tax_rebate(salary_slip, date_of_birth):
     
     total_rebate = 0
     
-    # Get rebates based on age
-    for rebate in rebate_settings.rebate_rates:
-        if rebate.rebate_type == "Primary":
-            total_rebate += flt(rebate.amount)
-        elif rebate.rebate_type == "Secondary" and age >= 65:
-            total_rebate += flt(rebate.amount)
-        elif rebate.rebate_type == "Tertiary" and age >= 75:
-            total_rebate += flt(rebate.amount)
+    # Get the first rebate rate (should match payroll period)
+    if rebate_settings.tax_rebates_rate:
+        rebate = rebate_settings.tax_rebates_rate[0]
+        
+        # Primary rebate applies to everyone
+        total_rebate += flt(rebate.primary)
+        
+        # Secondary rebate for age 65+
+        if age >= 65:
+            total_rebate += flt(rebate.secondary)
+        
+        # Tertiary rebate for age 75+
+        if age >= 75:
+            total_rebate += flt(rebate.tertiary)
     
     return total_rebate
 
@@ -121,13 +127,17 @@ def get_medical_aid_credit(salary_slip, number_of_dependants):
     Calculate medical aid tax credits.
     
     South African medical aid tax credits (2024/2025):
-    - Main member: R364 per month
-    - First dependant: R364 per month
+    - Main member + first dependant: R364 per month each
     - Additional dependants: R246 per month each
+    
+    Medical Tax Credit Rate fields:
+    - one_dependant: R364 (main member only OR main + 1 dependant)
+    - two_dependant: R728 (main + first dependant)
+    - additional_dependant: R264 (each additional dependant)
     
     Args:
         salary_slip: Salary Slip document
-        number_of_dependants (int): Number of dependants on medical aid
+        number_of_dependants (int): Number of dependants on medical aid (excluding main member)
         
     Returns:
         float: Annual medical aid tax credit
@@ -138,23 +148,27 @@ def get_medical_aid_credit(salary_slip, number_of_dependants):
     # Get medical aid credit settings
     credit_settings = frappe.get_doc("Tax Rebates and Medical Tax Credit")
     
-    if not credit_settings or not credit_settings.medical_tax_credit_rates:
+    if not credit_settings or not credit_settings.medical_tax_credit:
         frappe.log_error("Medical tax credit settings not configured", "Tax Calculation")
         return 0
     
     total_credit = 0
     
-    for credit in credit_settings.medical_tax_credit_rates:
-        if credit.beneficiary == "Main Member":
-            # Main member credit
-            total_credit += flt(credit.amount) * 12  # Annual amount
-        elif credit.beneficiary == "First Dependant" and number_of_dependants >= 1:
-            # First dependant credit
-            total_credit += flt(credit.amount) * 12
-        elif credit.beneficiary == "Additional Dependants" and number_of_dependants > 1:
-            # Additional dependants
+    # Get the first matching credit rate (should be only one per payroll period)
+    if credit_settings.medical_tax_credit:
+        credit = credit_settings.medical_tax_credit[0]
+        
+        if number_of_dependants == 0:
+            # Main member only
+            total_credit = flt(credit.one_dependant) * 12
+        elif number_of_dependants == 1:
+            # Main member + 1 dependant
+            total_credit = flt(credit.two_dependant) * 12
+        elif number_of_dependants >= 2:
+            # Main member + first dependant + additional dependants
+            total_credit = flt(credit.two_dependant) * 12
             additional_deps = number_of_dependants - 1
-            total_credit += flt(credit.amount) * 12 * additional_deps
+            total_credit += flt(credit.additional_dependant) * 12 * additional_deps
     
     return total_credit
 

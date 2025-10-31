@@ -90,7 +90,7 @@ class EMP201Submission(Document):
         for slip in salary_slips:
             ss = frappe.get_doc("Salary Slip", slip.name)
             
-            # Process deductions for PAYE, UIF
+            # Process deductions for PAYE, UIF Employee
             deductions = ss.get("deductions")
             if deductions:
                 for comp in deductions:
@@ -98,14 +98,18 @@ class EMP201Submission(Document):
                     if "income tax" in component_name or "paye" in component_name:
                         gross_paye += flt(comp.amount)
                     elif "uif" in component_name or "unemployment insurance fund" in component_name:
+                        # UIF Employee portion (1%)
                         uif += flt(comp.amount)
 
-            # Process company contributions for SDL
+            # Process company contributions for UIF Employer and SDL
             company_contributions = ss.get("company_contribution")
             if company_contributions:
                 for comp in company_contributions:
                     component_name = comp.get("salary_component", "").strip().lower()
-                    if "sdl" in component_name or "skills development levy" in component_name:
+                    if "uif" in component_name and "employer" in component_name:
+                        # UIF Employer portion (1%) - add to total UIF
+                        uif += flt(comp.amount)
+                    elif "sdl" in component_name or "skills development levy" in component_name:
                         sdl += flt(comp.amount)
 
             # Process earnings for ETI
