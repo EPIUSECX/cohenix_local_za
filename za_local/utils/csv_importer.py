@@ -203,7 +203,7 @@ def import_all_master_data():
 	This function is called during installation to load predefined
 	data for Business Trip Regions, SETAs, Bargaining Councils, etc.
 	"""
-print("\nImporting master data from CSV files...")
+	print("\nImporting master data from CSV files...")
 
 	data_files = [
 		("Business Trip Region", "business_trip_region.csv"),
