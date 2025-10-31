@@ -1,13 +1,14 @@
 # Complete Implementation Guide - za_local for Frappe HR
 
 **Version**: 3.2.0  
-**Last Updated**: January 29, 2025  
+**Last Updated**: October 31, 2024 (2025-2026 Tax Year)  
 **Estimated Setup Time**: 15 minutes for basic setup, 2-4 hours for complete configuration with test data
 
 ---
 
 ## Table of Contents
 
+0. [What's New in v3.2.0](#whats-new-in-v320-2025-2026-tax-year)
 1. [Introduction & Prerequisites](#1-introduction--prerequisites)
 2. [Installation](#2-installation)
 3. [Initial Company Setup](#3-initial-company-setup)
@@ -33,6 +34,41 @@
 23. [Compliance Calendar](#23-compliance-calendar)
 24. [Best Practices](#24-best-practices)
 25. [Support & Resources](#25-support--resources)
+
+---
+
+## What's New in v3.2.0 (2025-2026 Tax Year)
+
+### ✅ Critical Bug Fixes
+- **Tax Rebate Calculation**: Fixed field name mismatch causing rebates not to apply
+- **Medical Tax Credit**: Fixed field name mismatch preventing credit calculations
+- **Impact**: Without these fixes, employees were being over-taxed
+
+### 🆕 2025-2026 Statutory Rates
+- **New 0% Tax Band**: R0 - R95,750 (tax-free threshold)
+- **8 Tax Brackets**: Updated from 7 to 8 brackets
+- **Tax Rebates**: R17,235 (Primary), R9,444 (Secondary), R3,145 (Tertiary)
+- **Medical Credits**: R364 (Main/First), R246 (Additional)
+- **UIF Cap**: R17,712 monthly earnings (R177.12 contribution)
+- **ETI Slabs**: First/Second 12-month brackets configured
+
+### 📦 New Data Files
+- `tax_slabs_2025.json` - 2025-2026 income tax brackets
+- `tax_rebates_2025.json` - Updated rebates and medical credits
+- `eti_slabs_2025.json` - ETI calculation brackets
+- `payroll_period_2025.json` - March 2025 - February 2026
+
+### 🔧 Fixes Applied
+- SETA DocType: Created missing `seta.py` module
+- Tax calculations: Corrected field references in `tax_utils.py`
+- Documentation: Updated all rates and field names
+
+### ⚠️ Upgrade Instructions
+If upgrading from v3.1.x or earlier:
+1. Run `bench migrate` to apply database changes
+2. Load 2025-2026 data via ZA Local Setup wizard
+3. Verify tax rebates and medical credits are configured
+4. Test payroll calculations with sample data
 
 ---
 
@@ -160,8 +196,8 @@ za_local integrates into ERPNext's setup wizard. When you select **"South Africa
 **Recommended Selections:**
 - ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
 - ✅ Create Earnings Components (Basic, Housing, Transport, etc.)
-- ✅ Load 2024-2025 Income Tax Slab (7 SARS brackets)
-- ✅ Load Tax Rebates & Medical Credits (with 2024-2025 Payroll Period)
+- ✅ Load 2025-2026 Income Tax Slab (8 SARS brackets including 0% band)
+- ✅ Load Tax Rebates & Medical Credits (with 2025-2026 Payroll Period)
 - ✅ Load Business Trip Regions (16 regions with SARS-compliant rates)
 
 **Optional Selections:**
@@ -318,6 +354,13 @@ Click **Save** and verify all registration numbers are correctly entered.
 
 **Time Required:** 30-45 minutes
 
+> **⚠️ Important - v3.2.0 Bug Fixes**:  
+> Critical bug fixes were applied to tax rebate and medical credit calculations. The field names in the code now correctly match the DocType schemas:
+> - Tax Rebates: Uses `tax_rebates_rate` table with `primary`, `secondary`, `tertiary` fields
+> - Medical Credits: Uses `medical_tax_credit` table with `one_dependant`, `two_dependant`, `additional_dependant` fields
+> 
+> If upgrading from an earlier version, ensure you run `bench migrate` to apply these fixes.
+
 ### Step 1: Configure Tax Rebates and Medical Tax Credits
 
 #### Navigate to Tax Rebates
@@ -325,38 +368,48 @@ Click **Save** and verify all registration numbers are correctly entered.
 2. This is a Single DocType (only one record exists)
 3. Click to open the existing record
 
-#### Primary Tax Rebate (All taxpayers)
-- **Field**: `primary_rebate`
-- **2024-2025 Value**: R17,235
-- **Applied to**: All employees automatically
+#### Tax Rebates Configuration
 
-#### Secondary Tax Rebate (Age 65+)
-- **Field**: `secondary_rebate`
-- **2024-2025 Value**: R9,444
-- **Applied to**: Employees 65 years and older
+The Tax Rebates and Medical Tax Credit DocType contains a **Tax Rebates Rate** child table with the following fields:
 
-#### Tertiary Tax Rebate (Age 75+)
-- **Field**: `tertiary_rebate`
-- **2024-2025 Value**: R3,145
-- **Applied to**: Employees 75 years and older
+| Rebate Type | Field Name | 2025-2026 Value | Age Requirement |
+|-------------|------------|-----------------|-----------------|
+| Primary | `primary` | R17,235 | All taxpayers |
+| Secondary | `secondary` | R9,444 | Age 65+ |
+| Tertiary | `tertiary` | R3,145 | Age 75+ |
+
+> **Important**: Rebates are **cumulative** - a 75-year-old receives Primary + Secondary + Tertiary = R29,824 total
+
+**How to Configure:**
+1. Open **Tax Rebates and Medical Tax Credit** (Single DocType)
+2. In the **Tax Rebates Rate** table, add a row:
+   - **Payroll Period**: 2025-2026
+   - **Primary**: 17235
+   - **Secondary**: 9444
+   - **Tertiary**: 3145
+3. **Save**
 
 > **How it works**: System automatically calculates age from SA ID Number or Date of Birth
 
 #### Medical Tax Credit Rates
 
-Navigate to the **Medical Tax Credit Rates** child table:
+Navigate to the **Medical Tax Credit** child table (note: NOT "Medical Tax Credit Rates"):
 
-| Dependant Type | Monthly Amount | Annual Amount |
-|----------------|----------------|---------------|
-| Main Member | R364 | R4,368 |
-| First Dependant | R364 | R4,368 |
-| Additional Dependants (each) | R246 | R2,952 |
+| Field Name | Description | Monthly Amount | Annual Amount |
+|------------|-------------|----------------|---------------|
+| `one_dependant` | Main Member Only | R364 | R4,368 |
+| `two_dependant` | Main + First Dependant | R728 | R8,736 |
+| `additional_dependant` | Each Additional | R246 | R2,952 |
 
 **Configuration:**
-1. Click **Add Row** in Medical Tax Credit Rates table
-2. Set **Effective From**: 2024-03-01 (or current tax year start)
-3. Enter rates as per table above
-4. **Save**
+1. In the **Medical Tax Credit** table (child table), click **Add Row**
+2. **Payroll Period**: 2025-2026
+3. **One Dependant**: 364
+4. **Two Dependant**: 728
+5. **Additional Dependant**: 246
+6. **Save**
+
+> **Note**: The field names were corrected in v3.2.0. Previous versions may have used different names.
 
 ### Step 2: Setup ETI (Employment Tax Incentive) Slabs
 
@@ -367,10 +420,12 @@ Navigate to the **Medical Tax Credit Rates** child table:
 #### Create First 12 Months ETI Slab
 
 **Basic Details:**
-- **Naming Series**: ETI-SLAB-.YYYY.-
-- **Slab Name**: "ETI First 12 Months"
-- **Period**: First 12 Months
-- **Effective From**: 2024-03-01 (current tax year)
+- **Naming Series**: ETI-.YYYY.-.####.
+- **Title**: "ETI 2025-2026 First 12 Months"
+- **Start Date**: 2025-03-01
+- **Minimum Age**: 18
+- **Maximum Age**: 29
+- **Hours in a Month**: 160
 
 **ETI Slab Details Table:**
 
@@ -390,9 +445,11 @@ Navigate to the **Medical Tax Credit Rates** child table:
 #### Create Second 12 Months ETI Slab
 
 **Basic Details:**
-- **Slab Name**: "ETI Second 12 Months"
-- **Period**: Second 12 Months
-- **Effective From**: 2024-03-01
+- **Title**: "ETI 2025-2026 Second 12 Months"
+- **Start Date**: 2025-03-01
+- **Minimum Age**: 18
+- **Maximum Age**: 29
+- **Hours in a Month**: 160
 
 **ETI Slab Details Table:**
 
@@ -411,25 +468,32 @@ Navigate to the **Medical Tax Credit Rates** child table:
 
 ### Step 3: Verify Tax Year Configuration
 
-The system uses the current financial year (March to February). Verify:
+The system uses the South African tax year (March 1 to February 28/29). Verify:
 
 1. **Income Tax Slab** DocType has current year rates
-2. Tax year format: "2024-2025"
-3. Slabs are active
+2. Tax year format: "South Africa 2025-2026"
+3. Slabs are active (not disabled)
+4. Effective from: 2025-03-01
 
-**2024-2025 Tax Slabs** (for reference):
+**2025-2026 Tax Slabs** (SARS Gazetted Rates):
 
-| Taxable Income | Rate | Calculation |
-|----------------|------|-------------|
-| R0 - R237,100 | 18% | 18% of taxable income |
-| R237,101 - R370,500 | 26% | R42,678 + 26% of amount above R237,100 |
-| R370,501 - R512,800 | 31% | R77,362 + 31% of amount above R370,500 |
-| R512,801 - R673,000 | 36% | R121,475 + 36% of amount above R512,800 |
-| R673,001 - R857,900 | 39% | R179,147 + 39% of amount above R673,000 |
-| R857,901 - R1,817,000 | 41% | R251,258 + 41% of amount above R857,900 |
-| R1,817,001+ | 45% | R644,489 + 45% of amount above R1,817,000 |
+| Taxable Income (Annual) | Rate | Tax Calculation |
+|-------------------------|------|-----------------|
+| **R0 - R95,750** | **0%** | **R0** (Tax threshold) |
+| R95,751 - R237,100 | 18% | 18% of amount above R95,750 |
+| R237,101 - R370,500 | 26% | R25,443 + 26% of amount above R237,100 |
+| R370,501 - R512,800 | 31% | R60,127 + 31% of amount above R370,500 |
+| R512,801 - R673,000 | 36% | R104,240 + 36% of amount above R512,800 |
+| R673,001 - R857,900 | 39% | R161,912 + 39% of amount above R673,000 |
+| R857,901 - R1,817,000 | 41% | R234,023 + 41% of amount above R857,900 |
+| R1,817,001+ | 45% | R627,164 + 45% of amount above R1,817,000 |
 
-> **Note**: These are loaded automatically from the setup wizard
+**Tax-Free Thresholds** (after rebates):
+- **Under age 65**: R95,750
+- **Age 65-74**: R148,217
+- **Age 75+**: R165,689
+
+> **Note**: The 0% band from R0-R95,750 is new for 2025-2026. These are loaded automatically from `tax_slabs_2025.json`
 
 ### Success Indicator
 
