@@ -469,7 +469,7 @@ def run_za_local_setup(setup_doc):
 			load_data_from_json(data_dir / "tax_slabs_2024.json")
 			print("✓ Loaded 2024-2025 tax slabs")
 		
-        if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
+		if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
 			load_data_from_json(data_dir / "tax_rebates_2024.json")
 			print("✓ Loaded tax rebates and medical tax credits")
 		
