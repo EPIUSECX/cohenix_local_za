@@ -44,55 +44,47 @@ class ZAPayrollEntry(PayrollEntry):
     def validate_employee_requirements(self):
         """
         Validate that all employees have required SA fields populated.
+        
+        Note: Bank account is only needed when creating bank entries (payments),
+        not for creating salary slips. Employee type is always required.
         """
         employees_without_employee_type = []
         employees_without_bank_account = []
         
         for emp in self.employees:
-            # Get/set employee type
-            if not emp.za_employee_type:
-                emp_type = frappe.db.get_value("Employee", emp.employee, "za_employee_type")
-                if emp_type:
-                    emp.za_employee_type = emp_type
-                else:
-                    employees_without_employee_type.append(emp)
+            # Get employee type from Employee doctype (not stored on child table)
+            # Employee type is required for tax calculations
+            emp_type = frappe.db.get_value("Employee", emp.employee, "za_employee_type")
+            if not emp_type:
+                employees_without_employee_type.append(emp)
             
-            # Validate bank account
-            if not emp.za_payroll_payable_bank_account:
-                bank_account = frappe.db.get_value(
-                    "Employee",
-                    emp.employee,
-                    "za_payroll_payable_bank_account"
-                )
-                if bank_account:
-                    emp.za_payroll_payable_bank_account = bank_account
-                    
-                    # Get bank account currency
-                    account = frappe.db.get_value(
-                        "Bank Account",
-                        bank_account,
-                        "account"
-                    )
-                    if account:
-                        currency = frappe.db.get_value("Account", account, "account_currency")
-                        emp.za_bank_account_currency = currency
-                else:
-                    employees_without_bank_account.append(emp)
+            # Get bank account from Employee doctype (not stored on child table)
+            # Bank account is optional - only needed when creating payment entries
+            bank_account = frappe.db.get_value(
+                "Employee",
+                emp.employee,
+                "za_payroll_payable_bank_account"
+            )
+            if not bank_account:
+                employees_without_bank_account.append(emp)
         
-        # Throw errors if validations fail
+        # Employee type is always required (for tax calculations)
         if employees_without_employee_type:
             error_msg = "Employee Type not found for the following employees:<br><ul>"
             for emp in employees_without_employee_type:
                 error_msg += f"<li><a href='/app/employee/{emp.employee}'>{emp.employee}: {emp.employee_name}</a></li>"
             error_msg += "</ul>"
-            frappe.throw(error_msg)
+            frappe.throw(error_msg, title=_("Missing Required Field"))
         
+        # Bank account is optional - only show warning if missing
+        # It will be required later when creating bank entries for payment
         if employees_without_bank_account:
-            error_msg = "Payroll Payable Bank Account not found for the following employees:<br><ul>"
+            warning_msg = "Payroll Payable Bank Account not found for the following employees. "
+            warning_msg += "This will be required when creating bank entries for payment:<br><ul>"
             for emp in employees_without_bank_account:
-                error_msg += f"<li><a href='/app/employee/{emp.employee}'>{emp.employee}: {emp.employee_name}</a></li>"
-            error_msg += "</ul>"
-            frappe.throw(error_msg)
+                warning_msg += f"<li><a href='/app/employee/{emp.employee}'>{emp.employee}: {emp.employee_name}</a></li>"
+            warning_msg += "</ul>"
+            frappe.msgprint(warning_msg, title=_("Bank Account Not Configured"), indicator="orange")
     
     @frappe.whitelist()
     def fill_employee_details(self):
@@ -304,7 +296,6 @@ class ZAPayrollEntry(PayrollEntry):
                 "end_date": self.end_date,
                 "company": self.company,
                 "posting_date": self.posting_date,
-                "deduct_tax_for_unclaimed_employee_benefits": self.deduct_tax_for_unclaimed_employee_benefits,
                 "deduct_tax_for_unsubmitted_tax_exemption_proof": self.deduct_tax_for_unsubmitted_tax_exemption_proof,
                 "payroll_entry": self.name,
                 "exchange_rate": self.exchange_rate,
@@ -347,6 +338,9 @@ def get_payroll_entry_bank_entries(payroll_entry):
         
     Returns:
         list: List of journal entry dictionaries
+        
+    Raises:
+        ValidationError: If any employee is missing bank account configuration
     """
     payroll_entry_doc = frappe.get_doc("Payroll Entry", payroll_entry)
     
@@ -354,12 +348,30 @@ def get_payroll_entry_bank_entries(payroll_entry):
     
     # Group employees by bank account
     bank_account_groups = {}
+    employees_without_bank_account = []
     
     for emp in payroll_entry_doc.employees:
-        bank_account = emp.za_payroll_payable_bank_account
-        if bank_account not in bank_account_groups:
-            bank_account_groups[bank_account] = []
-        bank_account_groups[bank_account].append(emp)
+        # Fetch bank account from Employee doctype (not stored on child table)
+        bank_account = frappe.db.get_value(
+            "Employee",
+            emp.employee,
+            "za_payroll_payable_bank_account"
+        )
+        if bank_account:
+            if bank_account not in bank_account_groups:
+                bank_account_groups[bank_account] = []
+            bank_account_groups[bank_account].append(emp)
+        else:
+            employees_without_bank_account.append(emp)
+    
+    # Validate: Bank account is required when creating bank entries
+    if employees_without_bank_account:
+        error_msg = "Payroll Payable Bank Account is required for creating bank entries. "
+        error_msg += "Please configure bank accounts for the following employees:<br><ul>"
+        for emp in employees_without_bank_account:
+            error_msg += f"<li><a href='/app/employee/{emp.employee}'>{emp.employee}: {emp.employee_name}</a></li>"
+        error_msg += "</ul>"
+        frappe.throw(error_msg, title=_("Bank Account Required"))
     
     # Create journal entry for each bank account group
     for bank_account, employees in bank_account_groups.items():

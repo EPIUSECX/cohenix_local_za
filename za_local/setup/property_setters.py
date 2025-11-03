@@ -17,7 +17,6 @@ PROTECTED_FILE_DOCTYPES = (
 	
 	# SARS Tax Documents
 	"IRP5 Certificate",
-	"IT3b Certificate",
 	"EMP201 Submission",
 	"EMP501 Reconciliation",
 	"Tax Directive",
@@ -92,6 +91,11 @@ def get_property_setters():
 		"Salary Structure": [
 			# Default currency for salary structures
 			("currency", "default", "ZAR"),
+		],
+		
+		"Salary Component": [
+			# Add "Company Contribution" as a Type option alongside Earning and Deduction
+			("type", "options", "Earning\nDeduction\nCompany Contribution"),
 		],
 		
 		# Protect attachments on submitted documents (SARS audit requirement)

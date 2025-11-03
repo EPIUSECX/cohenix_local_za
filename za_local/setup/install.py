@@ -41,6 +41,8 @@ def after_install():
 	make_property_setters()
 	setup_default_data()
 	apply_statutory_formulas()
+	# Ensure any Salary Components with a formula have the flag enabled
+	enforce_salary_component_formula_flag()
 	import_master_data()
 	insert_custom_records()
 	frappe.db.commit()
@@ -64,7 +66,10 @@ def after_migrate():
 	"""
 	cleanup_invalid_doctype_links()
 	setup_custom_fields()
+	make_property_setters()
 	apply_statutory_formulas()
+	# Ensure any Salary Components with a formula have the flag enabled after migrations
+	enforce_salary_component_formula_flag()
 	frappe.db.commit()
 
 
@@ -266,7 +271,8 @@ def setup_default_salary_components():
 			"type": "Deduction",
 			"description": "Unemployment Insurance Fund - Employee Contribution (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12"
+			"formula": "(BS)/100 if (BS)<=17712 else 177.12",
+			"amount_based_on_formula": 1
 		},
 		{
 			"name": "4141 UIF Employer Contribution",
@@ -274,7 +280,8 @@ def setup_default_salary_components():
 			"type": "Deduction",
 			"description": "Unemployment Insurance Fund - Employer Contribution (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12"
+			"formula": "(BS)/100 if (BS)<=17712 else 177.12",
+			"amount_based_on_formula": 1
 		},
 		{
 			"name": "4142 SDL Contribution",
@@ -282,7 +289,8 @@ def setup_default_salary_components():
 			"type": "Deduction",
 			"description": "Skills Development Levy (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100"
+			"formula": "(BS)/100",
+			"amount_based_on_formula": 1
 		}
 	]
 	
@@ -314,14 +322,15 @@ def make_property_setters():
 					for_doctype = True
 					property_type = doctype_properties[property_setter[1]]
 
-				make_property_setter(
-					doctype=doctype,
-					fieldname=property_setter[0],
-					property=property_setter[1],
-					value=property_setter[2],
-					property_type=property_type,
-					for_doctype=for_doctype,
-				)
+			make_property_setter(
+				doctype=doctype,
+				fieldname=property_setter[0],
+				property=property_setter[1],
+				value=property_setter[2],
+				property_type=property_type,
+				for_doctype=for_doctype,
+				validate_fields_for_doctype=False,
+			)
 	
 	print("✓ Property setters created successfully")
 
@@ -479,6 +488,9 @@ def run_za_local_setup(setup_doc):
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
 			print("✓ Loaded business trip regions")
 		
+		# Ensure any Salary Components with a formula have the flag enabled
+		enforce_salary_component_formula_flag()
+
 		# Mark as completed
 		setup_doc.setup_status = "Completed"
 		setup_doc.setup_completed_on = frappe.utils.now()
@@ -580,4 +592,22 @@ def insert_record(record):
 		print(f"  ✗ Error with {doctype} {name}: {e}")
 		import traceback
 		traceback.print_exc()
+
+
+def enforce_salary_component_formula_flag():
+	"""Backfill: ensure Salary Components with a non-empty formula have amount_based_on_formula = 1."""
+	print("Ensuring 'Amount based on formula' is enabled for Salary Components with formulas...")
+	try:
+		frappe.db.sql(
+			"""
+			UPDATE `tabSalary Component`
+			SET amount_based_on_formula = 1
+			WHERE ifnull(formula, '') != ''
+			AND ifnull(amount_based_on_formula, 0) = 0
+			"""
+		)
+		frappe.db.commit()
+		print("✓ Updated Salary Components to use formula-based amount where applicable")
+	except Exception as e:
+		print(f"  ! Could not backfill amount_based_on_formula on Salary Components: {e}")
 

@@ -43,7 +43,8 @@ def setup_custom_fields():
             "custom_coida_salary_component", "custom_disable_eti_calculation"
         ],
         "Salary Structure Assignment": ["custom_annual_bonus"],
-        "Additional Salary": ["is_company_contribution"],
+        "Additional Salary": ["is_company_contribution"],  # Note: This is different - it's on Additional Salary, not Salary Component
+        "Salary Component": ["is_company_contribution"],  # Remove old flag field - now using Type = "Company Contribution"
     }
     
     # Delete old fields
@@ -70,15 +71,12 @@ def setup_custom_fields():
             }
         ],
         
-        "Salary Component": [
-            {
-                "fieldname": "is_company_contribution",
-                "label": "Is Company Contribution",
-                "fieldtype": "Check",
-                "insert_after": "is_tax_applicable",
-                "description": "Marks this component as an employer/company contribution"
-            }
-        ],
+        # IMPORTANT: Company Contribution functionality corrected
+        # Previously used a flag (is_company_contribution) which was incorrect design.
+        # Now uses Type field option "Company Contribution" - correct fundamental approach.
+        # All code has been updated to check type == "Company Contribution" instead of flag.
+        # The is_company_contribution field is removed - this is a functional correction, not a patch.
+        "Salary Component": [],
         
         "Payroll Settings": [
             {

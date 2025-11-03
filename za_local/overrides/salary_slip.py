@@ -81,19 +81,47 @@ class ZASalarySlip(SalarySlip):
         """
         Ensure all salary components have associated GL accounts.
         Required for accurate financial reporting.
+        
+        Collects all components missing accounts and provides links to configure them.
         """
+        components_missing_accounts = []
+        
         for component_type in ["earnings", "deductions"]:
             for row in self.get(component_type):
                 if not frappe.db.exists(
                     "Salary Component Account",
                     {"parent": row.salary_component, "company": self.company}
                 ):
-                    frappe.throw(
-                        _("Please set account in Salary Component {0}. "
-                          "All components must have associated accounts for SA payroll compliance.").format(
-                            frappe.get_desk_link("Salary Component", row.salary_component)
-                        )
-                    )
+                    components_missing_accounts.append(row.salary_component)
+        
+        if components_missing_accounts:
+            # Remove duplicates while preserving order
+            unique_components = []
+            seen = set()
+            for comp in components_missing_accounts:
+                if comp not in seen:
+                    unique_components.append(comp)
+                    seen.add(comp)
+            
+            # Build error message with links to all components
+            if len(unique_components) == 1:
+                error_msg = _(
+                    "Salary Component <a href='/app/salary-component/{0}'>{0}</a> is missing an account configuration. "
+                    "Please set an account for this component in the Salary Component Account section for company {1}. "
+                    "Accounts are required for SA payroll compliance."
+                ).format(unique_components[0], self.company)
+            else:
+                component_links = ", ".join([
+                    f"<a href='/app/salary-component/{comp}'>{comp}</a>"
+                    for comp in unique_components
+                ])
+                error_msg = _(
+                    "The following Salary Components are missing account configurations: {0}. "
+                    "Please set accounts for these components in their respective Salary Component Account sections for company {1}. "
+                    "All components must have associated accounts for SA payroll compliance."
+                ).format(component_links, self.company)
+            
+            frappe.throw(error_msg, title=_("Missing Salary Component Accounts"))
     
     def compute_taxable_earnings_for_year(self):
         """

@@ -275,8 +275,7 @@ def setup_sa_print_formats():
 		"Delivery Note": "SA Delivery Note",
 		"Purchase Invoice": "SA Purchase Invoice",
 		"Purchase Order": "SA Purchase Order",
-		"Payment Entry": "SA Payment Entry",
-		"IT3b Certificate": "IT3b Certificate Print"
+		"Payment Entry": "SA Payment Entry"
 	}
 	
 	for doctype, print_format in print_format_mapping.items():
@@ -339,6 +338,7 @@ def setup_za_localization(args):
 	from frappe import _
 	from za_local.setup.install import load_data_from_json, insert_record
 	from za_local.utils.csv_importer import import_csv_data
+	from za_local.setup.install import enforce_salary_component_formula_flag
 	from pathlib import Path
 	
 	# Get user selections from args (passed from JavaScript)
@@ -348,6 +348,7 @@ def setup_za_localization(args):
 	load_tax_rebates = args.get("za_load_tax_rebates", 1)
 	load_medical = args.get("za_load_medical_credits", 1)
 	load_regions = args.get("za_load_business_trip_regions", 1)
+	load_holidays = args.get("za_load_holiday_list", 1)
 	
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
 	
@@ -382,10 +383,20 @@ def setup_za_localization(args):
 			print("Loading Earnings Components...")
 			load_data_from_json(data_dir / "earnings_components.json")
 		
-		# 6. Load Master Data (Business Trip Regions)
+		# 6. Load Holiday Lists (match the years for which tax slabs are loaded)
+		if load_holidays:
+			print("Loading South African Holiday Lists...")
+			# Load holiday lists for 2024 and 2025 to match tax slabs periods
+			load_data_from_json(data_dir / "holiday_list_2024.json")
+			load_data_from_json(data_dir / "holiday_list_2025.json")
+		
+		# 7. Load Master Data (Business Trip Regions)
 		if load_regions:
 			print("Loading Business Trip Regions...")
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
+		
+		# Ensure any Salary Components with a formula have the flag enabled
+		enforce_salary_component_formula_flag()
 		
 		frappe.msgprint(_("South African localization configured successfully!"))
 		

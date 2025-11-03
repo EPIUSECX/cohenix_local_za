@@ -93,7 +93,6 @@ If upgrading from v3.1.x or earlier:
 - EMP201 monthly submissions
 - EMP501 annual reconciliations
 - IRP5 employee tax certificates
-- IT3b employer certificates
 - Tax directive management
 - UIF U19 declarations
 
@@ -176,7 +175,7 @@ bench --site your-site.local install-app za_local
 # - Add custom fields to Employee, Company, etc.
 # - Setup default configurations
 # - Create 6 BCEA leave types
-# - Generate current year public holidays
+# - Load South African Holiday Lists (2024 and 2025)
 ```
 
 ### Step 3: Complete za_local Setup
@@ -198,6 +197,7 @@ za_local integrates into ERPNext's setup wizard. When you select **"South Africa
 - ✅ Create Earnings Components (Basic, Housing, Transport, etc.)
 - ✅ Load 2025-2026 Income Tax Slab (8 SARS brackets including 0% band)
 - ✅ Load Tax Rebates & Medical Credits (with 2025-2026 Payroll Period)
+- ✅ Load South African Holiday List (2024 and 2025)
 - ✅ Load Business Trip Regions (16 regions with SARS-compliant rates)
 
 **Optional Selections:**
@@ -208,6 +208,7 @@ The setup loads:
 1. ✅ Statutory salary components (PAYE, UIF, SDL)
 2. ✅ Common earnings components (Basic Salary, allowances, bonuses)
 3. ✅ 2024-2025 SARS tax brackets
+4. ✅ South African Holiday Lists for 2024 and 2025 (12 public holidays per year)
 4. ✅ Current tax rebates and medical credits
 5. ✅ Business trip regions with SARS-compliant rates
 
@@ -520,6 +521,7 @@ Go to **Payroll > Salary Component**
 **1. PAYE (Pay As You Earn)**
 - **Component Type**: Deduction
 - **Is Tax Applicable**: No (it IS the tax)
+- **Is Income Tax Component**: Yes (enable this flag)
 - **Condition**: Always applies
 - **Accounts**: Link to PAYE Payable account
 
@@ -534,14 +536,14 @@ Go to **Payroll > Salary Component**
 > **Important**: UIF has a maximum income threshold of R17,712/month
 
 **3. UIF Employer Contribution**
-- **Component Type**: Employer Contribution
+- **Component Type**: Company Contribution
 - **Rate**: 1% of gross (employer portion)
 - **Max Amount**: R177.12 per month
 - **Condition**: Same as employee UIF
 - **Accounts**: Link to UIF Payable account
 
 **4. SDL (Skills Development Levy)**
-- **Component Type**: Deduction (or Employer Contribution)
+- **Component Type**: Company Contribution
 - **Is Tax Applicable**: No
 - **Rate**: 1% of gross salary
 - **No Maximum**: Applies to full gross
@@ -610,18 +612,20 @@ Go to **Payroll > Salary Structure**
 | Component | Condition | Formula/Condition |
 |-----------|-----------|-------------------|
 | PAYE | Always | Automatic (system calculated) |
-| UIF | Always | `base <= 17712 ? base * 0.01 : 177.12` |
-| SDL | Always | `base * 0.01` |
+| UIF | Always | `gross_pay * 0.01 if gross_pay * 0.01 < 177.12 else 177.12` |
+| SDL | Always | `gross_pay * 0.01` |
 | Retirement Fund | If applicable | `base * 0.075` (example: 7.5%) |
 
 **Company Contributions Table:**
 
 Note: In HRMS with ZA Local, the Salary Structure includes a child table `company_contribution` (DocType: `Company Contribution`). Each row supports `Condition`, `Amount based on formula`, and `Formula`, mirroring Salary Component behavior.
 
+Important: `Salary Component.type` includes a third option — `Company Contribution` — alongside `Earning` and `Deduction`. Use this type on Salary Components for UIF Employer, SDL, and similar employer-side items. UI filters in Salary Structure and reports use `type = "Company Contribution"` (not a legacy checkbox).
+
 | Component | Condition | Formula |
 |-----------|-----------|---------|
-| UIF Employer | Always | `base <= 17712 ? base * 0.01 : 177.12` |
-| SDL | Always | `base * 0.01` |
+| UIF Employer | Always | `gross_pay * 0.01 if gross_pay * 0.01 < 177.12 else 177.12` |
+| SDL | Always | `gross_pay * 0.01` |
 | Retirement Fund Employer | If applicable | `base * 0.10` (example: 10%) |
 
 > **Pro Tip**: Create multiple salary structures for different employee categories (monthly, weekly, executive, etc.)
@@ -763,10 +767,14 @@ For each leave type, you can customize:
 
 ### Step 3: Setup SA Public Holidays
 
-#### Navigate to Public Holidays
-Go to **SA Payroll > South African Public Holiday**
+The setup wizard now loads Holiday Lists for both the current and next tax years (e.g., "South Africa 2024" and "South Africa 2025"), each with 12 public holidays.
 
-The setup wizard creates 12 holidays for the current year:
+#### Verify Holiday Lists
+Go to **HR > Holiday List** and open:
+- "South Africa 2024" (From: 2024-01-01, To: 2024-12-31)
+- "South Africa 2025" (From: 2025-01-01, To: 2025-12-31)
+
+Each list should contain these 12 holidays:
 
 | Date | Holiday Name | Type |
 |------|--------------|------|
@@ -789,34 +797,16 @@ The setup wizard creates 12 holidays for the current year:
 
 1. Check that holidays are created for current year
 2. Verify dates (especially Easter-based holidays)
-3. If missing, run: 
-   ```python
-   from za_local.setup.leave_types import setup_public_holidays
-   setup_public_holidays()
-   ```
+3. If missing, re-run the ZA Local Setup wizard with "Load South African Holiday List" checked
 
-### Step 4: Configure Holiday Lists
+### Step 4: (Optional) Customize Holiday Lists
 
-#### Navigate to Holiday List
-Go to **HR > Holiday List**
+If you need separate lists per site/region or weekly offs:
 
-**Create/Update Holiday List:**
-1. **Name**: "SA Public Holidays 2024"
-2. **From Date**: 2024-01-01
-3. **To Date**: 2024-12-31
-4. **Weekly Off**: Saturday, Sunday
-
-**Holidays Table:**
-- Click **Get Weekly Off Dates** (adds all Saturdays & Sundays)
-- Click **Clear Table** if you only want public holidays
-- Click **Add Multiple Holidays**
-- Select **South African Public Holiday** as source
-- Import the 12 public holidays
-
-**Assign to Company:**
-1. Go to **Company** record
-2. Set **Default Holiday List**: "SA Public Holidays 2024"
-3. **Save**
+1. Go to **HR > Holiday List**
+2. Duplicate "South Africa 2024" / "South Africa 2025"
+3. Adjust weekly offs or add regional holidays
+4. Assign in **Company > Default Holiday List**
 
 ### Step 5: Configure Leave Policies (Optional)
 
@@ -2061,41 +2051,7 @@ Click **Fetch from EMP201 and IRP5** button
 4. SARS processes bulk submission
 5. Receive confirmation
 
-### Step 7: Generate IT3b Certificates
-
-**What is IT3b?**
-Employer certificate for employees showing tax paid (similar to IRP5 but for employee retention).
-
-#### Single IT3b
-
-1. Go to **SA Tax > IT3b Certificate > New**
-2. **Company**: Your company
-3. **Tax Year**: 2024-2025
-4. **Certificate Number**: Auto-generated
-5. **Save**
-
-Click **Generate from EMP201** button
-
-**System populates:**
-- Total PAYE paid for year
-- Total UIF paid
-- Total SDL paid
-- ETI received
-
-**Print/Email to Employee:**
-- Click **Print**
-- Or **Email** directly to employee
-
-#### Bulk Generate IT3b
-
-1. Go to **SA Tax > IT3b Certificate**
-2. Click **Menu > Bulk Generate IT3b**
-3. **Tax Year**: 2024-2025
-4. **Generate**
-
-**System creates IT3b for company** (not per employee - one certificate for employer).
-
-### Step 8: Handle Discrepancies
+### Step 7: Handle Discrepancies
 
 **Common Discrepancies:**
 
@@ -2118,7 +2074,6 @@ Click **Generate from EMP201** button
 - ✅ EMP501 reconciliation created
 - ✅ Zero variance between EMP201 and IRP5 totals
 - ✅ EMP501 submitted to SARS (by May 31 or Nov 30)
-- ✅ IT3b certificates generated and distributed
 - ✅ SARS acknowledgment received
 - ✅ No outstanding queries from SARS
 
@@ -4059,6 +4014,12 @@ A: Verify:
 **Error:** "'<' not supported between instances of 'str' and 'int'"
 
 **Solution:** CSV import type conversion issue (fixed in v3.1). Ensure `csv_importer.py` includes `convert_csv_types()` function.
+
+**Error:** "Please set account in Salary Component ... All components must have associated accounts for SA payroll compliance."
+
+**What it means:** One or more Salary Components on the Salary Slip/Structure do not have a `Salary Component Account` configured for the company.
+
+**Solution:** Add accounts on each component. The error lists all missing components with clickable links (e.g. `Basic Salary`, `PAYE`, `UIF Employer Contribution`). Open each component and add rows in the "Salary Component Account" child table for your company.
 
 ### Performance Optimization
 

@@ -173,8 +173,8 @@ class IRP5Certificate(Document):
                 continue
             
             for earning in salary_slip_doc.earnings:
-                is_contribution = frappe.db.get_value("Salary Component", earning.salary_component, "is_company_contribution")
-                if is_contribution:
+                component_type = frappe.db.get_value("Salary Component", earning.salary_component, "type")
+                if component_type == "Company Contribution":
                     contribution_code = self.get_deduction_code(earning.salary_component, is_company_contribution=True)
                     if contribution_code:
                         contribution_map.setdefault(contribution_code, {"code": contribution_code, "description": self.get_deduction_description(contribution_code), "amount": 0})

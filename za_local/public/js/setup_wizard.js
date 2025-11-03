@@ -55,6 +55,13 @@ za_local.setup.za_localization_slide = {
 			default: 1,
 			description: __("Main member and dependant credits")
 		},
+		{
+			fieldname: "za_load_holiday_list",
+			label: __("Load South African Holiday List"),
+			fieldtype: "Check",
+			default: 1,
+			description: __("2024 and 2025 public holidays")
+		},
 		{ fieldtype: "Section Break", label: __("Master Data") },
 		{
 			fieldname: "za_load_business_trip_regions",
@@ -72,6 +79,7 @@ za_local.setup.za_localization_slide = {
 		slide.get_field("za_load_tax_slabs").set_value(1);
 		slide.get_field("za_load_tax_rebates").set_value(1);
 		slide.get_field("za_load_medical_credits").set_value(1);
+		slide.get_field("za_load_holiday_list").set_value(1);
 		slide.get_field("za_load_business_trip_regions").set_value(1);
 	}
 };

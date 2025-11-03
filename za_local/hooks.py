@@ -34,8 +34,7 @@ fixtures = [
                 "SA Purchase Order",
                 "SA Payment Entry",
                 "SA Credit Note",
-                "SA Debit Note",
-                "IT3b Certificate Print"
+                "SA Debit Note"
             ]]
         ]
     },
@@ -276,17 +275,7 @@ za_local_custom_records = [
 		"custom": 1,
 	},
 	
-	# Company-related DocTypes (5 links)
-	{
-		"doctype": "DocType Link",
-		"parent": "Company",
-		"parentfield": "links",
-		"parenttype": "DocType",
-		"group": "Tax & Compliance",
-		"link_doctype": "IT3b Certificate",
-		"link_fieldname": "company",
-		"custom": 1,
-	},
+	# Company-related DocTypes (4 links)
 	{
 		"doctype": "DocType Link",
 		"parent": "Company",

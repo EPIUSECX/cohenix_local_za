@@ -4,7 +4,6 @@ SARS XML Generator
 Generates XML files for SARS e-Filing submissions:
 - EMP501 Annual Reconciliation
 - IRP5 Bulk Submission
-- IT3b Certificates
 """
 
 import frappe
@@ -85,28 +84,6 @@ class SARSXMLGenerator:
         frappe.msgprint(_("IRP5 bulk XML generation - To be implemented"))
         return ""
     
-    def generate_it3b_xml(self, it3b_doc):
-        """Generate IT3b certificate XML"""
-        root = ET.Element("IT3b")
-        root.set("xmlns", "http://sars.gov.za/certificates")
-        
-        # Employer details
-        employer = ET.SubElement(root, "Employer")
-        ET.SubElement(employer, "PAYENumber").text = self.company.get("za_paye_registration_number", "")
-        ET.SubElement(employer, "TradingName").text = self.company.company_name
-        
-        # Certificate details
-        ET.SubElement(root, "CertificateNumber").text = it3b_doc.certificate_number or ""
-        ET.SubElement(root, "TaxYear").text = it3b_doc.tax_year
-        
-        # Totals
-        totals = ET.SubElement(root, "Totals")
-        ET.SubElement(totals, "TotalPAYE").text = str(flt(it3b_doc.total_paye, 2))
-        ET.SubElement(totals, "TotalUIF").text = str(flt(it3b_doc.total_uif, 2))
-        ET.SubElement(totals, "TotalSDL").text = str(flt(it3b_doc.total_sdl, 2))
-        
-        return self._prettify_xml(root)
-    
     def _prettify_xml(self, elem):
         """Return a pretty-printed XML string"""
         rough_string = ET.tostring(elem, encoding='unicode')
@@ -122,21 +99,6 @@ def generate_emp501_xml(emp501_name):
     xml_content = generator.generate_emp501_xml(emp501)
     
     filename = f"EMP501_{emp501.tax_year}_{emp501.company}.xml"
-    
-    return {
-        "xml_content": xml_content,
-        "filename": filename
-    }
-
-
-@frappe.whitelist()
-def generate_it3b_xml(it3b_name):
-    """API endpoint to generate IT3b XML"""
-    it3b = frappe.get_doc("IT3b Certificate", it3b_name)
-    generator = SARSXMLGenerator(it3b.company)
-    xml_content = generator.generate_it3b_xml(it3b)
-    
-    filename = f"IT3b_{it3b.certificate_number}.xml"
     
     return {
         "xml_content": xml_content,
