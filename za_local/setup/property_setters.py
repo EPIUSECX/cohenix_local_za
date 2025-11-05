@@ -91,6 +91,20 @@ def get_property_setters():
 		"Salary Structure": [
 			# Default currency for salary structures
 			("currency", "default", "ZAR"),
+			
+			# Hide Flexible Benefits section - not used in South African payroll
+			# Flexible benefits are for cafeteria-style plans (US/UK), not SA payroll
+			# Note: The actual fieldname is "employee_benefits" (child table), not "flexible_benefit"
+			("employee_benefits", "hidden", 1),
+			("max_benefits", "hidden", 1),
+		],
+		
+		"Salary Structure Assignment": [
+			# Hide Flexible Benefits section - not used in South African payroll
+			# Flexible benefits are for cafeteria-style plans (US/UK), not SA payroll
+			("employee_benefits_section", "hidden", 1),
+			("employee_benefits", "hidden", 1),
+			("max_benefits", "hidden", 1),
 		],
 		
 		"Salary Component": [

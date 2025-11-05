@@ -274,15 +274,14 @@ bench --site your-site.local set-admin-password yourpassword
 
 ### Configure Statutory Registration Numbers
 
-Scroll to the **South African Registration Details** section and fill in:
-
-#### PAYE Registration Number
-- **Field**: `za_paye_registration_number`
+#### PAYE Registration Number 
+- **Field**: `tax_id`
 - **Format**: 10 digits (e.g., 7000000000)
 - **Where to find**: SARS eFiling profile or company SARS certificate
 - **Example**: `7001234567`
-
 > **Important**: This number is used for all EMP201, EMP501, and IRP5 submissions
+
+Scroll to the **South African Registration Details** section and fill in:
 
 #### UIF Reference Number
 - **Field**: `za_uif_reference_number`
@@ -365,7 +364,7 @@ Click **Save** and verify all registration numbers are correctly entered.
 ### Step 1: Configure Tax Rebates and Medical Tax Credits
 
 #### Navigate to Tax Rebates
-1. Go to **SA Payroll > Tax Rebates and Medical Tax Credit**
+1. Go to **Tax Rebates and Medical Tax Credit**
 2. This is a Single DocType (only one record exists)
 3. Click to open the existing record
 
@@ -476,7 +475,7 @@ The system uses the South African tax year (March 1 to February 28/29). Verify:
 3. Slabs are active (not disabled)
 4. Effective from: 2025-03-01
 
-**2025-2026 Tax Slabs** (SARS Gazetted Rates):
+**2025-2026 Tax Slabs** (SARS Gazetted Rates): https://www.sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals/
 
 | Taxable Income (Annual) | Rate | Tax Calculation |
 |-------------------------|------|-----------------|
@@ -494,7 +493,8 @@ The system uses the South African tax year (March 1 to February 28/29). Verify:
 - **Age 65-74**: R148,217
 - **Age 75+**: R165,689
 
-> **Note**: The 0% band from R0-R95,750 is new for 2025-2026. These are loaded automatically from `tax_slabs_2025.json`
+> **Note**: The 0% band from R0-R95,750 is included to account for the below 65 age threshold. Over age 65 and over age 75 calculation thresholds not currently catered for. 
+> These are loaded automatically from `tax_slabs_2025.json`
 
 ### Success Indicator
 
@@ -514,7 +514,7 @@ The system uses the South African tax year (March 1 to February 28/29). Verify:
 The setup wizard creates these automatically, but verify they exist:
 
 #### Navigate to Salary Components
-Go to **Payroll > Salary Component**
+Go to **Salary Payout > Salary Component**
 
 #### Required Components
 
@@ -550,46 +550,34 @@ Go to **Payroll > Salary Component**
 - **Condition**: `base * 0.01`
 - **Accounts**: Link to SDL Payable account
 
-**5. ETI (Employment Tax Incentive)**
-- **Component Type**: Earning (employer benefit, reduces tax)
-- **Is Tax Applicable**: No
-- **Calculation**: Automatic from ETI slabs
-- **Condition**: Based on employee eligibility
-- **Accounts**: Link to ETI Receivable account
-
-> **Note**: ETI is an employer benefit that reduces PAYE payable to SARS
-
 ### Step 2: Configure Payroll Settings
 
 #### Navigate to Payroll Settings
-Go to **HRMS Settings > Payroll Settings**
+Go to **Payroll Settings**
 
-#### Link Salary Components
-
-Scroll to **South African Settings** section:
-
-1. **PAYE Salary Component**: Select "PAYE"
-2. **UIF Employee Salary Component**: Select "UIF"
-3. **UIF Employer Salary Component**: Select "UIF Employer Contribution"
-4. **SDL Salary Component**: Select "SDL"
-5. **COIDA Salary Component**: Select "COIDA" (if using)
-
-#### Additional Settings
+#### South Africa Settings
 
 **Calculate Annual Taxable Amount Based On:**
-- Select: **Payroll Period**
+- Select: **Salary Payout > Payroll Period**
 - Why: Ensures PAYE calculated on annual equivalent
 
 **Disable ETI Calculation:**
 - Leave unchecked (unless you don't qualify for ETI)
 
-**Include in Gross:**
-- Ensure all earnings are included in gross for UIF/SDL calculation
+#### Link Salary Components
+
+Scroll to **South African Statutory Components** section:
+
+1. **PAYE Salary Component**: Select "PAYE"
+2. **UIF Employee Salary Component**: Select "UIF Employee Contribution"
+3. **UIF Employer Salary Component**: Select "UIF Employer Contribution"
+4. **SDL Salary Component**: Select "SDL Contribution"
+5. **COIDA Salary Component**: Select "COIDA" (if using)
 
 ### Step 3: Create Salary Structures
 
 #### Navigate to Salary Structure
-Go to **Payroll > Salary Structure**
+Go to **Salary Payout > Salary Structure**
 
 #### Example: Standard Monthly Salary
 
@@ -633,7 +621,7 @@ Important: `Salary Component.type` includes a third option — `Company Contribu
 ### Step 4: Create Retirement Funds (if applicable)
 
 #### Navigate to Retirement Fund
-Go to **SA Payroll > Retirement Fund**
+Go to **Retirement Fund**
 
 The setup wizard creates defaults, but you can customize:
 
@@ -646,10 +634,12 @@ The setup wizard creates defaults, but you can customize:
 - **Fund Administrator**: (optional)
 - **Policy Number**: (optional)
 
+
+
 ### Step 5: Setup Travel Allowance Rates
 
 #### Navigate to Travel Allowance Rate
-Go to **SA Payroll > Travel Allowance Rate**
+Go to **Travel Allowance Rate**
 
 **SARS 2024 Rates:**
 
@@ -668,7 +658,7 @@ Go to **SA Payroll > Travel Allowance Rate**
 
 ### Success Indicator
 
-- ✅ All 5 salary components verified (PAYE, UIF x2, SDL, ETI)
+- ✅ All 4 salary components verified (PAYE, UIF x2, SDL)
 - ✅ Payroll Settings configured with linked components
 - ✅ At least 1 Salary Structure created
 - ✅ Retirement Fund(s) created (if applicable)
@@ -706,7 +696,7 @@ Go to **HR > Leave Type**
 - **Medical Certificate Required After**: 2 days (customizable)
 - **Consecutive Days**: 3 days per occasion without certificate
 
-> **BCEA**: 6 weeks (36 days) sick leave in a 36-month cycle
+> **BCEA**: 6 weeks (36 days) sick leave in a 36-month cycle from date of employment. Allocate 36 days for a 3-year period starting from the employee's date of joining.
 
 **3. Family Responsibility Leave (SA)**
 - **Max Leaves Allowed**: 3 days per year
@@ -810,6 +800,8 @@ If you need separate lists per site/region or weekly offs:
 
 ### Step 5: Configure Leave Policies (Optional)
 
+> **Note**: Leave Policy is a template/reference document only. It does NOT automatically create leave allocations. You must still create individual Leave Allocation documents for each employee (see Step 7 in Employee Configuration section).
+
 #### Create Leave Policy
 Go to **HR > Leave Policy**
 
@@ -818,13 +810,13 @@ Go to **HR > Leave Policy**
 
 **Leave Policy Grants Table:**
 
-| Leave Type | Annual Allocation | Effective After |
-|------------|-------------------|-----------------|
-| Annual Leave (SA) | 21 days | 1 month |
-| Sick Leave (SA) | 12 days | 1 month |
-| Family Responsibility Leave (SA) | 3 days | 4 months |
+| Leave Type | Allocation | Effective After |
+|------------|-----------|-----------------|
+| Annual Leave (SA) | 21 days per year | 1 month |
+| Sick Leave (SA) | 36 days per 3-year cycle | 1 month |
+| Family Responsibility Leave (SA) | 3 days per year | 4 months |
 
-> **Note**: Sick leave is 36 days per 3 years, so allocate 12 days per year
+> **BCEA Requirement**: Sick leave entitlement is **36 days over a 36-month (3-year) cycle** starting from the employee's date of joining. When creating Leave Allocation for each employee, use their date of joining as the From Date and 3 years later as the To Date.
 
 ### Success Indicator
 
@@ -1047,6 +1039,8 @@ Go to **HR > Employee > New**
 - **Required**: If participating in company fund
 - **Contribution %**: Auto-set from fund, can override
 
+> **Note**: Currently reference data only, does not affect calculation. Salary component requires adding with relevant percentage formula. 
+
 #### Travel Allowance
 
 **Travel Allowance Type** (`za_travel_allowance_type`)
@@ -1056,20 +1050,42 @@ Go to **HR > Employee > New**
   - Company Car - 80% taxable (CO2-based)
   - None
 
-### Step 5: Medical Aid & Dependants
+> **Note**: Currently reference data only, does not affect calculation. Salary component requires adding with relevant percentage formula. 
 
-**Medical Aid:**
-- **Medical Insurance Provider**: Select provider
-- **Medical Insurance Number**: Policy number
-- **Medical Tax Credit**: Number of dependants
+### Step 5: Configure Employee Private Benefits (Medical Aid Dependants and Retirement Fund)
 
-**Number of Dependants:**
-- Main member: Always 1
-- Spouse: +1
-- Children: +1 each
+**Purpose**: Track medical aid dependants for tax credit calculations and retirement fund participation for reference.
 
-> **Example**: Employee + Spouse + 2 Children = 4 dependants
-> Medical tax credit = R364 + R364 + R246 + R246 = R1,220/month
+#### Navigate to Employee Private Benefit
+
+1. From **Employee** form, click **Create > Employee Private Benefit**
+2. OR search for "Employee Private Benefit" and create new
+
+#### What Affects Payroll vs What Doesn't
+
+**✅ AFFECTS PAYROLL:**
+- **Medical Aid Dependant** (`medical_aid_dependant`): Automatically reduces PAYE tax
+  - Enter number of dependants (excluding main member)
+  - Example: Employee + Spouse + 2 Children = enter **3**
+  - Tax credit: 0 deps = R364/month, 1 dep = R728/month, 2+ deps = R728 + (R246 × additional)
+
+**❌ DOES NOT AFFECT PAYROLL:**
+- **Private Medical Aid** (`private_medical_aid`): Reference field only (not used in calculations)
+- **Retirement Fund** (`retirement_fund`): Link to Retirement Fund master data (reference only)
+- **Retirement Fund Contribution** (`annuity_amount`): Reference field only (doesn't add to payslip automatically)
+  - Retirement fund deductions must be added manually as salary components in Salary Structure
+  - Applies to all fund types: Pension Fund, Provident Fund, Retirement Annuity, or Preservation Fund
+
+#### Quick Setup
+
+1. **Employee**: Select employee
+2. **Effective From**: Date when benefit starts
+3. **Medical Aid Dependant**: Enter number (0 = main member only, 1 = + spouse, 2+ = + children)
+4. **Retirement Fund**: (Optional) Select the retirement fund (Pension, Provident, Retirement Annuity, or Preservation Fund)
+5. **Retirement Fund Contribution** (`annuity_amount`): (Optional) Enter monthly contribution amount
+6. **Save** and **Submit**
+
+> **Note**: Only the `medical_aid_dependant` field affects payroll calculations. All other fields are for reference/record-keeping only. The Retirement Fund link helps track which fund the employee is associated with (regardless of fund type), but contribution amounts must still be configured in Salary Structure.
 
 ### Step 6: Assign Salary Structure
 
@@ -1098,20 +1114,43 @@ Go to **HR > Employee > New**
 
 ### Step 7: Allocate Leaves
 
+> **Important**: Leave allocations must be created individually for each employee. The dates are NOT automatically populated from Leave Policy. You must manually enter the dates based on each employee's date of joining.
+
 #### From Employee Form:
 Click **Create > Leave Allocation**
 
-**For Each Leave Type:**
-1. **Leave Type**: Select (e.g., Annual Leave (SA))
-2. **From Date**: Start of leave period (e.g., Jan 1)
-3. **To Date**: End of leave period (e.g., Dec 31)
-4. **New Leaves Allocated**: 21 (for annual leave)
+**For Annual Leave (SA):**
+1. **Leave Type**: Select "Annual Leave (SA)"
+2. **From Date**: Start of calendar year (e.g., 2024-01-01) or employee's date of joining if joining mid-year
+3. **To Date**: End of calendar year (e.g., 2024-12-31) or end of first year if joining mid-year
+4. **New Leaves Allocated**: 21 days
 5. **Description**: "2024 Annual Leave Allocation"
 6. **Submit**
 
-**Repeat for**:
-- Sick Leave (SA): 12 days
-- Family Responsibility Leave (SA): 3 days
+**For Sick Leave (SA) - BCEA Compliant:**
+1. **Leave Type**: Select "Sick Leave (SA)"
+2. **From Date**: **Employee's date of joining** (check the Employee record - this is the key date!)
+   - Example: If employee joined on 2024-01-15, use 2024-01-15
+3. **To Date**: **Exactly 3 years (36 months) from date of joining**
+   - Example: If date of joining is 2024-01-15, use 2027-01-14 (one day before 3-year anniversary)
+   - Tip: Use date calculator or add 1095 days to date of joining
+4. **New Leaves Allocated**: 36 days
+5. **Description**: "Sick Leave 3-Year Cycle (2024-01-15 to 2027-01-14)"
+6. **Submit**
+
+**For Family Responsibility Leave (SA):**
+1. **Leave Type**: Select "Family Responsibility Leave (SA)"
+2. **From Date**: Start of calendar year (e.g., 2024-01-01)
+3. **To Date**: End of calendar year (e.g., 2024-12-31)
+4. **New Leaves Allocated**: 3 days
+5. **Description**: "2024 Family Responsibility Leave"
+6. **Submit**
+
+> **How to Find Employee's Date of Joining**: 
+> - Open the Employee record
+> - Look for the **"Date of Joining"** field in the Basic Information section
+> - Use this exact date as the **From Date** for the Sick Leave allocation
+> - Calculate **To Date** as 3 years later (same date, 3 years forward)
 
 ### Step 8: Verify Employee Setup
 
@@ -1122,7 +1161,7 @@ Click **Create > Leave Allocation**
 - ✅ Bank Account linked
 - ✅ Salary Structure Assignment created and submitted
 - ✅ Leave allocations created
-- ✅ Medical aid dependants recorded (if applicable)
+- ✅ Employee Private Benefit created (if medical aid or retirement fund applicable)
 - ✅ Retirement Fund assigned (if applicable)
 
 ### Success Indicator
@@ -2898,7 +2937,7 @@ For VAT-registered companies, za_local provides VAT201 return preparation, vendo
 
 ### Step 1: VAT Settings
 
-**Navigate to:** SA VAT > South African VAT Settings > New (Single)
+**Navigate to:** SA VAT > South Africa VAT Settings > New (Single)
 
 #### Configuration
 - **Company**: Select company
@@ -2913,7 +2952,7 @@ For VAT-registered companies, za_local provides VAT201 return preparation, vendo
 
 ### Step 2: Configure VAT Rates
 
-**Navigate to:** SA VAT > South African VAT Rate > New
+**Navigate to:** SA VAT > South Africa VAT Rate > New
 
 Create rates for different scenarios:
 

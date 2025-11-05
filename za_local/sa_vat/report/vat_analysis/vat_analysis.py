@@ -88,7 +88,7 @@ def get_data(filters):
     data = []
     
     # Get VAT settings
-    vat_settings = frappe.get_doc("South African VAT Settings")
+    vat_settings = frappe.get_doc("South Africa VAT Settings")
     
     # Get date range
     from_date, to_date = get_date_range(filters)

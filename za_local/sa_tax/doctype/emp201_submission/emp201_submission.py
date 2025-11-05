@@ -90,27 +90,43 @@ class EMP201Submission(Document):
         for slip in salary_slips:
             ss = frappe.get_doc("Salary Slip", slip.name)
             
-            # Process deductions for PAYE, UIF Employee
+            # Process deductions for PAYE (using is_income_tax_component flag) and UIF Employee
             deductions = ss.get("deductions")
             if deductions:
                 for comp in deductions:
-                    component_name = comp.get("salary_component", "").strip().lower()
-                    if "income tax" in component_name or "paye" in component_name:
-                        gross_paye += flt(comp.amount)
-                    elif "uif" in component_name or "unemployment insurance fund" in component_name:
-                        # UIF Employee portion (1%)
-                        uif += flt(comp.amount)
+                    component_name = comp.get("salary_component", "")
+                    if component_name:
+                        # Check if component is marked as income tax component (PAYE)
+                        is_paye = frappe.db.get_value("Salary Component", component_name, "is_income_tax_component")
+                        if is_paye:
+                            gross_paye += flt(comp.amount)
+                        
+                        # Check for UIF Employee Contribution (exclude employer)
+                        component_name_lower = component_name.strip().lower()
+                        if ("uif" in component_name_lower or "unemployment insurance fund" in component_name_lower) and "employer" not in component_name_lower:
+                            # UIF Employee portion (1%)
+                            uif += flt(comp.amount)
+                        # Also check for UIF Employer in deductions (fallback if type is still "Deduction")
+                        elif "uif" in component_name_lower and "employer" in component_name_lower:
+                            # UIF Employer portion (1%) - add to total UIF
+                            uif += flt(comp.amount)
+                        # Also check for SDL in deductions (fallback if type is still "Deduction")
+                        elif "sdl" in component_name_lower or "skills development levy" in component_name_lower:
+                            sdl += flt(comp.amount)
 
             # Process company contributions for UIF Employer and SDL
+            # These should be type "Company Contribution" but we check here as primary location
             company_contributions = ss.get("company_contribution")
             if company_contributions:
                 for comp in company_contributions:
-                    component_name = comp.get("salary_component", "").strip().lower()
-                    if "uif" in component_name and "employer" in component_name:
-                        # UIF Employer portion (1%) - add to total UIF
-                        uif += flt(comp.amount)
-                    elif "sdl" in component_name or "skills development levy" in component_name:
-                        sdl += flt(comp.amount)
+                    component_name = comp.get("salary_component", "")
+                    if component_name:
+                        component_name_lower = component_name.strip().lower()
+                        if "uif" in component_name_lower and "employer" in component_name_lower:
+                            # UIF Employer portion (1%) - add to total UIF
+                            uif += flt(comp.amount)
+                        elif "sdl" in component_name_lower or "skills development levy" in component_name_lower:
+                            sdl += flt(comp.amount)
 
             # Process earnings for ETI
             earnings = ss.get("earnings")

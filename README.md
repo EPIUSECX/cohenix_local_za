@@ -42,9 +42,12 @@ This module is built with clean architecture, modular design, and following mode
 ### Prerequisites
 
 - ERPNext v14 or v15
-- HRMS app installed
 - Python 3.10+
 - Frappe Framework v14 or v15
+
+**Note**: HRMS is **optional**. ZA Local works in two modes:
+- **With HRMS**: Full features including payroll processing, leave management, employee features
+- **Without HRMS**: Core features including tax/VAT/COIDA compliance, print formats, business trip management
 
 ### Quick Start (New ERPNext Installations)
 

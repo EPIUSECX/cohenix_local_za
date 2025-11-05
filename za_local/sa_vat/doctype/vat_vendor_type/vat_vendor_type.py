@@ -49,8 +49,8 @@ class VATVendorType(Document):
     def on_update(self):
         """Update VAT settings if this is the default vendor type"""
         # Check if this is the vendor type used in VAT settings
-        if frappe.db.exists("South African VAT Settings", {"vat_vendor_type": self.name}):
-            vat_settings = frappe.get_doc("South African VAT Settings")
+        if frappe.db.exists("South Africa VAT Settings", {"vat_vendor_type": self.name}):
+            vat_settings = frappe.get_doc("South Africa VAT Settings")
             
             # Update filing frequency if it's changed
             if vat_settings.vat_filing_frequency != self.filing_frequency:

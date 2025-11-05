@@ -5,10 +5,12 @@ Fast-track setup guide for South African Localization. Follow this checklist for
 ## 📋 Pre-Installation
 
 - [ ] ERPNext v14/15 installed
-- [ ] HRMS app installed
 - [ ] Python 3.10+ confirmed
 - [ ] Database backup taken
 - [ ] Admin access confirmed
+- [ ] **Decision**: Will you install HRMS?
+  - [ ] **Yes** - Full features (payroll, leave, employees) - **Install HRMS before ZA Local**
+  - [ ] **No** - Core features only (tax/VAT/COIDA) - **Skip HRMS installation**
 
 ## 🔧 Installation (30 minutes)
 
@@ -34,13 +36,13 @@ bench restart
 - [ ] Modules visible in sidebar
 
 ### Step 2: Verify Installation
-- [ ] SA Payroll module visible
 - [ ] SA Tax module visible
 - [ ] SA VAT module visible
 - [ ] COIDA module visible
 - [ ] SA EE module visible
-- [ ] Custom fields on Employee visible
 - [ ] Custom fields on Company visible
+- [ ] **If HRMS installed**: SA Payroll module visible
+- [ ] **If HRMS installed**: Custom fields on Employee visible
 
 ## 🏢 Company Configuration (15 minutes)
 
@@ -93,6 +95,7 @@ Navigate to: **SA Tax > ETI Slab > New**
 - [ ] **Submit**
 
 ## 👥 Payroll Configuration (30 minutes)
+**Note**: This section only applies if HRMS is installed.
 
 ### Step 1: Payroll Settings
 Navigate to: **HRMS Settings > Payroll Settings**
@@ -128,6 +131,7 @@ Navigate to: **Payroll > Salary Structure > New**
 - [ ] **Save**
 
 ## 🏖️ Leave Management (20 minutes)
+**Note**: This section only applies if HRMS is installed.
 
 ### Verify Leave Types
 Navigate to: **HR > Leave Type**
@@ -169,6 +173,7 @@ Navigate to: **SA Payroll > Business Trip Region**
 - [ ] Add custom regions if needed
 
 ## 👤 Create First Employee (15 minutes)
+**Note**: This section only applies if HRMS is installed.
 
 Navigate to: **HR > Employee > New**
 
@@ -192,7 +197,7 @@ Navigate to: **HR > Employee > New**
 
 ### Leave Allocation
 - [ ] Annual Leave: 21 days
-- [ ] Sick Leave: 12 days
+- [ ] Sick Leave: 36 days over 3-year period (from date of joining to 3 years later)
 - [ ] Family Responsibility: 3 days
 
 ### Salary Structure Assignment
@@ -201,6 +206,7 @@ Navigate to: **HR > Employee > New**
 - [ ] **Submit**
 
 ## 💵 Process Test Payroll (30 minutes)
+**Note**: This section only applies if HRMS is installed.
 
 ### Create Payroll Entry
 Navigate to: **Payroll > Payroll Entry > New**

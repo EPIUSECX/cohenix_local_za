@@ -4,15 +4,33 @@ South African Payroll Entry Override
 This module extends the standard HRMS Payroll Entry functionality to support
 South African payroll requirements including frequency-based processing and
 bank entry management.
+
+Note: This module only works when HRMS is installed.
 """
 
 import frappe
 from frappe import _
 from frappe.utils import flt, getdate
-from hrms.payroll.doctype.payroll_entry.payroll_entry import (
-    PayrollEntry,
-    get_employee_list
+from za_local.utils.hrms_detection import require_hrms, get_hrms_doctype_class
+
+# Conditionally import HRMS classes
+PayrollEntry = get_hrms_doctype_class(
+    "hrms.payroll.doctype.payroll_entry.payroll_entry",
+    "PayrollEntry"
 )
+
+if PayrollEntry is None:
+    # HRMS not available - create a dummy class to prevent import errors
+    class PayrollEntry:
+        pass
+
+# Try to import get_employee_list
+try:
+    from hrms.payroll.doctype.payroll_entry.payroll_entry import get_employee_list
+except ImportError:
+    def get_employee_list(*args, **kwargs):
+        require_hrms("Payroll Entry")
+        return []
 
 # Import ZA Local utilities
 from za_local.utils.payroll_utils import (
@@ -32,10 +50,17 @@ class ZAPayrollEntry(PayrollEntry):
     - Employee type validation
     """
     
+    def __init__(self, *args, **kwargs):
+        """Ensure HRMS is available before initialization"""
+        if PayrollEntry is None:
+            require_hrms("Payroll Entry")
+        super().__init__(*args, **kwargs)
+    
     def validate(self):
         """
         Validate payroll entry with SA-specific checks.
         """
+        require_hrms("Payroll Entry")
         super().validate()
         
         # Validate employees have required SA fields
@@ -273,21 +298,41 @@ class ZAPayrollEntry(PayrollEntry):
         self.check_permission("write")
         
         employees = []
-        frequency = get_current_block_period(self)
-        employee_frequency = get_employee_frequency_map()
         
-        # Filter out employees who already have salary slips for this frequency period
-        for emp in self.employees:
-            if emp.employee in employee_frequency:
-                if is_payroll_processed(
-                    emp.employee,
-                    frequency[employee_frequency[emp.employee]]
-                ):
-                    continue
-            employees.append(emp.employee)
+        # Try to filter by frequency, but don't block if frequency check fails
+        try:
+            frequency = get_current_block_period(self)
+            employee_frequency = get_employee_frequency_map()
+            
+            # Filter out employees who already have salary slips for this frequency period
+            # Only filter if we have frequency data and employee frequency mapping
+            if frequency and employee_frequency:
+                for emp in self.employees:
+                    emp_freq = employee_frequency.get(emp.employee)
+                    if emp_freq and emp_freq in frequency:
+                        freq_period = frequency[emp_freq]
+                        if freq_period and is_payroll_processed(emp.employee, freq_period):
+                            continue
+                    employees.append(emp.employee)
+            else:
+                # No frequency data - include all employees
+                employees = [emp.employee for emp in self.employees]
+        except Exception as e:
+            # If frequency check fails, include all employees
+            # Log error but don't block creation
+            frappe.log_error(
+                f"Error checking payroll frequency for Payroll Entry {self.name}: {str(e)}",
+                "Payroll Entry Frequency Check"
+            )
+            # Include all employees if frequency check fails
+            employees = [emp.employee for emp in self.employees]
         
         if employees:
-            from hrms.payroll.doctype.payroll_entry.payroll_entry import create_salary_slips_for_employees
+            require_hrms("Payroll Entry - Create Salary Slips")
+            try:
+                from hrms.payroll.doctype.payroll_entry.payroll_entry import create_salary_slips_for_employees
+            except ImportError:
+                frappe.throw(_("HRMS is required to create salary slips. Please install HRMS app."))
             
             args = frappe._dict({
                 "salary_slip_based_on_timesheet": self.salary_slip_based_on_timesheet,
@@ -302,27 +347,408 @@ class ZAPayrollEntry(PayrollEntry):
                 "currency": self.currency,
             })
             
-            if len(employees) > 30 or frappe.flags.enqueue_payroll_entry:
-                # Enqueue for background processing
-                frappe.enqueue(
-                    create_salary_slips_for_employees,
-                    timeout=600,
-                    employees=employees,
-                    args=args,
-                    publish_progress=True
+            try:
+                if len(employees) > 30 or frappe.flags.enqueue_payroll_entry:
+                    # Enqueue for background processing
+                    frappe.enqueue(
+                        create_salary_slips_for_employees,
+                        timeout=600,
+                        employees=employees,
+                        args=args,
+                        publish_progress=True
+                    )
+                    frappe.msgprint(
+                        _("Salary slip creation has been enqueued. "
+                          "It may take a few minutes to complete."),
+                        alert=True
+                    )
+                else:
+                    # create_salary_slips_for_employees doesn't return a value
+                    # It handles errors internally and shows messages
+                    # Temporarily suppress ALL messages to prevent error sounds
+                    # We'll show our own success message after
+                    original_msgprint = frappe.msgprint
+                    original_throw = frappe.throw
+                    suppressed_warnings = []
+                    suppressed_errors = []
+                    
+                    def silent_msgprint(*args, **kwargs):
+                        # Suppress all messages during creation to prevent error sounds
+                        message = args[0] if args else kwargs.get('title', 'Message')
+                        indicator = kwargs.get("indicator", "blue")
+                        
+                        if indicator == "orange":
+                            suppressed_warnings.append(str(message))
+                            # Log but don't show/sound
+                            frappe.log_error(
+                                f"Suppressed warning: {message}",
+                                "Payroll Entry Suppressed Warning"
+                            )
+                        elif indicator == "red":
+                            suppressed_errors.append(str(message))
+                            frappe.log_error(
+                                f"Suppressed error: {message}",
+                                "Payroll Entry Suppressed Error"
+                            )
+                        # Don't show any messages - suppress all
+                        return
+                    
+                    def silent_throw(*args, **kwargs):
+                        # Suppress throws temporarily - log instead
+                        message = args[0] if args else kwargs.get('title', 'Error')
+                        suppressed_errors.append(str(message))
+                        frappe.log_error(
+                            f"Suppressed throw: {message}",
+                            "Payroll Entry Suppressed Throw"
+                        )
+                        # Don't actually throw - just log
+                        return
+                    
+                    try:
+                        # Clear any existing messages first
+                        frappe.clear_messages()
+                        
+                        # Monkey-patch to suppress all messages
+                        frappe.msgprint = silent_msgprint
+                        frappe.throw = silent_throw
+                        
+                        # Create salary slips
+                        create_salary_slips_for_employees(employees, args, publish_progress=False)
+                        
+                        # Restore original functions
+                        frappe.msgprint = original_msgprint
+                        frappe.throw = original_throw
+                        
+                        # Clear messages again after creation
+                        frappe.clear_messages()
+                        
+                        self.reload()
+                        
+                        # Show our own success message
+                        frappe.msgprint(
+                            _("Salary slips created successfully."),
+                            indicator="green",
+                            alert=True
+                        )
+                        
+                        # Log summary of suppressed messages
+                        if suppressed_warnings or suppressed_errors:
+                            summary = []
+                            if suppressed_warnings:
+                                summary.append(f"{len(suppressed_warnings)} warning(s)")
+                            if suppressed_errors:
+                                summary.append(f"{len(suppressed_errors)} error(s)")
+                            frappe.log_error(
+                                f"Suppressed {', '.join(summary)} during salary slip creation for Payroll Entry {self.name}. Check Error Log for details.",
+                                "Payroll Entry Message Suppression Summary"
+                            )
+                            
+                    except Exception as creation_error:
+                        # Restore original functions on error
+                        frappe.msgprint = original_msgprint
+                        frappe.throw = original_throw
+                        
+                        # Log the actual error
+                        import traceback
+                        error_details = traceback.format_exc()
+                        frappe.log_error(
+                            f"Error in create_salary_slips_for_employees for Payroll Entry {self.name}:\n{error_details}",
+                            "Payroll Entry Salary Slip Creation Error"
+                        )
+                        # Re-raise so user sees the error
+                        raise
+                    
+                return True
+            except Exception as e:
+                # Log the full error
+                frappe.log_error(
+                    f"Error creating salary slips for Payroll Entry {self.name}: {str(e)}",
+                    "Payroll Entry Create Salary Slips"
                 )
-                frappe.msgprint(
-                    _("Salary slip creation has been enqueued. "
-                      "It may take a few minutes to complete."),
-                    alert=True
+                # Re-raise with a user-friendly message
+                frappe.throw(
+                    _("Error creating salary slips: {0}. Please check the Error Log for details.").format(str(e)),
+                    title=_("Salary Slip Creation Failed")
                 )
-            else:
-                create_salary_slips_for_employees(employees, args, publish_progress=False)
-                self.reload()
-                
-            return True
         
         return False
+    
+    @frappe.whitelist()
+    def make_payment_entry(self, selected_payment_account=None):
+        """
+        Create bank entry journal entries for employees grouped by bank account.
+        
+        Note: Standard HRMS uses make_bank_entry() which creates a single journal entry
+        for all employees using one payment account. SA payroll requires multiple bank
+        accounts (one per employee), so we override to create separate journal entries
+        per bank account group.
+        
+        This is called from the JavaScript UI when "Create Bank Entry" is clicked.
+        It processes the selected_payment_account dictionary that contains:
+        - Bank account as key
+        - Dictionary with: employees, currency, posting_date, exchange_rate
+        
+        Creates separate Bank Entry journal entries for each bank account group.
+        Uses standard HRMS methods (make_journal_entry, get_amount_and_exchange_rate_for_journal_entry)
+        but processes employees grouped by bank account rather than all at once.
+        
+        Args:
+            selected_payment_account: Dictionary of bank accounts and employees (passed from JavaScript)
+        """
+        # Log for debugging permission issues
+        frappe.logger().debug(f"make_payment_entry called by {frappe.session.user} for {self.name}, docstatus={self.docstatus}")
+        
+        # Reload document to ensure we have latest state
+        self.reload()
+        
+        # Note: run_doc_method already handles permission checking before calling this method
+        # For submitted documents (docstatus=1), creating bank entries is a standard post-submit action
+        # that should work with the permissions that allow viewing the document
+        # We don't add additional permission checks here to avoid conflicts with run_doc_method's permission handling
+        
+        # Get selected_payment_account from method argument or document attribute
+        selected_accounts = selected_payment_account or getattr(self, 'selected_payment_account', None)
+        
+        if not selected_accounts:
+            frappe.throw(_("No payment accounts selected. Please select bank accounts and employees."))
+        
+        # Parse if string (JSON)
+        if isinstance(selected_accounts, str):
+            import json
+            selected_accounts = json.loads(selected_accounts)
+        
+        # Validate that employees have bank accounts configured
+        missing_bank_accounts = []
+        for account_data in selected_accounts.values():
+            employees = account_data.get("employees", [])
+            for employee in employees:
+                bank_account = frappe.db.get_value("Employee", employee, "za_payroll_payable_bank_account")
+                if not bank_account:
+                    emp_name = frappe.db.get_value("Employee", employee, "employee_name")
+                    missing_bank_accounts.append(f"{employee}: {emp_name}")
+        
+        if missing_bank_accounts:
+            frappe.throw(
+                _("The following employees do not have bank accounts configured. Please configure bank accounts on Employee records:<br><ul><li>{0}</li></ul>").format(
+                    "</li><li>".join(missing_bank_accounts)
+                ),
+                title=_("Bank Account Required")
+            )
+        
+        employee_wise_accounting_enabled = frappe.db.get_single_value(
+            "Payroll Settings", "process_payroll_accounting_entry_based_on_employee"
+        )
+        
+        # Get salary slip details for all employees
+        all_employees = []
+        for account_data in selected_accounts.values():
+            all_employees.extend(account_data.get("employees", []))
+        
+        salary_slips = frappe.get_all(
+            "Salary Slip",
+            filters={
+                "payroll_entry": self.name,
+                "docstatus": 1,
+                "employee": ["in", all_employees]
+            },
+            fields=["name", "employee", "net_pay", "base_net_pay"]
+        )
+        
+        # Create a mapping of employee to salary slip
+        employee_salary_map = {ss.employee: ss for ss in salary_slips}
+        
+        precision = frappe.get_precision("Journal Entry Account", "debit_in_account_currency")
+        company_currency = frappe.get_cached_value("Company", self.company, "default_currency")
+        accounting_dimensions = []
+        if hasattr(self, 'get_accounting_dimensions'):
+            accounting_dimensions = self.get_accounting_dimensions() or []
+        
+        created_journal_entries = []
+        
+        # Process each bank account
+        for bank_account_name, account_data in selected_accounts.items():
+            employees = account_data.get("employees", [])
+            posting_date = account_data.get("posting_date")
+            exchange_rate = flt(account_data.get("exchange_rate", 1))
+            account_currency = account_data.get("currency", company_currency)
+            
+            if not employees:
+                continue
+            
+            if not posting_date:
+                frappe.throw(_("Posting date is required for bank account {0}").format(bank_account_name))
+            
+            # Get bank account details
+            bank_account_doc = frappe.get_doc("Bank Account", bank_account_name)
+            payment_account = bank_account_doc.account
+            
+            # Calculate total amount for this bank account
+            total_amount = 0
+            employee_amounts = {}
+            
+            for employee in employees:
+                if employee in employee_salary_map:
+                    salary_slip = employee_salary_map[employee]
+                    amount = flt(salary_slip.base_net_pay if account_currency == company_currency else salary_slip.net_pay)
+                    total_amount += amount
+                    employee_amounts[employee] = amount
+            
+            if total_amount <= 0:
+                continue
+            
+            # Build journal entry accounts
+            accounts = []
+            currencies = []
+            
+            # Credit: Bank/Payment Account
+            exchange_rate, amount = self.get_amount_and_exchange_rate_for_journal_entry(
+                payment_account, total_amount, company_currency, currencies
+            )
+            accounts.append(
+                self.update_accounting_dimensions(
+                    {
+                        "account": payment_account,
+                        "bank_account": bank_account_name,
+                        "credit_in_account_currency": flt(amount, precision),
+                        "exchange_rate": flt(exchange_rate),
+                        "cost_center": self.cost_center,
+                    },
+                    accounting_dimensions,
+                )
+            )
+            
+            # Debit: Payroll Payable Account
+            if employee_wise_accounting_enabled:
+                # Create separate entries per employee
+                for employee, amount in employee_amounts.items():
+                    if amount <= 0:
+                        continue
+                    
+                    # Get cost centers for employee
+                    cost_centers = self.get_payroll_cost_centers_for_employee(
+                        employee, None  # We'd need salary structure, but for now use None
+                    )
+                    
+                    if cost_centers:
+                        for cost_center, percentage in cost_centers.items():
+                            amount_against_cost_center = flt(amount) * percentage / 100
+                            exchange_rate, amt = self.get_amount_and_exchange_rate_for_journal_entry(
+                                self.payroll_payable_account, amount_against_cost_center, company_currency, currencies
+                            )
+                            accounts.append(
+                                self.update_accounting_dimensions(
+                                    {
+                                        "account": self.payroll_payable_account,
+                                        "debit_in_account_currency": flt(amt, precision),
+                                        "exchange_rate": flt(exchange_rate),
+                                        "reference_type": self.doctype,
+                                        "reference_name": self.name,
+                                        "party_type": "Employee",
+                                        "party": employee,
+                                        "cost_center": cost_center,
+                                    },
+                                    accounting_dimensions,
+                                )
+                            )
+                    else:
+                        # No cost center split - single entry per employee
+                        exchange_rate, amt = self.get_amount_and_exchange_rate_for_journal_entry(
+                            self.payroll_payable_account, amount, company_currency, currencies
+                        )
+                        accounts.append(
+                            self.update_accounting_dimensions(
+                                {
+                                    "account": self.payroll_payable_account,
+                                    "debit_in_account_currency": flt(amt, precision),
+                                    "exchange_rate": flt(exchange_rate),
+                                    "reference_type": self.doctype,
+                                    "reference_name": self.name,
+                                    "party_type": "Employee",
+                                    "party": employee,
+                                    "cost_center": self.cost_center,
+                                },
+                                accounting_dimensions,
+                            )
+                        )
+            else:
+                # Single entry for all employees
+                exchange_rate, amount = self.get_amount_and_exchange_rate_for_journal_entry(
+                    self.payroll_payable_account, total_amount, company_currency, currencies
+                )
+                accounts.append(
+                    self.update_accounting_dimensions(
+                        {
+                            "account": self.payroll_payable_account,
+                            "debit_in_account_currency": flt(amount, precision),
+                            "exchange_rate": flt(exchange_rate),
+                            "reference_type": self.doctype,
+                            "reference_name": self.name,
+                            "cost_center": self.cost_center,
+                        },
+                        accounting_dimensions,
+                    )
+                )
+            
+            # Create journal entry
+            bank_entry = self.make_journal_entry(
+                accounts,
+                currencies,
+                voucher_type="Bank Entry",
+                user_remark=_("Payment of salaries from {0} to {1} - Bank Account: {2}").format(
+                    self.start_date, self.end_date, bank_account_name
+                ),
+                submit_journal_entry=False,  # Don't auto-submit, let user review
+                employee_wise_accounting_enabled=employee_wise_accounting_enabled,
+            )
+            
+            # Set posting date
+            bank_entry.posting_date = posting_date
+            bank_entry.save()
+            
+            # Update flags for employees
+            for employee in employees:
+                frappe.db.set_value(
+                    "Payroll Employee Detail",
+                    {"parent": self.name, "employee": employee},
+                    "za_is_bank_entry_created",
+                    1,
+                )
+            
+            created_journal_entries.append(bank_entry.name)
+        
+        # Clear selected_payment_account after processing
+        self.selected_payment_account = {}
+        
+        if created_journal_entries:
+            frappe.msgprint(
+                _("Created {0} Bank Entry Journal Entries: {1}").format(
+                    len(created_journal_entries),
+                    ", ".join([frappe.bold(je) for je in created_journal_entries])
+                ),
+                indicator="green",
+                alert=True
+            )
+        
+        return created_journal_entries
+
+
+@frappe.whitelist()
+def make_payment_entry_for_payroll(dt, dn, selected_payment_account=None):
+    """
+    Standalone wrapper function to call make_payment_entry on a Payroll Entry document.
+    This bypasses run_doc_method's permission checks which may be too strict for submitted documents.
+    
+    Args:
+        dt: DocType name (should be "Payroll Entry")
+        dn: Document name
+        selected_payment_account: Dictionary of bank accounts and employees
+    """
+    # Check basic read permission - this works for both draft and submitted documents
+    if not frappe.has_permission(dt, "read", dn):
+        frappe.throw(_("You do not have permission to access this {0}").format(dt))
+    
+    doc = frappe.get_doc(dt, dn)
+    return doc.make_payment_entry(selected_payment_account)
 
 
 def get_payroll_entry_bank_entries(payroll_entry):

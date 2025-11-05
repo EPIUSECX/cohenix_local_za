@@ -74,7 +74,7 @@ frappe.ui.form.on('VAT201 Return', {
                     frm.set_value('vat_registration_number', r.custom_vat_number);
                 } else {
                     // If company doesn't have VAT number, try to get from VAT settings
-                    frappe.db.get_single_value('South African VAT Settings', 'vat_registration_number')
+                    frappe.db.get_single_value('South Africa VAT Settings', 'vat_registration_number')
                         .then(vat_reg_number => {
                             if (vat_reg_number) {
                                 frm.set_value('vat_registration_number', vat_reg_number);
@@ -87,7 +87,7 @@ frappe.ui.form.on('VAT201 Return', {
     
     standard_rated_supplies: function(frm) {
         // Calculate standard rated output tax
-        frappe.db.get_single_value('South African VAT Settings', 'standard_vat_rate')
+        frappe.db.get_single_value('South Africa VAT Settings', 'standard_vat_rate')
             .then(standard_rate => {
                 if (standard_rate) {
                     const rate = flt(standard_rate) / 100;

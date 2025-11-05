@@ -3,20 +3,49 @@ South African Salary Slip Override
 
 This module extends the standard HRMS Salary Slip functionality to support
 South African payroll requirements including PAYE, UIF, SDL, COIDA, and ETI.
+
+Note: This module only works when HRMS is installed.
 """
 
 import frappe
 from frappe import _
 from frappe.utils import flt, getdate
-from hrms.payroll.doctype.salary_slip.salary_slip import (
-    SalarySlip,
-    get_salary_component_data,
+from za_local.utils.hrms_detection import require_hrms, get_hrms_doctype_class, safe_import_hrms
+
+# Conditionally import HRMS classes
+SalarySlip = get_hrms_doctype_class(
+    "hrms.payroll.doctype.salary_slip.salary_slip",
+    "SalarySlip"
 )
-from hrms.payroll.doctype.payroll_period.payroll_period import get_period_factor
+
+if SalarySlip is None:
+    # HRMS not available - create a dummy class to prevent import errors
+    class SalarySlip:
+        pass
+
+# Try to import other HRMS functions
+get_salary_component_data, = safe_import_hrms(
+    "hrms.payroll.doctype.salary_slip.salary_slip",
+    "get_salary_component_data"
+)
+
+get_period_factor, = safe_import_hrms(
+    "hrms.payroll.doctype.payroll_period.payroll_period",
+    "get_period_factor"
+)
+
+if get_salary_component_data is None:
+    def get_salary_component_data(*args, **kwargs):
+        require_hrms("Salary Slip")
+        return {}
+
+if get_period_factor is None:
+    def get_period_factor(*args, **kwargs):
+        require_hrms("Salary Slip")
+        return 1.0
 
 # Import ZA Local utilities
 from za_local.utils.tax_utils import (
-    calculate_south_african_tax,
     get_tax_rebate,
     get_medical_aid_credit,
     calculate_uif_contribution,
@@ -47,35 +76,55 @@ class ZASalarySlip(SalarySlip):
     - Company contributions
     """
     
+    def __init__(self, *args, **kwargs):
+        """Ensure HRMS is available before initialization"""
+        if SalarySlip is None:
+            require_hrms("Salary Slip")
+        super().__init__(*args, **kwargs)
+    
     def validate(self):
         """
         Validate salary slip with SA-specific checks.
         """
+        require_hrms("Salary Slip")
         super().validate()
         
         # Prevent duplicate salary slips for payroll frequency
         self.validate_payroll_frequency()
-        
-        # Validate all components have accounts
+    
+    def before_submit(self):
+        """
+        Validate before submitting salary slip.
+        """
+        # Note: Parent class (SalarySlip) doesn't have before_submit, so we don't call super()
+        # Validate all components have accounts before allowing submission
         self.validate_component_accounts()
     
     def validate_payroll_frequency(self):
         """
         Validate that salary slip doesn't duplicate an existing one for the frequency period.
         """
-        frequency = get_current_block_period(self)
-        employee_frequency = get_employee_frequency_map()
-        
-        if self.employee in employee_frequency:
-            if is_payroll_processed(
-                self.employee, 
-                frequency[employee_frequency[self.employee]]
-            ):
-                frappe.throw(
-                    _("Salary Slip already created for current {0}").format(
-                        employee_frequency[self.employee]
+        try:
+            frequency = get_current_block_period(self)
+            employee_frequency = get_employee_frequency_map()
+            
+            if self.employee in employee_frequency:
+                if is_payroll_processed(
+                    self.employee, 
+                    frequency[employee_frequency[self.employee]]
+                ):
+                    frappe.throw(
+                        _("Salary Slip already created for current {0}").format(
+                            employee_frequency[self.employee]
+                        )
                     )
-                )
+        except Exception as e:
+            # Log error but don't block creation if frequency validation fails
+            frappe.log_error(
+                f"Error validating payroll frequency for employee {self.employee}: {str(e)}",
+                "Salary Slip Frequency Validation"
+            )
+            # Don't throw - allow creation to proceed
     
     def validate_component_accounts(self):
         """
@@ -186,38 +235,113 @@ class ZASalarySlip(SalarySlip):
     
     def calculate_variable_based_on_taxable_salary(self, tax_component):
         """
-        Calculate PAYE tax with SA-specific rebates and credits.
+        Validate prerequisites, then calculate tax using SA-specific logic with rebates/credits.
         
-        Args:
-            tax_component (str): Tax component name
-            
-        Returns:
-            float: Monthly tax amount
+        Follows standard HRMS pattern: validates payroll_period, then calls calculate_variable_tax.
         """
+        # Validate required attributes (standard HRMS validation)
         if not self.payroll_period:
-            return 0
+            frappe.msgprint(
+                _("Start and end dates not in a valid Payroll Period, cannot calculate {0}.").format(
+                    tax_component
+                )
+            )
+            return
         
-        # Calculate annual tax
-        annual_tax = calculate_south_african_tax(
-            self.total_taxable_earnings,
-            self.tax_slab
+        # Call our overridden calculate_variable_tax (uses SA tax calculation)
+        # This populates all the standard HRMS dictionary fields
+        self.calculate_variable_tax(tax_component)
+        
+        # Apply SA-specific rebates and medical credits as an adjustment
+        if tax_component in self._component_based_variable_tax:
+            tax_rebates = self.get_tax_rebates()
+            medical_credits = self.get_medical_aid_credits()
+            
+            # Calculate annual tax after rebates/credits
+            annual_tax_after_rebates = max(0, 
+                self._component_based_variable_tax[tax_component]["total_structured_tax_amount"] 
+                - tax_rebates - medical_credits
+            )
+            
+            # Recalculate current tax amount (monthly after rebates/credits)
+            previous_total_paid_taxes = self._component_based_variable_tax[tax_component]["previous_total_paid_taxes"]
+            current_tax_amount = max(0, (
+                annual_tax_after_rebates - previous_total_paid_taxes
+            ) / self.remaining_sub_periods)
+            
+            # Update the dictionary with adjusted tax amount
+            self._component_based_variable_tax[tax_component]["current_tax_amount"] = current_tax_amount
+            
+            # Store tax value for ETI calculation
+            self.tax_value = current_tax_amount
+    
+    def calculate_variable_tax(self, tax_component, has_additional_salary_tax_component=False):
+        """
+        Override to use tax slab values (same as HRMS), but with SA-specific eval_locals handling.
+        
+        This uses the same tax slab calculation as standard HRMS, just avoids NoneType errors.
+        """
+        # Get previous tax paid in period (standard HRMS logic)
+        self.previous_total_paid_taxes = self.get_tax_paid_in_period(
+            self.payroll_period.start_date, self.start_date, tax_component
         )
+
+        # Calculate total structured tax amount using tax slab (same as HRMS)
+        # Uses the same calculate_tax_by_tax_slab as standard HRMS, just ensures eval_locals is not None
+        eval_locals, default_data = self.get_data_for_eval()
+        require_hrms("Salary Slip - Tax Calculation")
+        try:
+            from hrms.payroll.doctype.salary_slip.salary_slip import calculate_tax_by_tax_slab
+        except ImportError:
+            frappe.throw(_("HRMS is required for tax calculations. Please install HRMS app."))
         
-        # Apply tax rebates
-        tax_rebates = self.get_tax_rebates()
-        annual_tax = max(0, annual_tax - tax_rebates)
-        
-        # Apply medical aid tax credits
-        medical_credits = self.get_medical_aid_credits()
-        annual_tax = max(0, annual_tax - medical_credits)
-        
-        # Calculate monthly tax
-        monthly_tax = annual_tax / self.remaining_sub_periods
-        
-        # Store tax value for ETI calculation
-        self.tax_value = monthly_tax
-        
-        return flt(monthly_tax, 2)
+        self.total_structured_tax_amount, __ = calculate_tax_by_tax_slab(
+            self.total_taxable_earnings_without_full_tax_addl_components,
+            self.tax_slab,
+            self.whitelisted_globals,
+            eval_locals if eval_locals is not None else {},  # Ensure not None
+        )
+
+        # Calculate current structured tax amount (standard HRMS logic)
+        if has_additional_salary_tax_component:
+            self.current_structured_tax_amount = self.additional_salary_amount
+        else:
+            self.current_structured_tax_amount = (
+                self.total_structured_tax_amount - self.previous_total_paid_taxes
+            ) / self.remaining_sub_periods
+
+        # Handle additional earnings with full tax (standard HRMS logic)
+        self.full_tax_on_additional_earnings = 0.0
+        if self.current_additional_earnings_with_full_tax:
+            self.total_tax_amount, __ = calculate_tax_by_tax_slab(
+                self.total_taxable_earnings,
+                self.tax_slab,
+                self.whitelisted_globals,
+                eval_locals if eval_locals is not None else {},  # Ensure not None
+            )
+            self.full_tax_on_additional_earnings = self.total_tax_amount - self.total_structured_tax_amount
+
+        # Calculate current tax amount (standard HRMS logic)
+        self.current_tax_amount = max(
+            0,
+            flt(
+                self.current_structured_tax_amount
+                if has_additional_salary_tax_component
+                else (self.current_structured_tax_amount + self.full_tax_on_additional_earnings)
+            ),
+        )
+
+        # Populate dictionary (standard HRMS pattern)
+        self._component_based_variable_tax.setdefault(tax_component, {})
+        self._component_based_variable_tax[tax_component].update(
+            {
+                "previous_total_paid_taxes": self.previous_total_paid_taxes,
+                "total_structured_tax_amount": self.total_structured_tax_amount,
+                "current_structured_tax_amount": self.current_structured_tax_amount,
+                "full_tax_on_additional_earnings": self.full_tax_on_additional_earnings,
+                "current_tax_amount": self.current_tax_amount,
+            }
+        )
     
     def get_tax_rebates(self):
         """

@@ -25,7 +25,7 @@ class VAT201Return(Document):
                 self.vat_registration_number = vat_number
             else:
                 # Try to get from VAT settings
-                vat_settings = frappe.get_doc("South African VAT Settings")
+                vat_settings = frappe.get_doc("South Africa VAT Settings")
                 if vat_settings.vat_registration_number:
                     self.vat_registration_number = vat_settings.vat_registration_number
                     
@@ -35,7 +35,7 @@ class VAT201Return(Document):
         self.total_supplies = flt(self.standard_rated_supplies) + flt(self.zero_rated_supplies) + flt(self.exempt_supplies)
         
         # Calculate standard rated output tax
-        vat_settings = frappe.get_doc("South African VAT Settings")
+        vat_settings = frappe.get_doc("South Africa VAT Settings")
         standard_rate = flt(vat_settings.standard_vat_rate) / 100
         self.standard_rated_output = flt(self.standard_rated_supplies) * standard_rate
         
@@ -92,9 +92,9 @@ class VAT201Return(Document):
             frappe.throw("VAT201 Return must be in 'Prepared' status before submission to SARS")
             
         # Check if VAT settings has e-Filing credentials
-        vat_settings = frappe.get_doc("South African VAT Settings")
+        vat_settings = frappe.get_doc("South Africa VAT Settings")
         if not vat_settings.sars_efiling_username or not vat_settings.sars_efiling_password:
-            frappe.throw("SARS e-Filing credentials not configured in South African VAT Settings")
+            frappe.throw("SARS e-Filing credentials not configured in South Africa VAT Settings")
             
         # Implementation of SARS e-Filing integration
         try:
@@ -190,9 +190,9 @@ class VAT201Return(Document):
         to_date = getdate(self.to_date)
         
         # Get VAT settings
-        vat_settings = frappe.get_doc("South African VAT Settings")
+        vat_settings = frappe.get_doc("South Africa VAT Settings")
         if not vat_settings.output_vat_account or not vat_settings.input_vat_account:
-            frappe.throw("VAT accounts not configured in South African VAT Settings")
+            frappe.throw("VAT accounts not configured in South Africa VAT Settings")
         
         # Reset existing values
         self.standard_rated_supplies = 0

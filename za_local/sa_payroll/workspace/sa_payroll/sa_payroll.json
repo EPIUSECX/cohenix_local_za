@@ -1,0 +1,399 @@
+{
+ "app": "za_local",
+ "charts": [],
+ "content": "[{\"id\":\"182875b2b436\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>SA Payroll</b></span>\",\"col\":12}},{\"id\":\"1bed3ff7b77e\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"dee8c673efd1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\",\"col\":5}},{\"id\":\"16969982b7b5\",\"type\":\"card\",\"data\":{\"card_name\":\"Employee Configuration\",\"col\":5}},{\"id\":\"27cf4656c42b\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data & Settings\",\"col\":5}},{\"id\":\"c9177da52c5a\",\"type\":\"card\",\"data\":{\"card_name\":\"Benefits & Allowances\",\"col\":5}},{\"id\":\"319fcd12d9a0\",\"type\":\"card\",\"data\":{\"card_name\":\"Business Trip Management\",\"col\":5}},{\"id\":\"11f647627832\",\"type\":\"card\",\"data\":{\"card_name\":\"Payments & Settlement\",\"col\":5}},{\"id\":\"e021b77adfdc\",\"type\":\"card\",\"data\":{\"card_name\":\"Sectoral Compliance\",\"col\":5}},{\"id\":\"2b1689ee24ec\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":5}}]",
+ "creation": "2025-11-04 18:23:15.100923",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "map",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "SA Payroll",
+ "link_type": "DocType",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Configuration",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Type",
+   "link_count": 0,
+   "link_to": "Employee Type",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Payroll Frequency",
+   "link_count": 0,
+   "link_to": "Employee Payroll Frequency",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Private Benefit",
+   "link_count": 0,
+   "link_to": "Employee Private Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Master Data & Settings",
+   "link_count": 8,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retirement Fund",
+   "link_count": 0,
+   "link_to": "Retirement Fund",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Travel Allowance Rate",
+   "link_count": 0,
+   "link_to": "Travel Allowance Rate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax Rebates and Medical Tax Credit",
+   "link_count": 0,
+   "link_to": "Tax Rebates and Medical Tax Credit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retirement Annuity Slab",
+   "link_count": 0,
+   "link_to": "Retirement Annuity Slab",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Medical Tax Credit Rate",
+   "link_count": 0,
+   "link_to": "Medical Tax Credit Rate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax Rebates Rate",
+   "link_count": 0,
+   "link_to": "Tax Rebates Rate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SARS Vehicle Emissions Rate",
+   "link_count": 0,
+   "link_to": "Sars Vehicle Emissions Rate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Holiday List",
+   "link_count": 0,
+   "link_to": "Holiday List",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Benefits & Allowances",
+   "link_count": 7,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Company Car Benefit",
+   "link_count": 0,
+   "link_to": "Company Car Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Housing Benefit",
+   "link_count": 0,
+   "link_to": "Housing Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Low Interest Loan Benefit",
+   "link_count": 0,
+   "link_to": "Low Interest Loan Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cellphone Benefit",
+   "link_count": 0,
+   "link_to": "Cellphone Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Fuel Card Benefit",
+   "link_count": 0,
+   "link_to": "Fuel Card Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bursary Benefit",
+   "link_count": 0,
+   "link_to": "Bursary Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Fringe Benefit",
+   "link_count": 0,
+   "link_to": "Fringe Benefit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Business Trip Management",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Business Trip Settings",
+   "link_count": 0,
+   "link_to": "Business Trip Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Business Trip Region",
+   "link_count": 0,
+   "link_to": "Business Trip Region",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Business Trip",
+   "link_count": 0,
+   "link_to": "Business Trip",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payments & Settlement",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Payment Batch",
+   "link_count": 0,
+   "link_to": "Payroll Payment Batch",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Final Settlement",
+   "link_count": 0,
+   "link_to": "Employee Final Settlement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Leave Encashment SA",
+   "link_count": 0,
+   "link_to": "Leave Encashment Sa",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sectoral Compliance",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SETA",
+   "link_count": 0,
+   "link_to": "SETA",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bargaining Council",
+   "link_count": 0,
+   "link_to": "Bargaining Council",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sectoral Minimum Wage",
+   "link_count": 0,
+   "link_to": "Sectoral Minimum Wage",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Industry Specific Contribution",
+   "link_count": 0,
+   "link_to": "Industry Specific Contribution",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Payroll Register",
+   "link_count": 0,
+   "link_to": "Payroll Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Department Cost Analysis",
+   "link_count": 0,
+   "link_to": "Department Cost Analysis",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Statutory Submissions Summary",
+   "link_count": 0,
+   "link_to": "Statutory Submissions Summary",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2025-11-05 15:07:46.952569",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "SA Payroll",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 10.0,
+ "shortcuts": [],
+ "title": "SA Payroll",
+ "type": "Workspace"
+}
