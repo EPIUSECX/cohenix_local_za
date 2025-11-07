@@ -126,10 +126,10 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                 callback: function(r) {
                     if (r.message) {
                         frm.set_value('paye_reference_number', r.message.tax_id);
-                        frm.set_value('sdl_reference_number', r.message.custom_sdl_reference_number);
-                        frm.set_value('uif_reference_number', r.message.custom_uif_reference_number);
+                        frm.set_value('sdl_reference_number', r.message.za_sdl_reference_number);
+                        frm.set_value('uif_reference_number', r.message.za_uif_reference_number);
 
-                        if (!r.message.custom_sdl_reference_number && !frm.sdl_warning_shown) {
+                        if (!r.message.za_sdl_reference_number && !frm.sdl_warning_shown) {
                             frappe.msgprint({
                                 title: __('Missing SDL Number'),
                                 indicator: 'orange',
@@ -137,7 +137,7 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                             });
                             frm.sdl_warning_shown = true;
                         }
-                        if (!r.message.custom_uif_reference_number && !frm.uif_warning_shown) {
+                        if (!r.message.za_uif_reference_number && !frm.uif_warning_shown) {
                             frappe.msgprint({
                                 title: __('Missing UIF Number'),
                                 indicator: 'orange',

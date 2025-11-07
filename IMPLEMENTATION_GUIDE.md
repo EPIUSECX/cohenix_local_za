@@ -1,14 +1,12 @@
 # Complete Implementation Guide - za_local for Frappe HR
 
-**Version**: 3.2.0  
-**Last Updated**: October 31, 2024 (2025-2026 Tax Year)  
+**Last Updated**: November 7, 2025 (2025-2026 Tax Year)  
 **Estimated Setup Time**: 15 minutes for basic setup, 2-4 hours for complete configuration with test data
 
 ---
 
 ## Table of Contents
 
-0. [What's New in v3.2.0](#whats-new-in-v320-2025-2026-tax-year)
 1. [Introduction & Prerequisites](#1-introduction--prerequisites)
 2. [Installation](#2-installation)
 3. [Initial Company Setup](#3-initial-company-setup)
@@ -34,41 +32,6 @@
 23. [Compliance Calendar](#23-compliance-calendar)
 24. [Best Practices](#24-best-practices)
 25. [Support & Resources](#25-support--resources)
-
----
-
-## What's New in v3.2.0 (2025-2026 Tax Year)
-
-### ✅ Critical Bug Fixes
-- **Tax Rebate Calculation**: Fixed field name mismatch causing rebates not to apply
-- **Medical Tax Credit**: Fixed field name mismatch preventing credit calculations
-- **Impact**: Without these fixes, employees were being over-taxed
-
-### 🆕 2025-2026 Statutory Rates
-- **New 0% Tax Band**: R0 - R95,750 (tax-free threshold)
-- **8 Tax Brackets**: Updated from 7 to 8 brackets
-- **Tax Rebates**: R17,235 (Primary), R9,444 (Secondary), R3,145 (Tertiary)
-- **Medical Credits**: R364 (Main/First), R246 (Additional)
-- **UIF Cap**: R17,712 monthly earnings (R177.12 contribution)
-- **ETI Slabs**: First/Second 12-month brackets configured
-
-### 📦 New Data Files
-- `tax_slabs_2025.json` - 2025-2026 income tax brackets
-- `tax_rebates_2025.json` - Updated rebates and medical credits
-- `eti_slabs_2025.json` - ETI calculation brackets
-- `payroll_period_2025.json` - March 2025 - February 2026
-
-### 🔧 Fixes Applied
-- SETA DocType: Created missing `seta.py` module
-- Tax calculations: Corrected field references in `tax_utils.py`
-- Documentation: Updated all rates and field names
-
-### ⚠️ Upgrade Instructions
-If upgrading from v3.1.x or earlier:
-1. Run `bench migrate` to apply database changes
-2. Load 2025-2026 data via ZA Local Setup wizard
-3. Verify tax rebates and medical credits are configured
-4. Test payroll calculations with sample data
 
 ---
 
@@ -145,7 +108,7 @@ If upgrading from v3.1.x or earlier:
 - **Complete Setup with Test Data**: 2-4 hours
 - **First Live Payroll**: Allow 4-6 hours for verification
 
-> 💡 **New in v3.2**: The integrated setup wizard reduces initial setup time from 2-4 hours to just 15 minutes by automatically loading all essential defaults.
+> 💡 **Quick setup tip**: The integrated setup wizard reduces initial setup time from 2-4 hours to just 15 minutes by automatically loading all essential defaults.
 
 ---
 
@@ -176,14 +139,14 @@ bench --site your-site.local install-app za_local
 # - Setup default configurations
 # - Create 6 BCEA leave types
 # - Load South African Holiday Lists (2024 and 2025)
-# - Create SA Payroll workspace in sidebar navigation
+# - Add the South Africa module with Tax & Compliance and Payroll workspaces to the sidebar navigation
 ```
 
 ### Step 3: Complete za_local Setup
 
 za_local integrates into ERPNext's setup wizard. When you select **"South Africa"** as your country during ERPNext setup, the za_local setup page appears automatically.
 
-**For New Installations:**
+**For initial installations:**
 - Setup runs automatically after ERPNext wizard
 - Select which defaults to load (all recommended enabled)
 - Click Save to complete
@@ -217,20 +180,22 @@ The setup loads:
 
 **Check 1: Custom Fields**
 1. Navigate to **Employee** DocType
-2. Scroll to find these new tabs/sections:
+2. Scroll to confirm these tabs/sections are present:
    - SA Registration Details (ID Number, Employee Type)
    - Employment Equity Tab (Race, Disability, Occupational Level)
    - Travel Allowance section
 
 **Check 2: Modules & Workspace**
-Verify you can see these modules in the sidebar:
-- **SA Payroll** (workspace) - Centralized navigation hub for all payroll-related DocTypes and reports
-- SA Tax
-- SA VAT
-- COIDA
-- SA EE (Employment Equity)
+- Verify the sidebar shows the updated module and workspaces:
+- **South Africa** (module) with two workspaces:
+  - **Tax & Compliance** – SARS filings, VAT, COIDA, and statutory tools
+  - **Payroll** – Payroll configuration, benefits, travel, payments, and reports
+- **SA Tax**
+- **SA VAT**
+- **COIDA**
+- **SA EE** (Employment Equity)
 
-> 💡 **Tip**: The **SA Payroll** workspace provides quick access to all payroll configuration, transactions, benefits, and reports. Click on it in the sidebar to see organized cards for Employee Configuration, Master Data, Benefits, Business Trips, Payments, and Reports.
+> 💡 **Tip**: The **South Africa > Payroll** workspace provides quick access to all payroll configuration, transactions, benefits, business trips, payments, and reports. The **South Africa > Tax & Compliance** workspace groups EMP submissions, VAT, COIDA, and other statutory tools.
 
 **Check 3: Leave Types**
 1. Go to **HR > Leave Type**
@@ -357,12 +322,12 @@ Click **Save** and verify all registration numbers are correctly entered.
 
 **Time Required:** 30-45 minutes
 
-> **⚠️ Important - v3.2.0 Bug Fixes**:  
+> **⚠️ Important**:  
 > Critical bug fixes were applied to tax rebate and medical credit calculations. The field names in the code now correctly match the DocType schemas:
 > - Tax Rebates: Uses `tax_rebates_rate` table with `primary`, `secondary`, `tertiary` fields
 > - Medical Credits: Uses `medical_tax_credit` table with `one_dependant`, `two_dependant`, `additional_dependant` fields
 > 
-> If upgrading from an earlier version, ensure you run `bench migrate` to apply these fixes.
+> When updating an existing site, ensure you run `bench migrate` to apply these fixes.
 
 ### Step 1: Configure Tax Rebates and Medical Tax Credits
 
@@ -412,13 +377,12 @@ Navigate to the **Medical Tax Credit** child table (note: NOT "Medical Tax Credi
 5. **Additional Dependant**: 246
 6. **Save**
 
-> **Note**: The field names were corrected in v3.2.0. Previous versions may have used different names.
 
 ### Step 2: Setup ETI (Employment Tax Incentive) Slabs
 
 #### Navigate to ETI Slab
 1. Go to **SA Tax > ETI Slab**
-2. Click **New**
+-2. Click **Add ETI Slab**
 
 #### Create First 12 Months ETI Slab
 
@@ -950,10 +914,10 @@ This will be used when recording training in **Skills Development Record** DocTy
 
 **Time Required:** 10-15 minutes per employee
 
-### Step 1: Create New Employee
+### Step 1: Add an Employee Profile
 
 #### Navigate to Employee
-Go to **HR > Employee > New**
+Go to **HR > Employee > Add**
 
 ### Step 2: Basic Information
 
@@ -1062,7 +1026,7 @@ Go to **HR > Employee > New**
 #### Navigate to Employee Private Benefit
 
 1. From **Employee** form, click **Create > Employee Private Benefit**
-2. OR search for "Employee Private Benefit" and create new
+2. OR search for "Employee Private Benefit" and create a record
 
 #### What Affects Payroll vs What Doesn't
 
@@ -1124,9 +1088,9 @@ Click **Create > Leave Allocation**
 
 **For Annual Leave (SA):**
 1. **Leave Type**: Select "Annual Leave (SA)"
-2. **From Date**: Start of calendar year (e.g., 2024-01-01) or employee's date of joining if joining mid-year
-3. **To Date**: End of calendar year (e.g., 2024-12-31) or end of first year if joining mid-year
-4. **New Leaves Allocated**: 21 days
+2. **From Date**: Start of calendar year (e.g., 2024-01-01)
+3. **To Date**: End of calendar year (e.g., 2024-12-31)
+4. **Leaves Allocated**: 21 days
 5. **Description**: "2024 Annual Leave Allocation"
 6. **Submit**
 
@@ -1137,7 +1101,7 @@ Click **Create > Leave Allocation**
 3. **To Date**: **Exactly 3 years (36 months) from date of joining**
    - Example: If date of joining is 2024-01-15, use 2027-01-14 (one day before 3-year anniversary)
    - Tip: Use date calculator or add 1095 days to date of joining
-4. **New Leaves Allocated**: 36 days
+4. **Leaves Allocated**: 36 days
 5. **Description**: "Sick Leave 3-Year Cycle (2024-01-15 to 2027-01-14)"
 6. **Submit**
 
@@ -1145,7 +1109,7 @@ Click **Create > Leave Allocation**
 1. **Leave Type**: Select "Family Responsibility Leave (SA)"
 2. **From Date**: Start of calendar year (e.g., 2024-01-01)
 3. **To Date**: End of calendar year (e.g., 2024-12-31)
-4. **New Leaves Allocated**: 3 days
+4. **Leaves Allocated**: 3 days
 5. **Description**: "2024 Family Responsibility Leave"
 6. **Submit**
 
@@ -1194,7 +1158,7 @@ This is the most important process. Follow these steps carefully each month.
 2. **Salary Structure Assignments current**: No pending changes
 3. **Leave applications submitted**: All approved leave for the period
 4. **Additional salaries created**: Bonuses, allowances, deductions
-5. **Tax directives active**: Any new tax directives for the month
+5. **Tax directives active**: Any directives issued for the period
 6. **Fringe benefits updated**: Company cars, housing, etc.
 
 **Timesheet Check (if applicable):**
@@ -1204,7 +1168,7 @@ This is the most important process. Follow these steps carefully each month.
 ### Step 2: Create Payroll Entry
 
 #### Navigate to Payroll Entry
-Go to **Payroll > Payroll Entry > New**
+Go to **Payroll > Payroll Entry > Add**
 
 **Basic Details:**
 1. **Company**: Your company
@@ -1354,7 +1318,7 @@ If employees have active tax directives:
 
 For EFT bank payments:
 
-1. Go to **SA Payroll > Payroll Payment Batch > New**
+1. Go to **South Africa > Payroll > Payroll Payment Batch > Create**
 2. **Payroll Entry**: Select current month's entry
 3. **Payment Date**: Salary payment date (e.g., 25th of month)
 4. **Bank Account**: Company bank account for payments
@@ -1381,7 +1345,7 @@ Click **Generate EFT File** button
 
 **If manual posting:**
 
-1. Go to **Accounting > Journal Entry > New**
+1. Go to **Accounting > Journal Entry > Create**
 2. **Posting Date**: Last day of month
 3. **Reference**: Payroll Entry name
 
@@ -1405,7 +1369,7 @@ Click **Generate EFT File** button
 
 **For SARS monthly submission:**
 
-1. Go to **SA Tax > EMP201 Submission > New**
+1. Go to **SA Tax > EMP201 Submission > Create**
 2. **Company**: Your company
 3. **Period**: January 2024 (or current month)
 4. **From Date**: 2024-01-01
@@ -1446,7 +1410,7 @@ Click **Fetch from Salary Slips** button
 - Must be consistent with employment contracts
 
 **Record Payment in ERPNext:**
-1. Go to **Accounting > Payment Entry > New**
+1. Go to **Accounting > Payment Entry > Create**
 2. **Payment Type**: Pay
 3. **Party Type**: Employee (or bulk payment)
 4. **Paid From**: Bank account
@@ -1497,7 +1461,7 @@ Non-cash benefits provided by employer that have taxable value per SARS rules.
 Most common and complex fringe benefit.
 
 #### Navigate to Company Car Benefit
-Go to **SA Payroll > Company Car Benefit > New**
+Go to **South Africa > Payroll > Company Car Benefit > Create**
 
 **Basic Details:**
 - **Employee**: Select employee
@@ -1550,7 +1514,7 @@ Taxable Value = Monthly Value × CO2 Multiplier
 ### Step 3: Housing Benefit
 
 #### Navigate to Housing Benefit
-Go to **SA Payroll > Housing Benefit > New**
+Go to **South Africa > Payroll > Housing Benefit > Create**
 
 **Basic Details:**
 - **Employee**: Select employee
@@ -1595,7 +1559,7 @@ Plus:
 When company loans money to employee at rate below SARS official rate.
 
 #### Navigate to Low Interest Loan Benefit
-Go to **SA Payroll > Low Interest Loan Benefit > New**
+Go to **South Africa > Payroll > Low Interest Loan Benefit > Create**
 
 **Loan Details:**
 - **Employee**: Select employee
@@ -1625,7 +1589,7 @@ Monthly Benefit = Annual Benefit ÷ 12
 ### Step 5: Cellphone Benefit
 
 #### Navigate to Cellphone Benefit
-Go to **SA Payroll > Cellphone Benefit > New**
+Go to **South Africa > Payroll > Cellphone Benefit > New**
 
 **Cellphone Details:**
 - **Employee**: Select employee
@@ -1651,7 +1615,7 @@ Taxable Value = Contract Value × Private Use %
 ### Step 6: Fuel Card Benefit
 
 #### Navigate to Fuel Card Benefit
-Go to **SA Payroll > Fuel Card Benefit > New**
+Go to **South Africa > Payroll > Fuel Card Benefit > New**
 
 **Fuel Card Details:**
 - **Employee**: Select employee
@@ -1682,7 +1646,7 @@ Taxable Value = Private Cost
 ### Step 7: Bursary Benefit
 
 #### Navigate to Bursary Benefit
-Go to **SA Payroll > Bursary Benefit > New**
+Go to **South Africa > Payroll > Bursary Benefit > New**
 
 **Bursary Details:**
 - **Employee**: Select employee
@@ -2646,7 +2610,7 @@ za_local automatically calculates:
 
 ### Step 2: Generate Final Settlement
 
-**Navigate to:** SA Payroll > Employee Final Settlement > New
+**Navigate to:** South Africa > Payroll > Employee Final Settlement > New
 
 #### Fields Auto-Populated
 1. **Link to Employee Separation**: Select separation record
@@ -3175,7 +3139,7 @@ za_local v3.1 introduces comprehensive Business Trip management with SARS-compli
 
 ### Step 1: Configure Business Trip Settings
 
-**Navigate to:** SA Payroll > Business Trip Settings
+**Navigate to:** South Africa > Payroll > Business Trip Settings
 
 **Mileage Allowance:**
 - **Mileage Allowance Rate**: R4.25 per km (SARS 2024 rate)
@@ -3193,7 +3157,7 @@ za_local v3.1 introduces comprehensive Business Trip management with SARS-compli
 
 ### Step 2: Set Up Business Trip Regions
 
-**Navigate to:** SA Payroll > Business Trip Region
+**Navigate to:** South Africa > Payroll > Business Trip Region
 
 **Pre-loaded Regions (16):**
 
@@ -3220,7 +3184,7 @@ za_local v3.1 introduces comprehensive Business Trip management with SARS-compli
 
 ### Step 3: Create a Business Trip
 
-**Navigate to:** SA Payroll > Business Trip > New
+**Navigate to:** South Africa > Payroll > Business Trip > New
 
 #### Basic Details
 - **Employee**: Select traveling employee
@@ -3402,7 +3366,7 @@ System creates Expense Claim with:
 
 **Business Trip Summary Report:**
 ```
-Navigate to: SA Payroll > Reports > Business Trip Summary
+Navigate to: South Africa > Payroll > Reports > Business Trip Summary
 
 Filters:
 - Date Range: 2025-01-01 to 2025-12-31
@@ -3497,7 +3461,7 @@ Certain industries in South Africa have additional compliance requirements throu
 
 ### Step 1: Configure Bargaining Council
 
-**Navigate to:** SA Payroll > Bargaining Council
+**Navigate to:** South Africa > Payroll > Bargaining Council
 
 **Pre-loaded Councils (11):**
 - MEIBC (Metal and Engineering)
@@ -3527,7 +3491,7 @@ Certain industries in South Africa have additional compliance requirements throu
 
 ### Step 3: Configure Sectoral Minimum Wages
 
-**Navigate to:** SA Payroll > Sectoral Minimum Wage > New
+**Navigate to:** South Africa > Payroll > Sectoral Minimum Wage > New
 
 **Example: Domestic Workers (2024)**
 ```
@@ -3553,7 +3517,7 @@ Valid Until: 2025-02-28
 
 ### Step 4: Configure Industry-Specific Contributions
 
-**Navigate to:** SA Payroll > Industry Specific Contribution > New
+**Navigate to:** South Africa > Payroll > Industry Specific Contribution > New
 
 **Example: MEIBC Contributions**
 ```
@@ -3600,7 +3564,7 @@ Used for:
 - Debt repayments
 - Loan repayments
 
-**Navigate to:** SA Payroll > NAEDO Deduction > New
+**Navigate to:** South Africa > Payroll > NAEDO Deduction > New
 
 #### Required Information
 - **Employee**: Select employee
@@ -3654,11 +3618,11 @@ On payroll processing:
 
 za_local provides comprehensive reports for payroll analysis, compliance monitoring, and decision-making.
 
-> 💡 **Quick Access**: All reports are accessible via the **SA Payroll** workspace in the sidebar. Navigate to **SA Payroll > Reports** to see all available reports organized by category.
+> 💡 **Quick Access**: All reports are accessible via the **South Africa > Payroll** workspace in the sidebar. Navigate to **South Africa > Payroll > Reports** to see all available reports organized by category.
 
 ### Payroll Register
 
-**Navigate to:** SA Payroll > Reports > Payroll Register
+**Navigate to:** South Africa > Payroll > Reports > Payroll Register
 
 **Purpose:** Complete payroll breakdown for period
 
@@ -3686,7 +3650,7 @@ za_local provides comprehensive reports for payroll analysis, compliance monitor
 
 ### Department Cost Analysis
 
-**Navigate to:** SA Payroll > Reports > Department Cost Analysis
+**Navigate to:** South Africa > Payroll > Reports > Department Cost Analysis
 
 **Purpose:** Analyze payroll costs by department
 
@@ -3710,7 +3674,7 @@ za_local provides comprehensive reports for payroll analysis, compliance monitor
 
 ### Statutory Submissions Summary
 
-**Navigate to:** SA Payroll > Reports > Statutory Submissions Summary
+**Navigate to:** South Africa > Payroll > Reports > Statutory Submissions Summary
 
 **Purpose:** Track all statutory submissions and payments
 
@@ -3817,7 +3781,7 @@ za_local provides comprehensive reports for payroll analysis, compliance monitor
 
 ### EFT File Generation
 
-**Navigate to:** SA Payroll > Payroll Payment Batch > New
+**Navigate to:** South Africa > Payroll > Payroll Payment Batch > New
 
 **Purpose:** Generate bank file for salary payments
 

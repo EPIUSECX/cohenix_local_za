@@ -9,7 +9,12 @@ from frappe import _ # Ensure _ is imported for translations
 
 @frappe.whitelist()
 def get_company_tax_details(company):
-    details = frappe.db.get_value("Company", company, ["tax_id", "custom_sdl_reference_number", "custom_uif_reference_number"], as_dict=True)
+    details = frappe.db.get_value(
+        "Company",
+        company,
+        ["tax_id", "za_sdl_reference_number", "za_uif_reference_number"],
+        as_dict=True,
+    )
     return details
 
 @frappe.whitelist()

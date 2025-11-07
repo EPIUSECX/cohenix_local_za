@@ -173,17 +173,11 @@ class IRP5Certificate(Document):
                 continue
             
             for earning in salary_slip_doc.earnings:
-                component_type = frappe.db.get_value("Salary Component", earning.salary_component, "type")
-                if component_type == "Company Contribution":
-                    contribution_code = self.get_deduction_code(earning.salary_component, is_company_contribution=True)
-                    if contribution_code:
-                        contribution_map.setdefault(contribution_code, {"code": contribution_code, "description": self.get_deduction_description(contribution_code), "amount": 0})
-                        contribution_map[contribution_code]["amount"] += flt(earning.amount)
-                else:
-                    income_code = self.get_income_code(earning.salary_component)
-                    if not income_code: continue
-                    income_map.setdefault(income_code, {"code": income_code, "description": self.get_income_description(income_code), "amount": 0})
-                    income_map[income_code]["amount"] += flt(earning.amount)
+                # Company contributions should NOT be in earnings - they're in the company_contribution child table
+                income_code = self.get_income_code(earning.salary_component)
+                if not income_code: continue
+                income_map.setdefault(income_code, {"code": income_code, "description": self.get_income_description(income_code), "amount": 0})
+                income_map[income_code]["amount"] += flt(earning.amount)
             
             for deduction in salary_slip_doc.deductions:
                 deduction_code = self.get_deduction_code(deduction.salary_component, is_company_contribution=False)
@@ -192,7 +186,11 @@ class IRP5Certificate(Document):
                 deduction_map.setdefault(deduction_code, {"code": deduction_code, "description": self.get_deduction_description(deduction_code), "amount": 0})
                 deduction_map[deduction_code]["amount"] += flt(deduction.amount)
 
-            for contribution in salary_slip_doc.get("company_contribution", []):
+            # Company contributions are in the company_contribution child table, not in earnings
+            company_contributions = getattr(salary_slip_doc, "company_contribution", []) or []
+            for contribution in company_contributions:
+                if not hasattr(contribution, "salary_component") or not contribution.salary_component:
+                    continue
                 contribution_code = self.get_deduction_code(contribution.salary_component, is_company_contribution=True)
                 if contribution_code:
                     contribution_map.setdefault(contribution_code, {"code": contribution_code, "description": self.get_deduction_description(contribution_code), "amount": 0})
@@ -212,59 +210,179 @@ class IRP5Certificate(Document):
         return {"income_count": len(income_map), "deduction_count": len(deduction_map), "contribution_count": len(contribution_map), "message": "Certificate data generated."}
         
     def get_income_code(self, salary_component):
-        # Placeholder - expand this with actual mappings
+        """
+        Map salary component names to IRP5 income codes.
+        Based on SARS IRP5 income code standards.
+        """
         component_mapping = {
-            "Basic Salary": "3601", "Basic": "3601", "Overtime": "3607", "Bonus": "3605", "Commission": "3605",
-            "Annual Payment": "3605", "Leave Encashment": "3605", 
-            "Travel Allowance": "3701", # Example, verify correct code
-            "Subsistence Allowance": "3704", # Example, verify correct code
-            "Uniform Allowance": "3713", # Example, verify correct code
-            # Fringe Benefits (e.g., Use of Motor Vehicle) might have codes like 3802
+            # Standard Earnings (Code 3601 - Gross Remuneration)
+            "Basic Salary": "3601",
+            "Basic": "3601",
+            "Gross Salary": "3601",
+            
+            # Annual Payments and Bonuses (Code 3605 - Annual Payment)
+            "13th Cheque": "3605",
+            "Performance Bonus": "3605",
+            "Bonus": "3605",
+            "Annual Payment": "3605",
+            "Annual Bonus": "3605",
+            "Commission": "3605",
+            "Leave Encashment": "3605",
+            "Gratuity": "3605",
+            
+            # Overtime (Code 3607 - Overtime)
+            "Overtime": "3607",
+            "OT": "3607",
+            
+            # Allowances (Code 3701 - Travel Allowance / Code 3702 - Other Allowances)
+            "Transport Allowance": "3701",
+            "Travel Allowance": "3701",
+            "Housing Allowance": "3702",
+            "Accommodation Allowance": "3702",
+            "Subsistence Allowance": "3704",
+            "Uniform Allowance": "3713",
+            "Cell Phone Allowance": "3702",
+            "Entertainment Allowance": "3702",
+            
+            # Fringe Benefits (Code 3802 - Use of Motor Vehicle, etc.)
+            "Use of Motor Vehicle": "3802",
+            "Company Car Benefit": "3802",
+            "Motor Vehicle Benefit": "3802",
+            
+            # Other common earnings
+            "Incentive": "3605",
+            "Retention Bonus": "3605",
+            "Long Service Bonus": "3605",
         }
         return component_mapping.get(salary_component)
     
     def get_income_description(self, income_code):
-        # Placeholder - expand this
-        descriptions = {"3601": "Gross Remuneration", "3605": "Annual Payment", "3607": "Overtime", "3701": "Travel Allowance (Taxable)"}
+        """
+        Get description for IRP5 income codes.
+        Based on SARS IRP5 income code descriptions.
+        """
+        descriptions = {
+            "3601": "Gross Remuneration",
+            "3605": "Annual Payment",
+            "3607": "Overtime",
+            "3701": "Travel Allowance",
+            "3702": "Other Allowances",
+            "3704": "Subsistence Allowance",
+            "3713": "Uniform Allowance",
+            "3802": "Use of Motor Vehicle",
+        }
         return descriptions.get(income_code, f"Income Code {income_code}")
     
     def get_deduction_code(self, salary_component, is_company_contribution=False):
-        # Placeholder - expand this with actual mappings
-        # Some codes are specific to employee or employer
+        """
+        Map salary component names to IRP5 deduction/contribution codes.
+        Codes differ for employee deductions vs employer contributions.
+        Based on SARS IRP5 deduction code standards.
+        """
+        # Employee Deductions (from employee's salary)
         component_mapping_employee = {
-            "PAYE": "4102", "Income Tax": "4102", 
-            "UIF Contribution": "4141", # Employee UIF
-            "Pension Fund": "4001", # Employee Pension
-            "Retirement Annuity Fund": "4006", # Employee RA
-            "Medical Aid": "4005", # Employee Medical
+            # Income Tax (Code 4102 - PAYE)
+            "PAYE": "4102",
+            "Income Tax": "4102",
+            "Pay As You Earn": "4102",
+            
+            # UIF Employee Contribution (Code 4141)
+            "UIF Employee Contribution": "4141",
+            "UIF Contribution": "4141",  # Fallback for older naming
+            "UIF": "4141",  # Abbreviation fallback
+            
+            # Pension Fund Employee Contribution (Code 4001)
+            "Pension Fund": "4001",
+            "Pension Fund Contribution": "4001",
+            "Provident Fund": "4001",
+            "Retirement Fund": "4001",
+            
+            # Retirement Annuity Fund (Code 4006)
+            "Retirement Annuity Fund": "4006",
+            "RA Fund": "4006",
+            "Retirement Annuity": "4006",
+            
+            # Medical Aid Employee Contribution (Code 4005)
+            "Medical Aid": "4005",
+            "Medical Scheme": "4005",
+            "Medical Insurance": "4005",
+            "Medical Aid Contribution": "4005",
+            
+            # Other common employee deductions
+            "Group Life Insurance": "4007",
+            "Disability Insurance": "4008",
+            "Loan Repayment": "4010",
         }
+        
+        # Employer Contributions (company contributions, not deducted from employee)
         component_mapping_employer = {
-            "UIF Contribution": "4141", # Employer UIF (often same code as employee for reporting, but context matters)
-            "Pension Fund": "4472", # Employer Pension Contribution
-            "Medical Aid": "4474", # Employer Medical Contribution
-            "SDL": "4142", "Skills Development Levy": "4142", # Skills Development Levy (Employer)
+            # UIF Employer Contribution (Code 4141 - same code as employee)
+            "UIF Employer Contribution": "4141",
+            "UIF Contribution": "4141",  # Fallback for older naming
+            "UIF": "4141",  # Abbreviation fallback
+            
+            # SDL - Skills Development Levy (Code 4142)
+            "SDL Contribution": "4142",
+            "SDL": "4142",  # Abbreviation fallback
+            "Skills Development Levy": "4142",
+            "Skills Development": "4142",
+            
+            # Employer Pension Fund Contribution (Code 4472)
+            "Pension Fund": "4472",
+            "Pension Fund Contribution": "4472",
+            "Employer Pension": "4472",
+            "Provident Fund": "4472",
+            "Retirement Fund": "4472",
+            
+            # Employer Medical Aid Contribution (Code 4474)
+            "Medical Aid": "4474",
+            "Medical Scheme": "4474",
+            "Medical Insurance": "4474",
+            "Employer Medical": "4474",
+            "Medical Aid Contribution": "4474",
+            
+            # Other Employer Contributions (Code 4497)
             "Company Contribution": "4497",
-            # Group Life, Disability etc. might have codes like 44xx
+            "Employer Contribution": "4497",
+            "Group Life Insurance": "4475",
+            "Disability Insurance": "4476",
+            "Funeral Benefit": "4477",
         }
+        
         if is_company_contribution:
             return component_mapping_employer.get(salary_component)
         else:
             return component_mapping_employee.get(salary_component)
 
     def get_deduction_description(self, deduction_code):
-        # Placeholder - expand this
+        """
+        Get description for IRP5 deduction/contribution codes.
+        Based on SARS IRP5 deduction code descriptions.
+        """
         descriptions = {
-            "4102": "PAYE", "4141": "UIF Contribution", "4001": "Pension Fund Contribution (Current)",
-            "4006": "Retirement Annuity Fund Contributions", "4005": "Medical Scheme Fees (Employee Paid)",
-            "4472": "Employer's Pension Fund Contributions", 
+            # Employee Deductions
+            "4102": "PAYE",
+            "4141": "UIF Contribution",
+            "4001": "Pension Fund Contribution (Current)",
+            "4005": "Medical Scheme Fees (Employee Paid)",
+            "4006": "Retirement Annuity Fund Contributions",
+            "4007": "Group Life Insurance (Employee)",
+            "4008": "Disability Insurance (Employee)",
+            "4010": "Loan Repayment",
+            
+            # Employer Contributions
+            "4142": "SDL (Skills Development Levy)",
+            "4472": "Employer's Pension Fund Contributions",
             "4474": "Employer's Medical Scheme Contributions",
-            "4142": "SDL",
-            "4497": "Company Contributions"
+            "4475": "Group Life Insurance (Employer)",
+            "4476": "Disability Insurance (Employer)",
+            "4477": "Funeral Benefit (Employer)",
+            "4497": "Company Contributions",
         }
         return descriptions.get(deduction_code, f"Deduction Code {deduction_code}")
         
     def calculate_eti(self):
-        disable_eti_globally = frappe.db.get_single_value("Payroll Settings", "custom_disable_eti_calculation")
+        disable_eti_globally = frappe.db.get_single_value("Payroll Settings", "za_disable_eti_calculation")
         if disable_eti_globally:
             self.eti = 0
             frappe.log_error(message=f"ETI calculation globally disabled. IRP5: {self.name}", title="ETI Calculation")
@@ -275,7 +393,7 @@ class IRP5Certificate(Document):
         if not self.to_date: self.eti = 0; return
         end_date, birth_date = getdate(self.to_date), getdate(employee.date_of_birth)
         age_years = end_date.year - birth_date.year - ((end_date.month, end_date.day) < (birth_date.month, birth_date.day))
-        if not (18 <= age_years <= 29) and not frappe.db.get_value("Employee", employee.name, "custom_special_economic_zone"):
+        if not (18 <= age_years <= 29) and not frappe.db.get_value("Employee", employee.name, "za_special_economic_zone"):
             self.eti = 0; return
         if not employee.date_of_joining: self.eti = 0; return
         date_of_joining = getdate(employee.date_of_joining)
@@ -354,9 +472,9 @@ class IRP5Certificate(Document):
         can.drawString(150, 780, self.tax_year or "")
         can.drawString(150, 720, company_doc.company_name or "")
         
-        company_vat = frappe.db.get_value("Company", self.company, "custom_vat_number") or ""
+        company_vat = frappe.db.get_value("Company", self.company, "za_vat_number") or ""
         company_paye = frappe.db.get_value("Company", self.company, "custom_paye_reference_number") or ""
-        company_sdl = frappe.db.get_value("Company", self.company, "custom_sdl_reference_number") or ""
+        company_sdl = frappe.db.get_value("Company", self.company, "za_sdl_reference_number") or ""
         
         can.drawString(150, 700, company_paye)
         can.drawString(150, 680, company_sdl)
@@ -364,7 +482,7 @@ class IRP5Certificate(Document):
         can.drawString(150, 640, company_doc.company_address or "")
         
         can.drawString(450, 720, employee_doc.employee_name or "")
-        id_number = frappe.db.get_value("Employee", self.employee, "custom_id_number") or ""
+        id_number = frappe.db.get_value("Employee", self.employee, "za_id_number") or ""
         tax_number = frappe.db.get_value("Employee", self.employee, "custom_tax_number") or ""
         
         can.drawString(450, 700, id_number)

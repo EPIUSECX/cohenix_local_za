@@ -3,6 +3,11 @@
 
 frappe.ui.form.on('IRP5 Certificate', {
     refresh: function(frm) {
+        // Ensure tax_year is always enabled for new/saved documents (unless submitted)
+        if (frm.doc.docstatus === 0) {
+            frm.set_df_property('tax_year', 'read_only', 0);
+        }
+        
         // Always update UI based on generation_mode
         if (frm.doc.generation_mode === 'Bulk') {
             frm.set_df_property('income_details', 'hidden', 1);
@@ -151,6 +156,11 @@ frappe.ui.form.on('IRP5 Certificate', {
         }
     },
     onload: function(frm) {
+        // Ensure tax_year is always enabled for new documents
+        if (frm.is_new()) {
+            frm.set_df_property('tax_year', 'read_only', 0);
+        }
+        
         // Hide Employee field if in Bulk mode on load
         if (frm.doc.generation_mode === 'Bulk') {
             frm.set_df_property('employee', 'hidden', 1);

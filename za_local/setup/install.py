@@ -440,94 +440,157 @@ def insert_custom_records():
 
 def import_workspace():
 	"""
-	Import SA Payroll workspace from JSON file.
+	Import South Africa workspaces for Tax & Compliance and Payroll Localization.
 	
-	Creates the workspace page that appears in the sidebar navigation.
-	Note: Workspace includes HRMS-dependent links which will be filtered automatically.
+	- Tax & Compliance workspace is always imported (no HRMS dependency)
+	- Payroll Localization workspace is imported only when HRMS is available
 	"""
 	import json
 	from pathlib import Path
+	from frappe.model.rename_doc import rename_doc
 	from za_local.utils.hrms_detection import is_hrms_installed
-	
-	print("Importing SA Payroll workspace...")
-	
-	workspace_path = Path(frappe.get_app_path("za_local", "sa_payroll", "workspace", "sa_payroll", "sa_payroll.json"))
-	
-	if not workspace_path.exists():
-		print(f"  ! Workspace file not found: {workspace_path}")
-		return
-	
+
+	print("Importing South Africa workspaces...")
+
+	hrms_installed = is_hrms_installed()
+
+	# Ensure the South Africa module definition exists (rename legacy module if needed)
 	try:
-		with open(workspace_path, "r") as f:
-			workspace_data = json.load(f)
-		
-		# Determine if workspace already exists; we'll UPSERT (update if exists)
-		workspace_exists = frappe.db.exists("Workspace", workspace_data["name"]) is not None
-		
-		# Filter out links to DocTypes/Reports that don't exist yet
-		# Also filter HRMS-dependent links if HRMS is not installed
-		hrms_installed = is_hrms_installed()
-		hrms_doctypes = ["Employee", "Payroll Entry", "Salary Slip", "Salary Structure", 
-		                 "Additional Salary", "Leave Application", "Employee Separation"]
-		
-		filtered_links = []
-		for link in workspace_data.get("links", []):
-			if link.get("type") == "Link":
-				link_to = link.get("link_to")
-				link_type = link.get("link_type", "DocType")
-				
-				# Skip HRMS-dependent doctypes if HRMS is not installed
-				if not hrms_installed and link_type == "DocType" and link_to in hrms_doctypes:
-					print(f"  ⊙ Skipping HRMS-dependent link: {link_to}")
-					continue
-				
-				if link_type == "DocType":
-					if frappe.db.exists("DocType", link_to):
-						filtered_links.append(link)
+		if frappe.db.exists("Module Def", "South African Localization") and not frappe.db.exists("Module Def", "South Africa"):
+			rename_doc("Module Def", "South African Localization", "South Africa", force=True, ignore_permissions=True)
+	except Exception as e:
+		print(f"  ! Could not rename Module Def to 'South Africa': {e}")
+
+	if not frappe.db.exists("Module Def", "South Africa"):
+		try:
+			frappe.get_doc({
+				"doctype": "Module Def",
+				"module_name": "South Africa",
+				"app_name": "za_local"
+			}).insert(ignore_permissions=True)
+			frappe.db.commit()
+		except Exception as e:
+			print(f"  ! Could not create Module Def 'South Africa': {e}")
+
+	workspace_definitions = [
+		{
+			"name": "Tax & Compliance",
+			"path": Path(frappe.get_app_path("za_local", "south_africa", "workspace", "tax_&_compliance", "tax_&_compliance.json")),
+			"requires_hrms": False,
+		},
+		{
+			"name": "Payroll",
+			"path": Path(frappe.get_app_path("za_local", "south_africa", "workspace", "payroll", "payroll.json")),
+			"requires_hrms": True,
+		},
+	]
+
+	# Determine which workspaces should exist for the current environment
+	desired_workspace_names = {
+		wd["name"] for wd in workspace_definitions if not wd.get("requires_hrms") or hrms_installed
+	}
+
+	# Remove any other South Africa workspaces so navigation stays clean
+	existing_workspaces = frappe.get_all(
+		"Workspace",
+		filters={"module": "South Africa"},
+		fields=["name"],
+	)
+	for ws in existing_workspaces:
+		if ws.name not in desired_workspace_names:
+			try:
+				frappe.delete_doc("Workspace", ws.name, force=True, ignore_permissions=True)
+				print(f"  ⊙ Removed workspace '{ws.name}' (not part of South Africa navigation)")
+			except Exception as delete_error:
+				print(f"  ! Could not delete workspace '{ws.name}': {delete_error}")
+
+	for workspace_def in workspace_definitions:
+		workspace_path = workspace_def["path"]
+		requires_hrms = workspace_def.get("requires_hrms", False)
+
+		if requires_hrms and not hrms_installed:
+			print(f"  ⊙ Skipping workspace {workspace_path.name} (HRMS not installed)")
+			continue
+
+		if not workspace_path.exists():
+			print(f"  ! Workspace file not found: {workspace_path}")
+			continue
+
+		try:
+			with open(workspace_path, "r") as f:
+				workspace_data = json.load(f)
+
+			workspace_name = workspace_def["name"]
+			workspace_data["name"] = workspace_name
+			workspace_data["label"] = workspace_name
+			workspace_data["title"] = workspace_name
+			workspace_data["module"] = "South Africa"
+
+			workspace_exists = frappe.db.exists("Workspace", workspace_name) is not None
+
+			# Filter links for existing DocTypes/Reports and skip HRMS-only entries when HRMS absent
+			filtered_links = []
+			for link in workspace_data.get("links", []):
+				if link.get("type") == "Link":
+					link_to = link.get("link_to")
+					link_type = link.get("link_type", "DocType")
+
+					if not hrms_installed and link_type == "DocType" and link_to in hrms_doctypes:
+						print(f"  ⊙ Skipping HRMS-dependent link: {link_to}")
+						continue
+
+					if link_type == "DocType":
+						if frappe.db.exists("DocType", link_to):
+							filtered_links.append(link)
+						else:
+							print(f"  ⊙ Skipping link to non-existent DocType: {link_to}")
+					elif link_type == "Report":
+						if frappe.db.exists("Report", link_to):
+							filtered_links.append(link)
+						else:
+							print(f"  ⊙ Skipping link to non-existent Report: {link_to}")
 					else:
-						print(f"  ⊙ Skipping link to non-existent DocType: {link_to}")
-				elif link_type == "Report":
-					if frappe.db.exists("Report", link_to):
 						filtered_links.append(link)
-					else:
-						print(f"  ⊙ Skipping link to non-existent Report: {link_to}")
 				else:
 					filtered_links.append(link)
+
+			workspace_data["links"] = filtered_links
+
+			if not workspace_exists:
+				doc = frappe.get_doc(workspace_data)
+				doc.flags.ignore_links = True
+				doc.insert(ignore_permissions=True)
+				frappe.db.commit()
+				print(f"  ✓ Imported workspace: {workspace_name}")
 			else:
-				# Card Break and other non-link items
-				filtered_links.append(link)
-		
-		workspace_data["links"] = filtered_links
-		
-		if not workspace_exists:
-			# Create the workspace document directly
-			doc = frappe.get_doc(workspace_data)
-			doc.flags.ignore_links = True  # Skip link validation
-			doc.insert(ignore_permissions=True)
-			frappe.db.commit()
-			print(f"  ✓ Imported workspace: {workspace_data['name']}")
-		else:
-			# Update existing workspace with latest content, links, icon and metadata
-			print(f"  ⊙ Workspace '{workspace_data['name']}' exists, updating with latest content")
-			# Load existing doc and update selective fields
-			doc = frappe.get_doc("Workspace", workspace_data["name"])
-			# Keep name stable; update key fields
-			fields_to_update = [
-				"label", "public", "icon", "module", "app", "title",
-				"content", "links", "charts", "custom_blocks", "quick_lists",
-				"shortcuts", "number_cards"
-			]
-			for field in fields_to_update:
-				if field in workspace_data:
-					doc.set(field, workspace_data[field])
-			doc.flags.ignore_links = True
-			doc.save(ignore_permissions=True)
-			frappe.db.commit()
-			print(f"  ✓ Updated workspace: {workspace_data['name']}")
-	except Exception as e:
-		print(f"  ! Error importing workspace: {e}")
-		import traceback
-		traceback.print_exc()
+				print(f"  ⊙ Workspace '{workspace_name}' exists, updating with latest content")
+				doc = frappe.get_doc("Workspace", workspace_name)
+				fields_to_update = [
+					"label",
+					"public",
+					"icon",
+					"module",
+					"app",
+					"title",
+					"content",
+					"links",
+					"charts",
+					"custom_blocks",
+					"quick_lists",
+					"shortcuts",
+					"number_cards"
+				]
+				for field in fields_to_update:
+					if field in workspace_data:
+						doc.set(field, workspace_data[field])
+				doc.flags.ignore_links = True
+				doc.save(ignore_permissions=True)
+				frappe.db.commit()
+				print(f"  ✓ Updated workspace: {workspace_name}")
+		except Exception as e:
+			print(f"  ! Error importing workspace from {workspace_path}: {e}")
+			import traceback
+			traceback.print_exc()
 
 
 def setup_default_retirement_funds():

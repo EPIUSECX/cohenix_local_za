@@ -292,34 +292,34 @@ class ZASalarySlip(SalarySlip):
         require_hrms("Salary Slip - Tax Calculation")
         try:
             from hrms.payroll.doctype.salary_slip.salary_slip import calculate_tax_by_tax_slab
-        except ImportError:
-            frappe.throw(_("HRMS is required for tax calculations. Please install HRMS app."))
-        
-        self.total_structured_tax_amount, __ = calculate_tax_by_tax_slab(
-            self.total_taxable_earnings_without_full_tax_addl_components,
-            self.tax_slab,
-            self.whitelisted_globals,
-            eval_locals if eval_locals is not None else {},  # Ensure not None
-        )
-
-        # Calculate current structured tax amount (standard HRMS logic)
-        if has_additional_salary_tax_component:
-            self.current_structured_tax_amount = self.additional_salary_amount
-        else:
-            self.current_structured_tax_amount = (
-                self.total_structured_tax_amount - self.previous_total_paid_taxes
-            ) / self.remaining_sub_periods
-
-        # Handle additional earnings with full tax (standard HRMS logic)
-        self.full_tax_on_additional_earnings = 0.0
-        if self.current_additional_earnings_with_full_tax:
-            self.total_tax_amount, __ = calculate_tax_by_tax_slab(
-                self.total_taxable_earnings,
+            
+            self.total_structured_tax_amount, __ = calculate_tax_by_tax_slab(
+                self.total_taxable_earnings_without_full_tax_addl_components,
                 self.tax_slab,
                 self.whitelisted_globals,
                 eval_locals if eval_locals is not None else {},  # Ensure not None
             )
-            self.full_tax_on_additional_earnings = self.total_tax_amount - self.total_structured_tax_amount
+
+            # Calculate current structured tax amount (standard HRMS logic)
+            if has_additional_salary_tax_component:
+                self.current_structured_tax_amount = self.additional_salary_amount
+            else:
+                self.current_structured_tax_amount = (
+                    self.total_structured_tax_amount - self.previous_total_paid_taxes
+                ) / self.remaining_sub_periods
+
+            # Handle additional earnings with full tax (standard HRMS logic)
+            self.full_tax_on_additional_earnings = 0.0
+            if self.current_additional_earnings_with_full_tax:
+                self.total_tax_amount, __ = calculate_tax_by_tax_slab(
+                    self.total_taxable_earnings,
+                    self.tax_slab,
+                    self.whitelisted_globals,
+                    eval_locals if eval_locals is not None else {},  # Ensure not None
+                )
+                self.full_tax_on_additional_earnings = self.total_tax_amount - self.total_structured_tax_amount
+        except ImportError:
+            frappe.throw(_("HRMS is required for tax calculations. Please install HRMS app."))
 
         # Calculate current tax amount (standard HRMS logic)
         self.current_tax_amount = max(

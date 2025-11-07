@@ -3,11 +3,13 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, today, add_months
+from frappe.utils import flt, getdate, today, formatdate
 
 class VAT201Return(Document):
     def validate(self):
         self.validate_dates()
+        self.ensure_period_dates()
+        self.set_submission_period()
         self.set_vat_registration_number()
         self.calculate_totals()
         
@@ -15,12 +17,31 @@ class VAT201Return(Document):
         """Validate submission date"""
         if getdate(self.submission_date) > getdate(today()):
             frappe.throw("Submission Date cannot be in the future")
+        if self.from_date and self.to_date and getdate(self.from_date) > getdate(self.to_date):
+            frappe.throw("From Date cannot be after To Date")
+
+    def ensure_period_dates(self):
+        """Ensure period fields exist to prevent attribute lookups from failing"""
+        # The DocType now defines these fields, but guard for legacy documents
+        if not hasattr(self, "from_date"):
+            self.from_date = None
+        if not hasattr(self, "to_date"):
+            self.to_date = None
+
+    def set_submission_period(self):
+        """Populate submission period label from date range"""
+        if getattr(self, "from_date", None) and getattr(self, "to_date", None):
+            from_label = formatdate(getdate(self.from_date))
+            to_label = formatdate(getdate(self.to_date))
+            self.submission_period = f"{from_label} to {to_label}"
+        else:
+            self.submission_period = None
             
     def set_vat_registration_number(self):
         """Set VAT registration number from company"""
         if self.company and not self.vat_registration_number:
             # Try to get from company
-            vat_number = frappe.db.get_value("Company", self.company, "custom_vat_number")
+            vat_number = frappe.db.get_value("Company", self.company, "za_vat_number")
             if vat_number:
                 self.vat_registration_number = vat_number
             else:
@@ -156,6 +177,7 @@ class VAT201Return(Document):
             
     def prepare_efiling_submission_data(self):
         """Prepare data for e-Filing submission"""
+        self.set_submission_period()
         return {
             "vendor_number": self.vat_registration_number,
             "submission_period": self.submission_period,
@@ -277,6 +299,7 @@ class VAT201Return(Document):
         
         # Calculate totals
         self.calculate_totals()
+        self.set_submission_period()
         
         # Return summary
         return {

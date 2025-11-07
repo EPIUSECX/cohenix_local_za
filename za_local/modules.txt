@@ -3,4 +3,4 @@ SA Tax
 SA VAT
 COIDA
 SA EE
-South African Localization
+South Africa

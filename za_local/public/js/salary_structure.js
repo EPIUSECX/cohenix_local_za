@@ -2,14 +2,14 @@ frappe.ui.form.on('Salary Structure', {
 	onload: function(frm) {
 		// Filter Company Contribution salary components
 		if (frm.fields_dict['company_contribution']) {
-			frm.fields_dict['company_contribution'].grid.get_field('salary_component').get_query = function(doc){
-				return{
-					filters:{
-						"type": "Company Contribution"
-					}
+		frm.fields_dict['company_contribution'].grid.get_field('salary_component').get_query = function(doc){
+			return{
+				filters:{
+					"type": "Company Contribution"
 				}
 			}
 		}
+	}
 		
 		// Hide Flexible Benefits section - not used in South African payroll
 		// Flexible benefits are typically fixed deductions or company contributions, not claim-based

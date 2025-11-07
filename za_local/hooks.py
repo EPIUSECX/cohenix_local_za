@@ -1,7 +1,7 @@
 from . import __version__ as app_version
 
 app_name = "za_local"
-app_title = "South African Localization"
+app_title = "South Africa"
 app_publisher = "Cohenix"
 app_description = "Comprehensive South African localization for ERPNext covering payroll, tax, VAT, and COIDA compliance"
 app_email = "info@cohenix.com"
@@ -110,11 +110,11 @@ def get_override_doctype_class():
 	overrides = {}
 	if is_hrms_installed():
 		overrides.update({
-			"Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
-			"Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
-			"Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary",
-			"Leave Application": "za_local.overrides.leave_application.ZALeaveApplication",
-			"Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation"
+    "Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
+    "Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
+    "Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary",
+    "Leave Application": "za_local.overrides.leave_application.ZALeaveApplication",
+    "Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation"
 		})
 	return overrides
 
@@ -403,7 +403,7 @@ def get_za_local_custom_records():
 		"link_fieldname": "expense_claim",
 		"custom": 1,
 	},
-	]
+]
 	
 	# Filter out HRMS-dependent links if HRMS is not installed
 	if not hrms_installed:
