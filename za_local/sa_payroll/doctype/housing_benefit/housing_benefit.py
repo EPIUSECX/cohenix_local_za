@@ -19,6 +19,7 @@ class HousingBenefit(Document):
 		"""Validate housing benefit"""
 		self.calculate_monthly_benefit()
 		
+	@frappe.whitelist()
 	def calculate_monthly_benefit(self):
 		"""
 		Calculate monthly taxable value for housing benefit.

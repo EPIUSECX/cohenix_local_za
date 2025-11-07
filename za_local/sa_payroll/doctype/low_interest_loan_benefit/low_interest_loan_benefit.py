@@ -17,6 +17,7 @@ class LowInterestLoanBenefit(Document):
 		"""Validate low interest loan benefit"""
 		self.calculate_interest_benefit()
 		
+	@frappe.whitelist()
 	def calculate_interest_benefit(self):
 		"""
 		Calculate monthly interest benefit for low-interest loans.

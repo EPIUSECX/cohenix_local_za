@@ -461,10 +461,8 @@ def import_workspace():
 		with open(workspace_path, "r") as f:
 			workspace_data = json.load(f)
 		
-		# Check if workspace already exists
-		if frappe.db.exists("Workspace", workspace_data["name"]):
-			print(f"  ⊙ Workspace '{workspace_data['name']}' already exists, skipping import")
-			return
+		# Determine if workspace already exists; we'll UPSERT (update if exists)
+		workspace_exists = frappe.db.exists("Workspace", workspace_data["name"]) is not None
 		
 		# Filter out links to DocTypes/Reports that don't exist yet
 		# Also filter HRMS-dependent links if HRMS is not installed
@@ -501,12 +499,31 @@ def import_workspace():
 		
 		workspace_data["links"] = filtered_links
 		
-		# Create the workspace document directly
-		doc = frappe.get_doc(workspace_data)
-		doc.flags.ignore_links = True  # Skip link validation
-		doc.insert(ignore_permissions=True)
-		frappe.db.commit()
-		print(f"  ✓ Imported workspace: {workspace_data['name']}")
+		if not workspace_exists:
+			# Create the workspace document directly
+			doc = frappe.get_doc(workspace_data)
+			doc.flags.ignore_links = True  # Skip link validation
+			doc.insert(ignore_permissions=True)
+			frappe.db.commit()
+			print(f"  ✓ Imported workspace: {workspace_data['name']}")
+		else:
+			# Update existing workspace with latest content, links, icon and metadata
+			print(f"  ⊙ Workspace '{workspace_data['name']}' exists, updating with latest content")
+			# Load existing doc and update selective fields
+			doc = frappe.get_doc("Workspace", workspace_data["name"])
+			# Keep name stable; update key fields
+			fields_to_update = [
+				"label", "public", "icon", "module", "app", "title",
+				"content", "links", "charts", "custom_blocks", "quick_lists",
+				"shortcuts", "number_cards"
+			]
+			for field in fields_to_update:
+				if field in workspace_data:
+					doc.set(field, workspace_data[field])
+			doc.flags.ignore_links = True
+			doc.save(ignore_permissions=True)
+			frappe.db.commit()
+			print(f"  ✓ Updated workspace: {workspace_data['name']}")
 	except Exception as e:
 		print(f"  ! Error importing workspace: {e}")
 		import traceback

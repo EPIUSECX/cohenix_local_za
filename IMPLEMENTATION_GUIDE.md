@@ -176,6 +176,7 @@ bench --site your-site.local install-app za_local
 # - Setup default configurations
 # - Create 6 BCEA leave types
 # - Load South African Holiday Lists (2024 and 2025)
+# - Create SA Payroll workspace in sidebar navigation
 ```
 
 ### Step 3: Complete za_local Setup
@@ -221,13 +222,15 @@ The setup loads:
    - Employment Equity Tab (Race, Disability, Occupational Level)
    - Travel Allowance section
 
-**Check 2: Modules**
+**Check 2: Modules & Workspace**
 Verify you can see these modules in the sidebar:
-- SA Payroll
+- **SA Payroll** (workspace) - Centralized navigation hub for all payroll-related DocTypes and reports
 - SA Tax
 - SA VAT
 - COIDA
 - SA EE (Employment Equity)
+
+> 💡 **Tip**: The **SA Payroll** workspace provides quick access to all payroll configuration, transactions, benefits, and reports. Click on it in the sidebar to see organized cards for Employee Configuration, Master Data, Benefits, Business Trips, Payments, and Reports.
 
 **Check 3: Leave Types**
 1. Go to **HR > Leave Type**
@@ -1422,7 +1425,7 @@ Click **Fetch from Salary Slips** button
 **Review and Submit:**
 1. Verify totals match payroll
 2. **Submit** EMP201 Submission
-3. **Export** for SARS eFiling (CSV or manual entry)
+3. **Report** EMP201 Submission Report
 
 **Payment to SARS:**
 - **Due Date**: 7th of following month (e.g., February 7th)
@@ -1905,7 +1908,10 @@ Official SARS instructions to adjust employee's PAYE deduction.
 
 **Time Required:** 4-6 hours (once per year)
 
-**When:** April-May (for previous tax year ending February)
+**When:** 
+- **IRP5 Generation**: April-May (for previous tax year ending February, due May 31)
+- **EMP501 Interim**: September-October (for March-August period, due October 31)
+- **EMP501 Final**: April-May (for full tax year March-February, due May 31)
 
 ### Step 1: Generate IRP5 Certificates
 
@@ -2005,30 +2011,45 @@ For all employees at once:
 Annual reconciliation of all EMP201 submissions and IRP5 certificates.
 
 **Due Dates:**
-- **Interim**: May 31st (March-August period)
-- **Final**: November 30th (September-February period)
+- **Interim**: October 31st (March 1 - August 31 period)
+- **Final**: May 31st (March 1 - February 28/29, full tax year)
 
 #### Create EMP501
+
+**For Interim Reconciliation (March-August):**
 
 1. Go to **SA Tax > EMP501 Reconciliation > New**
 2. **Company**: Your company
 3. **Tax Year**: 2024-2025
-4. **Reconciliation Type**: Interim / Final
-5. **From Date**: 2024-03-01
-6. **To Date**: 2025-02-28
+4. **Reconciliation Type**: Interim
+5. **From Date**: 2024-03-01 (auto-populated)
+6. **To Date**: 2024-08-31 (auto-populated)
+7. **Save**
+
+**For Final Reconciliation (Full Tax Year):**
+
+1. Go to **SA Tax > EMP501 Reconciliation > New**
+2. **Company**: Your company
+3. **Tax Year**: 2024-2025
+4. **Reconciliation Type**: Final
+5. **From Date**: 2024-03-01 (auto-populated)
+6. **To Date**: 2025-02-28 (auto-populated)
 7. **Save**
 
 Click **Fetch from EMP201 and IRP5** button
 
 **System consolidates:**
 
-**Part A: EMP201 Submissions**
-- Sums all 12 monthly EMP201 submissions
-- Total PAYE, UIF, SDL, ETI for the year
+**Part A: Consolidated EMP201 Submissions**
+*(Note: EMP201 is submitted monthly. EMP501 reconciliations consolidate these monthly submissions.)*
+- **For Interim EMP501**: Sums 6 monthly EMP201 submissions (March-August)
+- **For Final EMP501**: Sums all 12 monthly EMP201 submissions (March-February)
+- Total PAYE, UIF, SDL, ETI for the selected reconciliation period
 
-**Part B: IRP5 Certificates**
-- Sums all IRP5 certificates issued
-- Total remuneration, PAYE, UIF, retirement
+**Part B: Consolidated IRP5 Certificates**
+- **For Interim EMP501**: Sums IRP5 certificates for March-August period only
+- **For Final EMP501**: Sums all IRP5 certificates for the full tax year
+- Total remuneration, PAYE, UIF, retirement for the selected reconciliation period
 
 **Reconciliation:**
 - Compares Part A vs Part B
@@ -2112,7 +2133,8 @@ Click **Fetch from EMP201 and IRP5** button
 - ✅ All IRP5s verified and submitted
 - ✅ EMP501 reconciliation created
 - ✅ Zero variance between EMP201 and IRP5 totals
-- ✅ EMP501 submitted to SARS (by May 31 or Nov 30)
+- ✅ EMP501 Interim submitted to SARS (by October 31 for March-August period)
+- ✅ EMP501 Final submitted to SARS (by May 31 for full tax year)
 - ✅ SARS acknowledgment received
 - ✅ No outstanding queries from SARS
 
@@ -3632,6 +3654,8 @@ On payroll processing:
 
 za_local provides comprehensive reports for payroll analysis, compliance monitoring, and decision-making.
 
+> 💡 **Quick Access**: All reports are accessible via the **SA Payroll** workspace in the sidebar. Navigate to **SA Payroll > Reports** to see all available reports organized by category.
+
 ### Payroll Register
 
 **Navigate to:** SA Payroll > Reports > Payroll Register
@@ -3941,20 +3965,22 @@ MARCH (Tax Year Start)
 └─ Update ETI slabs
 └─ Update UIF threshold
 
-MAY (IRP5 Season)
+MAY (IRP5 & EMP501 Final Season)
 └─ Generate IRP5 certificates (all employees)
 └─ Review and correct errors
-└─ Submit EMP501 reconciliation
-└─ Deadline: May 31
+└─ IRP5 Deadline: May 31 (internal), June 15 (SARS submission)
+└─ EMP501 Final reconciliation (full tax year March-February)
+└─ EMP501 Final Deadline: May 31
+└─ Reconcile provisional tax
 
 JUNE-JULY
 └─ Submit IRP5 bulk file to SARS
 └─ Distribute IRP5s to employees
 └─ Handle SARS queries
 
-NOVEMBER
-└─ Second EMP501 submission (if 2nd period)
-└─ Reconcile provisional tax
+OCTOBER
+└─ EMP501 Interim reconciliation (March-August period)
+└─ Submit to SARS by October 31
 ```
 
 ### Employee Lifecycle
@@ -4082,11 +4108,11 @@ A: Verify:
 
 | Date | Task | Authority | Penalty for Late |
 |------|------|-----------|------------------|
-| 7th | EMP201 Submission | SARS | R250/day + 10% penalty |
-| 7th | PAYE Payment | SARS | Interest + penalty |
+| 7th | EMP201 Submission | SARS | Administrative penalty + interest |
+| 7th | PAYE Payment | SARS | 10% penalty + interest |
 | 7th | UIF/SDL Payment | SARS | Interest + penalty |
 | 15th | COIDA Payment (if monthly) | Compensation Fund | 10% penalty |
-| 25th | VAT201 Return (monthly) | SARS | R250/day |
+| 25th | VAT201 Return (monthly) | SARS | Administrative penalty |
 | 25th | VAT Payment | SARS | 10% penalty + interest |
 | Last day | Payroll Processing | Internal | Employee dissatisfaction |
 
@@ -4105,8 +4131,8 @@ A: Verify:
 | **April 30** | WSP Submission | SETA | Loss of Mandatory Grant |
 | **April 30** | ATR Submission | SETA | Loss of Discretionary Grant |
 | **May 31** | IRP5 Generation | Internal (SARS by June 15) | Employee complaints |
-| **May 31** | EMP501 Reconciliation (Period 1) | SARS | R250/day |
-| **November 30** | EMP501 Reconciliation (Period 2) | SARS | R250/day |
+| **October 31** | EMP501 Reconciliation (Interim: March-August) | SARS | 1% of annual PAYE per month (max 10%) |
+| **May 31** | EMP501 Reconciliation (Final: March-February full tax year) | SARS | 1% of annual PAYE per month (max 10%) |
 | **January 15** | EEA Report Submission (if designated) | DOL | Up to R2.7M fine |
 
 ### Tax Year Dates

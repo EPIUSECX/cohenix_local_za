@@ -30,6 +30,7 @@ class CompanyCarBenefit(Document):
 		else:
 			self.private_use_percentage = 0
 			
+	@frappe.whitelist()
 	def calculate_monthly_benefit(self):
 		"""
 		Calculate monthly taxable value based on CO2 emissions

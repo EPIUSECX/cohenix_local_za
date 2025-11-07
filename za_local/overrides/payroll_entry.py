@@ -743,11 +743,46 @@ def make_payment_entry_for_payroll(dt, dn, selected_payment_account=None):
         dn: Document name
         selected_payment_account: Dictionary of bank accounts and employees
     """
-    # Check basic read permission - this works for both draft and submitted documents
-    if not frappe.has_permission(dt, "read", dn):
-        frappe.throw(_("You do not have permission to access this {0}").format(dt))
+    # Verify document exists
+    if not frappe.db.exists(dt, dn):
+        frappe.throw(_("{0} {1} does not exist").format(dt, dn))
     
-    doc = frappe.get_doc(dt, dn)
+    # Check for read or submit permission - creating bank entries is a post-submit action
+    # that should be accessible to users who can read or submit the document
+    has_read = frappe.has_permission(dt, "read", dn)
+    has_submit = frappe.has_permission(dt, "submit", dn)
+    has_write = frappe.has_permission(dt, "write", dn)
+    
+    # For submitted documents, we need at least read permission
+    # For creating bank entries (which creates new Journal Entries), write permission is ideal
+    # but read permission should be sufficient for this post-submit action
+    if not (has_read or has_submit or has_write):
+        frappe.throw(
+            _("You do not have permission to access {0} {1}. Please contact your manager to get access.").format(dt, dn),
+            title=_("Permission Denied")
+        )
+    
+    # Get document - frappe.get_doc() will check permissions
+    # If it fails, catch the exception and provide a clearer error message
+    try:
+        doc = frappe.get_doc(dt, dn)
+    except Exception as e:
+        # If get_doc fails, it might be due to permissions or other issues
+        # Log the error for debugging
+        frappe.log_error(
+            f"Error getting {dt} {dn} in make_payment_entry_for_payroll: {str(e)}",
+            "Payroll Entry Bank Entry Permission Error"
+        )
+        # Provide user-friendly error message
+        if "permission" in str(e).lower() or "not permitted" in str(e).lower():
+            frappe.throw(
+                _("You do not have permission to access {0} {1}. Please contact your manager to get access.").format(dt, dn),
+                title=_("Permission Denied")
+            )
+        else:
+            frappe.throw(_("Error accessing {0} {1}: {2}").format(dt, dn, str(e)))
+    
+    # Call the document method - it should work since we have the document loaded
     return doc.make_payment_entry(selected_payment_account)
 
 

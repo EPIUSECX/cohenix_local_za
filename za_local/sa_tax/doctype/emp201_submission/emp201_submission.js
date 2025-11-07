@@ -21,7 +21,7 @@ frappe.ui.form.on("EMP201 Submission", {
         }
 
         if (frm.doc.docstatus === 0) {
-            frm.add_custom_button(__("Fetch EMP201 Data"), function() {
+            frm.add_custom_button(__("Fetch from Salary Slips"), function() {
                 frm.call({
                     doc: frm.doc,
                     method: "fetch_emp201_data",
@@ -32,17 +32,17 @@ frappe.ui.form.on("EMP201 Submission", {
                                 frm.set_value(field, r.message[field]);
                             });
                             frm.refresh_fields();
-                            frappe.msgprint(__("EMP201 data fetched successfully."));
+                            frappe.msgprint(__("Data fetched from Salary Slips successfully."));
                         } else if (r.exc) {
                             frappe.msgprint({
                                 title: __('Error'),
                                 indicator: 'red',
-                                message: __('Error fetching EMP201 data. Please check logs.')
+                                message: __('Error fetching data from Salary Slips. Please check logs.')
                             });
                         }
                     },
                     freeze: true,
-                    freeze_message: __("Fetching EMP201 Data...")
+                    freeze_message: __("Fetching from Salary Slips...")
                 });
             }).addClass("btn-primary");
         }

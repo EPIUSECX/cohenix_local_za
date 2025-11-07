@@ -130,9 +130,44 @@ class EFTFileGenerator:
         return ""
     
     def generate_fnb(self):
-        """Generate FNB EFT file format"""
-        frappe.msgprint(_("FNB format generation - To be implemented"))
-        return ""
+        """Generate FNB EFT CSV file (Cash Management import).
+
+        Columns (no header):
+        1) Beneficiary Name
+        2) Branch Code (6)
+        3) Account Number
+        4) Account Type ("Cheque", "Savings")
+        5) Amount (2 decimals, dot as decimal separator)
+        6) Your Reference (appears on beneficiary statement)
+        7) Their Reference (appears on company statement)
+
+        Notes:
+        - Uses Salary Slip fields: employee_name, branch_code, bank_ac_no
+        - Net Pay used as Amount
+        - Account Type defaulted to "Cheque" if unknown
+        - Reference composed as "Salary <YYYY-MM> <EmpID>"
+        """
+        slips = self.get_salary_slips()
+        rows = []
+        for slip in slips:
+            beneficiary = (slip.employee_name or "").replace(",", " ").strip()
+            branch = (slip.branch_code or "").strip()
+            account = (slip.bank_ac_no or "").strip()
+            # Fallback account type
+            account_type = "Cheque"
+            amount = f"{flt(slip.net_pay):.2f}"
+            your_ref = f"Salary {self.payroll_entry.start_date[:7]} {slip.employee}"[:20]
+            their_ref = self.payroll_entry.name[:20]
+            row = [beneficiary, branch, account, account_type, amount, your_ref, their_ref]
+            # CSV line with comma separators; quote fields that may contain spaces
+            rows.append(",".join([self._csv_field(v) for v in row]))
+        return "\n".join(rows)
+
+    def _csv_field(self, value: str) -> str:
+        text = (value or "")
+        if any(ch in text for ch in [',', '"', '\n']):
+            return '"' + text.replace('"', '""') + '"'
+        return text
     
     def generate_nedbank(self):
         """Generate Nedbank EFT file format"""
@@ -155,7 +190,9 @@ def generate_eft_file(payroll_entry, bank_format="standard_bank"):
     generator = EFTFileGenerator(payroll_entry)
     file_content = generator.generate_file(bank_format)
     
-    filename = f"EFT_{payroll_entry}_{formatdate(getdate(), 'yyyyMMdd')}.txt"
+    # Choose extension by format
+    ext = "csv" if bank_format == "fnb" else "txt"
+    filename = f"EFT_{payroll_entry}_{formatdate(getdate(), 'yyyyMMdd')}.{ext}"
     
     return {
         "file_content": file_content,

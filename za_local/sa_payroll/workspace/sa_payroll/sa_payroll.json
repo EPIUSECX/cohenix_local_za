@@ -20,6 +20,7 @@
    "is_query_report": 0,
    "label": "Employee Configuration",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -58,6 +59,7 @@
    "is_query_report": 0,
    "label": "Master Data & Settings",
    "link_count": 8,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -146,6 +148,7 @@
    "is_query_report": 0,
    "label": "Benefits & Allowances",
    "link_count": 7,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -224,6 +227,7 @@
    "is_query_report": 0,
    "label": "Business Trip Management",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -262,6 +266,7 @@
    "is_query_report": 0,
    "label": "Payments & Settlement",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -300,6 +305,7 @@
    "is_query_report": 0,
    "label": "Sectoral Compliance",
    "link_count": 4,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -348,6 +354,7 @@
    "is_query_report": 0,
    "label": "Reports",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -382,7 +389,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-11-05 15:07:46.952569",
+ "modified": "2025-11-06 11:25:48.805724",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "SA Payroll",
