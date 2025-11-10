@@ -76,6 +76,7 @@ def after_migrate():
 	setup_custom_fields()
 	make_property_setters()
 	apply_statutory_formulas()
+	import_workspace()
 	frappe.db.commit()
 
 

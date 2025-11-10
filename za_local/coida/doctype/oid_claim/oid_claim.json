@@ -54,7 +54,7 @@
    "read_only": 1
   },
   {
-   "fetch_from": "employee.custom_id_number",
+   "fetch_from": "employee.za_id_number",
    "fieldname": "id_number",
    "fieldtype": "Data",
    "label": "ID Number",

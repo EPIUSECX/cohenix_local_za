@@ -45,13 +45,13 @@
   },
   {
    "hidden": 0,
-    "is_query_report": 0,
-    "label": "South Africa VAT Settings",
-    "link_count": 0,
-    "link_to": "South Africa VAT Settings",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
+   "is_query_report": 0,
+   "label": "South Africa VAT Settings",
+   "link_count": 0,
+   "link_to": "South Africa VAT Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -104,16 +104,6 @@
   {
    "hidden": 0,
    "is_query_report": 1,
-   "label": "EMP201 Report",
-   "link_count": 0,
-   "link_to": "EMP201 Report",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
    "label": "VAT Analysis",
    "link_count": 0,
    "link_to": "VAT Analysis",
@@ -122,7 +112,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-11-07 11:13:53.554722",
+ "modified": "2025-11-10 12:15:14.890415",
  "modified_by": "Administrator",
  "module": "South Africa",
  "name": "Tax & Compliance",
