@@ -17,6 +17,9 @@ from za_local.setup.property_setters import get_property_setters
 from za_local.utils.hrms_detection import is_hrms_installed
 
 
+UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
+SDL_FORMULA = "gross_pay * 0.01"
+
 def before_install():
 	"""
 	Run before app installation.
@@ -268,15 +271,15 @@ def setup_default_salary_components():
 	Create default South African salary components.
 	
 	Creates components for:
-	- PAYE (4102)
-	- UIF Employee (4141)
-	- UIF Employer (4141)
-	- SDL (4142)
+	- PAYE
+	- UIF Employee Contribution
+	- UIF Employer Contribution
+	- SDL Contribution
 	- COIDA
 	"""
 	components = [
 		{
-			"name": "4102 PAYE",
+			"name": "PAYE",
 			"salary_component_abbr": "PAYE",
 			"type": "Deduction",
 			"description": "Pay As You Earn - Income Tax",
@@ -284,30 +287,30 @@ def setup_default_salary_components():
 			"variable_based_on_taxable_salary": 1
 		},
 		{
-			"name": "4141 UIF Employee Contribution",
+			"name": "UIF Employee Contribution",
 			"salary_component_abbr": "UIF_EE",
 			"type": "Deduction",
 			"description": "Unemployment Insurance Fund - Employee Contribution (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12",
+			"formula": UIF_FORMULA,
 			"amount_based_on_formula": 1
 		},
 		{
-			"name": "4141 UIF Employer Contribution",
+			"name": "UIF Employer Contribution",
 			"salary_component_abbr": "UIF_ER",
-			"type": "Deduction",
+			"type": "Company Contribution",
 			"description": "Unemployment Insurance Fund - Employer Contribution (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12",
+			"formula": UIF_FORMULA,
 			"amount_based_on_formula": 1
 		},
 		{
-			"name": "4142 SDL Contribution",
+			"name": "SDL Contribution",
 			"salary_component_abbr": "SDL",
-			"type": "Deduction",
+			"type": "Company Contribution",
 			"description": "Skills Development Levy (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100",
+			"formula": SDL_FORMULA,
 			"amount_based_on_formula": 1
 		}
 	]
@@ -373,8 +376,8 @@ def make_property_setters():
 
 def apply_statutory_formulas():
 	"""Ensure statutory Salary Components and Company Contribution rows carry correct formulas.
-	- UIF Employer: (BS)/100 capped at 177.12
-	- SDL: (BS)/100
+	- UIF Employee & Employer: 1% of gross pay capped at 177.12
+	- SDL: 1% of gross pay
 	Also enable Amount based on Formula on these components and child rows.
 	"""
 	print("Applying statutory formulas to salary components and company contribution rows...")
@@ -383,45 +386,64 @@ def apply_statutory_formulas():
 		print("  ⊙ Skipping statutory formula updates (Salary Component DocType not available)")
 		return
 
-	components_to_update = [
-		{
-			"name": "4141 UIF Employer Contribution",
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12",
+	component_updates = {
+		"UIF Employee Contribution": {
+			"amount_based_on_formula": 1,
+			"formula": UIF_FORMULA,
 		},
-		{
-			"name": "4142 SDL Contribution",
-			"formula": "(BS)/100",
+		"UIF Employer Contribution": {
+			"amount_based_on_formula": 1,
+			"formula": UIF_FORMULA,
+			"type": "Company Contribution",
 		},
-	]
-	for comp in components_to_update:
-		if frappe.db.exists("Salary Component", comp["name"]):
+		"SDL Contribution": {
+			"amount_based_on_formula": 1,
+			"formula": SDL_FORMULA,
+			"type": "Company Contribution",
+		},
+	}
+
+	for canonical_name, fields in component_updates.items():
+		if frappe.db.exists("Salary Component", canonical_name):
 			try:
-				frappe.db.set_value(
-					"Salary Component", comp["name"], {
-						"amount_based_on_formula": 1,
-						"formula": comp["formula"],
-					}
-				)
+				frappe.db.set_value("Salary Component", canonical_name, fields)
 			except Exception as e:
-				print(f"  ! Could not update Salary Component {comp['name']}: {e}")
-	# Update existing Salary Structure child rows
+				print(f"  ! Could not update Salary Component {canonical_name}: {e}")
+
+	# Update existing Salary Structure child rows and Salary Detail records
+	_update_statutory_formulas_in_child_tables(component_updates)
+
+	print("✓ Statutory formulas applied")
+
+
+def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict]):
 	if not frappe.db.table_exists("tabCompany Contribution"):
 		print("  ⊙ Skipping Company Contribution child row updates (DocType not available)")
 	else:
-		try:
-			for comp in components_to_update:
-				frappe.db.sql(
-					"""
-					UPDATE `tabCompany Contribution`
-					SET amount_based_on_formula = 1, formula = %(formula)s
-					WHERE salary_component = %(name)s
-					""",
-					comp,
-				)
-			frappe.db.commit()
-		except Exception as e:
-			print(f"  ! Could not update Company Contribution child rows: {e}")
-	print("✓ Statutory formulas applied")
+		for name, fields in component_updates.items():
+			if name not in ("UIF Employer Contribution", "SDL Contribution"):
+				continue
+			frappe.db.sql(
+				"""
+				UPDATE `tabCompany Contribution`
+				SET amount_based_on_formula = 1, formula = %(formula)s
+				WHERE salary_component = %(name)s
+				""",
+				{"name": name, "formula": fields["formula"]},
+			)
+
+	if frappe.db.table_exists("tabSalary Detail"):
+		for name, fields in component_updates.items():
+			frappe.db.sql(
+				"""
+				UPDATE `tabSalary Detail`
+				SET amount_based_on_formula = 1, formula = %(formula)s
+				WHERE salary_component = %(name)s
+				""",
+				{"name": name, "formula": fields["formula"]},
+			)
+
+	frappe.db.commit()
 
 def import_master_data():
 	"""
@@ -473,7 +495,6 @@ def import_workspace(enable_payroll: bool | None = None):
 	"""
 	import json
 	from pathlib import Path
-	from frappe.model.rename_doc import rename_doc
 	from za_local.utils.hrms_detection import is_hrms_installed
 
 	print("Importing South Africa workspaces...")
@@ -483,13 +504,6 @@ def import_workspace(enable_payroll: bool | None = None):
 		should_include_payroll = hrms_installed
 	else:
 		should_include_payroll = bool(enable_payroll) and hrms_installed
-
-	# Ensure the South Africa module definition exists (rename legacy module if needed)
-	try:
-		if frappe.db.exists("Module Def", "South African Localization") and not frappe.db.exists("Module Def", "South Africa"):
-			rename_doc("Module Def", "South African Localization", "South Africa", force=True, ignore_permissions=True)
-	except Exception as e:
-		print(f"  ! Could not rename Module Def to 'South Africa': {e}")
 
 	if not frappe.db.exists("Module Def", "South Africa"):
 		try:

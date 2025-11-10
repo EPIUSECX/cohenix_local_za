@@ -91,7 +91,7 @@ bench restart
 **Recommended Selections (All Enabled by Default):**
 - ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
 - ✅ Create Earnings Components (Basic, Housing, Transport, Bonuses, etc.)
-- ✅ Load 2024-2025 Income Tax Slab (7 SARS brackets)
+- ✅ Load 2024-2025 Income Tax Slab (8 SARS brackets, including 0% band)
 - ✅ Load Tax Rebates & Medical Credits (linked to 2024-2025 Payroll Period)
 - ✅ Load Business Trip Regions (16 SA cities + 6 international zones)
 
@@ -119,7 +119,7 @@ The setup automatically creates:
    - Commission
 
 3. **Tax Configuration**
-   - 7 Income tax slabs for 2024-2025 (18% to 45%)
+   - 8 Income tax slabs for 2024-2025 (0% to 45%)
    - Tax rebates (Primary: R17,235, Secondary: R9,444, Tertiary: R3,145)
    - Medical tax credits (Main: R364, Dependants: R246)
 

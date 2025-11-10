@@ -1,7 +1,7 @@
 {
  "app": "za_local",
  "charts": [],
- "content": "[{\"id\":\"87c9f441d2d6\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tax & Compliance</b></span>\",\"col\":12}},{\"id\":\"5f16379d42a7\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2d8438cef1fb\",\"type\":\"card\",\"data\":{\"card_name\":\"VAT Compliance\",\"col\":6}},{\"id\":\"53f82fbd6c49\",\"type\":\"card\",\"data\":{\"card_name\":\"COIDA & OHS\",\"col\":6}},{\"id\":\"570e0cb48006\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":6}}]",
+ "content": "[{\"id\":\"87c9f441d2d6\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tax & Compliance</b></span>\",\"col\":12}},{\"id\":\"5f16379d42a7\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2d8438cef1fb\",\"type\":\"card\",\"data\":{\"card_name\":\"VAT Compliance\",\"col\":6}},{\"id\":\"53f82fbd6c49\",\"type\":\"card\",\"data\":{\"card_name\":\"COIDA & OHS\",\"col\":6}},{\"id\":\"a8b9d0c1e2f3\",\"type\":\"card\",\"data\":{\"card_name\":\"Sector & Skills Compliance\",\"col\":6}},{\"id\":\"570e0cb48006\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":6}}]",
  "creation": "2025-11-07 12:30:00",
  "custom_blocks": [],
  "docstatus": 0,
@@ -95,6 +95,35 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Sector & Skills Compliance",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SETA",
+   "link_count": 0,
+   "link_to": "SETA",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bargaining Council",
+   "link_count": 0,
+   "link_to": "Bargaining Council",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Reports",
    "link_count": 2,
    "link_type": "DocType",
@@ -112,7 +141,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-11-10 12:15:14.890415",
+ "modified": "2025-11-10 13:56:50.445471",
  "modified_by": "Administrator",
  "module": "South Africa",
  "name": "Tax & Compliance",

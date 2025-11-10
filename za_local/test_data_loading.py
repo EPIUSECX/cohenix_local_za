@@ -163,7 +163,7 @@ def test_income_tax_slab_structure():
 	
 	# Check child table
 	slabs = record.get("slabs", [])
-	assert len(slabs) == 7, f"Should have 7 slabs, found {len(slabs)}"
+	assert len(slabs) == 8, f"Should have 8 slabs, found {len(slabs)}"
 	
 	# Validate slab structure
 	for i, slab in enumerate(slabs, 1):
@@ -190,6 +190,40 @@ def test_salary_components_structure():
 	
 	assert isinstance(data, list), "Should be a list"
 	assert len(data) == 4, f"Should have 4 components, found {len(data)}"
+	
+	expected_names = {
+		"PAYE",
+		"UIF Employee Contribution",
+		"UIF Employer Contribution",
+		"SDL Contribution",
+	}
+	assert {comp["salary_component"] for comp in data} == expected_names, (
+		"Statutory salary components must match the expected ZA Local set without SARS code prefixes"
+	)
+	
+	type_map = {comp["salary_component"]: comp.get("type") for comp in data}
+	assert type_map.get("UIF Employer Contribution") == "Company Contribution", (
+		"UIF Employer Contribution must load as Company Contribution"
+	)
+	assert type_map.get("SDL Contribution") == "Company Contribution", (
+		"SDL Contribution must load as Company Contribution"
+	)
+	assert type_map.get("UIF Employee Contribution") == "Deduction", (
+		"UIF Employee Contribution must remain a Deduction"
+	)
+
+	formula_map = {comp["salary_component"]: comp.get("formula") for comp in data}
+	expected_uif_formula = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
+	expected_sdl_formula = "gross_pay * 0.01"
+	assert formula_map.get("UIF Employee Contribution") == expected_uif_formula, (
+		"UIF Employee Contribution must cap at 177.12 using gross pay"
+	)
+	assert formula_map.get("UIF Employer Contribution") == expected_uif_formula, (
+		"UIF Employer Contribution must cap at 177.12 using gross pay"
+	)
+	assert formula_map.get("SDL Contribution") == expected_sdl_formula, (
+		"SDL Contribution must calculate at 1% of gross pay"
+	)
 	
 	for comp in data:
 		assert comp.get("doctype") == "Salary Component", "Wrong doctype"
@@ -275,7 +309,7 @@ def test_actual_data_loading():
 		
 		assert frappe.db.exists("Income Tax Slab", "South Africa 2024-2025"), "Tax Slab not created"
 		slab = frappe.get_doc("Income Tax Slab", "South Africa 2024-2025")
-		assert len(slab.slabs) == 7, f"Expected 7 slabs, found {len(slab.slabs)}"
+		assert len(slab.slabs) == 8, f"Expected 8 slabs, found {len(slab.slabs)}"
 		print("    ✓ Income Tax Slab loaded")
 		
 		# 4. Load Salary Components
