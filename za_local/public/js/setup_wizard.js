@@ -105,7 +105,10 @@ za_local.setup.za_localization_slide = {
 		const hrmsFields = [
 			"za_load_salary_components",
 			"za_load_earnings_components",
-			"za_load_holiday_list"
+			"za_load_holiday_list",
+			"za_load_tax_slabs",
+			"za_load_tax_rebates",
+			"za_load_medical_credits"
 		];
 		
 		function toggleHrmsFields() {
@@ -113,13 +116,8 @@ za_local.setup.za_localization_slide = {
 			hrmsFields.forEach(function(fieldname) {
 				const field = slide.get_field(fieldname);
 				if (field) {
-					field.df.hidden = !enabled;
-					field.refresh();
-					if (!enabled) {
-						field.set_value(0);
-					} else {
-						field.set_value(1);
-					}
+					field.set_value(enabled ? 1 : 0);
+					field.refresh_input();
 				}
 			});
 		}

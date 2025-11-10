@@ -9,6 +9,7 @@ Based on modern Frappe best practices.
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from za_local.utils.hrms_detection import is_hrms_installed
 
 
 def setup_custom_fields():
@@ -58,6 +59,20 @@ def setup_custom_fields():
                     print(f"Deleted existing custom field: {custom_field_name}")
                 except Exception as e:
                     print(f"Error deleting custom field {custom_field_name}: {e}")
+
+    hrms_installed = is_hrms_installed()
+
+    # Define HRMS-only doctypes so we can skip them when HRMS is absent
+    hrms_only_doctypes = {
+        "HR Settings",
+        "Payroll Settings",
+        "Salary Component",
+        "Salary Slip",
+        "Salary Structure",
+        "Salary Structure Assignment",
+        "Additional Salary",
+        "Payroll Employee Detail",
+    }
 
     # Define all custom fields
     custom_fields = {
@@ -475,8 +490,23 @@ def setup_custom_fields():
         ]
     }
     
-    # Create custom fields
-    create_custom_fields(custom_fields)
+    # Filter out doctypes that shouldn't be processed in the current environment
+    filtered_custom_fields = {}
+    for doctype, fields in custom_fields.items():
+        if doctype in hrms_only_doctypes and not hrms_installed:
+            print(f"  ⊙ Skipping custom fields for {doctype} (HRMS not installed)")
+            continue
+
+        if not frappe.db.exists("DocType", doctype):
+            print(f"  ⊙ Skipping custom fields for {doctype} (DocType not found)")
+            continue
+
+        filtered_custom_fields[doctype] = fields
+
+    if filtered_custom_fields:
+        create_custom_fields(filtered_custom_fields)
+    else:
+        print("  ⊙ No custom fields to create for current configuration")
     
     # Setup property setters
     setup_property_setters()
@@ -489,6 +519,12 @@ def setup_property_setters():
     Setup property setters to modify standard field behaviors for South African requirements.
     """
     
+    hrms_installed = is_hrms_installed()
+    hrms_only_doctypes = {
+        "Salary Structure Assignment",
+        "Salary Slip",
+    }
+
     properties = {
         "Salary Structure Assignment": {
             "variable": {"hidden": 0, "read_only": 0},
@@ -507,6 +543,14 @@ def setup_property_setters():
     }
     
     for doctype, field_properties in properties.items():
+        if doctype in hrms_only_doctypes and not hrms_installed:
+            print(f"  ⊙ Skipping property setters for {doctype} (HRMS not installed)")
+            continue
+
+        if not frappe.db.exists("DocType", doctype):
+            print(f"  ⊙ Skipping property setters for {doctype} (DocType not found)")
+            continue
+
         for fieldname, props in field_properties.items():
             for prop, value in props.items():
                 try:

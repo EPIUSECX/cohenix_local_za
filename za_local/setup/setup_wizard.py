@@ -256,12 +256,16 @@ def get_wizard_status(company=None):
         if holiday_lists:
             # Check if any of these lists have holidays
             for hl in holiday_lists:
-                holidays = frappe.get_all("Holiday", filters={
-                    "parent": hl.name,
-                    "holiday_date": ["between", [f"{current_year}-01-01", f"{current_year}-12-31"]]
-                }, limit=1)
+                holidays = frappe.get_all(
+                    "Holiday",
+                    filters={
+                        "parent": hl.name,
+                        "holiday_date": ["between", [f"{current_year}-01-01", f"{current_year}-12-31"]],
+                    },
+                    limit=1,
+                )
                 if holidays:
-            status["public_holidays"] = True
+                    status["public_holidays"] = True
                     break
         
         # Retirement funds
@@ -349,7 +353,7 @@ def setup_za_localization(args):
 	"""
 	import frappe
 	from frappe import _
-	from za_local.setup.install import load_data_from_json, insert_record
+	from za_local.setup.install import load_data_from_json, import_workspace, insert_record
 	from za_local.utils.hrms_detection import is_hrms_installed, require_hrms
 	from za_local.utils.csv_importer import import_csv_data
 	from pathlib import Path
@@ -370,8 +374,8 @@ def setup_za_localization(args):
 	# Get user selections from args (passed from JavaScript)
 	# HRMS-dependent features are only loaded if HRMS is enabled
 	if enable_hrms_payroll:
-	load_salary = args.get("za_load_salary_components", 1)
-	load_earnings = args.get("za_load_earnings_components", 1)
+		load_salary = args.get("za_load_salary_components", 1)
+		load_earnings = args.get("za_load_earnings_components", 1)
 		load_holidays = args.get("za_load_holiday_list", 1)
 	else:
 		# Disable HRMS-dependent features if HRMS is not enabled
@@ -393,9 +397,9 @@ def setup_za_localization(args):
 
 		# Step 1.5: Ensure BCEA-compliant Leave Types exist (only if HRMS is enabled)
 		if enable_hrms_payroll:
-		print("Loading BCEA Leave Types (SA)...")
+			print("Loading BCEA Leave Types (SA)...")
 			from za_local.setup.leave_types import setup_sa_leave_types
-		setup_sa_leave_types()
+			setup_sa_leave_types()
 		
 		# Load in correct order (dependencies first)
 		
@@ -405,8 +409,8 @@ def setup_za_localization(args):
 		if enable_hrms_payroll and (load_tax_rebates or load_medical):
 			print("Loading Payroll Periods...")
 			try:
-			load_data_from_json(data_dir / "payroll_period_2024.json")
-			load_data_from_json(data_dir / "payroll_period_2025.json")
+				load_data_from_json(data_dir / "payroll_period_2024.json")
+				load_data_from_json(data_dir / "payroll_period_2025.json")
 			except Exception as e:
 				print(f"  ! Warning: Could not load Payroll Periods: {e}")
 				print("  Note: Tax Rebates will work but may need manual Payroll Period configuration")
@@ -443,9 +447,9 @@ def setup_za_localization(args):
 					print("  ! Warning: Holiday List DocType not found (HRMS may not be installed)")
 					print("  ⊙ Skipping holiday list loading")
 				else:
-			# Load holiday lists for 2024 and 2025 to match tax slabs periods
-			load_data_from_json(data_dir / "holiday_list_2024.json")
-			load_data_from_json(data_dir / "holiday_list_2025.json")
+					# Load holiday lists for 2024 and 2025 to match tax slabs periods
+					load_data_from_json(data_dir / "holiday_list_2024.json")
+					load_data_from_json(data_dir / "holiday_list_2025.json")
 					print("  ✓ Holiday lists loaded successfully")
 			except Exception as e:
 				print(f"  ! Error loading holiday lists: {e}")
@@ -456,6 +460,9 @@ def setup_za_localization(args):
 		if load_regions:
 			print("Loading Business Trip Regions...")
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
+		
+		# 9. Refresh South Africa workspaces to respect payroll selection
+		import_workspace(enable_payroll=bool(enable_hrms_payroll))
 		
 		frappe.msgprint(_("South African localization configured successfully!"))
 		

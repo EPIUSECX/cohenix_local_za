@@ -156,6 +156,10 @@ za_local integrates into ERPNext's setup wizard. When you select **"South Africa
 2. Select your company
 3. Choose which defaults to load:
 
+> 🔐 **Default Administrator Credentials (initial login)**
+> - Username: `Administrator`
+> - Password: `admin`
+
 **Recommended Selections:**
 - ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
 - ✅ Create Earnings Components (Basic, Housing, Transport, etc.)

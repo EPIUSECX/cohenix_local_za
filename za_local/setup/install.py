@@ -14,6 +14,7 @@ from frappe.custom.doctype.customize_form.customize_form import (
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from za_local.setup.custom_fields import setup_custom_fields
 from za_local.setup.property_setters import get_property_setters
+from za_local.utils.hrms_detection import is_hrms_installed
 
 
 def before_install():
@@ -122,8 +123,6 @@ def create_company_contribution_doctype():
 	
 	Note: Only creates if HRMS is installed, as it's used by Salary Structure.
 	"""
-	from za_local.utils.hrms_detection import is_hrms_installed
-	
 	if not is_hrms_installed():
 		print("  ⊙ Skipping Company Contribution DocType (HRMS not installed)")
 		return
@@ -327,11 +326,29 @@ def make_property_setters():
 	"""
 	print("Creating property setters...")
 	
+	hrms_installed = is_hrms_installed()
+	hrms_only_doctypes = {
+		"Salary Component",
+		"Salary Slip",
+		"Salary Structure",
+		"Salary Structure Assignment",
+		"Payroll Entry",
+		"Additional Salary",
+	}
+	
 	for doctypes, property_setters in get_property_setters().items():
 		if isinstance(doctypes, str):
 			doctypes = (doctypes,)
 
 		for doctype in doctypes:
+			if doctype in hrms_only_doctypes and not hrms_installed:
+				print(f"  ⊙ Skipping property setters for {doctype} (HRMS not installed)")
+				continue
+
+			if not frappe.db.exists("DocType", doctype):
+				print(f"  ⊙ Skipping property setters for {doctype} (DocType not found)")
+				continue
+
 			for property_setter in property_setters:
 				if property_setter[0]:
 					for_doctype = False
@@ -360,6 +377,11 @@ def apply_statutory_formulas():
 	Also enable Amount based on Formula on these components and child rows.
 	"""
 	print("Applying statutory formulas to salary components and company contribution rows...")
+
+	if not frappe.db.table_exists("tabSalary Component"):
+		print("  ⊙ Skipping statutory formula updates (Salary Component DocType not available)")
+		return
+
 	components_to_update = [
 		{
 			"name": "4141 UIF Employer Contribution",
@@ -382,19 +404,22 @@ def apply_statutory_formulas():
 			except Exception as e:
 				print(f"  ! Could not update Salary Component {comp['name']}: {e}")
 	# Update existing Salary Structure child rows
-	try:
-		for comp in components_to_update:
-			frappe.db.sql(
-				"""
-				UPDATE `tabCompany Contribution`
-				SET amount_based_on_formula = 1, formula = %(formula)s
-				WHERE salary_component = %(name)s
-				""",
-				comp,
-			)
-		frappe.db.commit()
-	except Exception as e:
-		print(f"  ! Could not update Company Contribution child rows: {e}")
+	if not frappe.db.table_exists("tabCompany Contribution"):
+		print("  ⊙ Skipping Company Contribution child row updates (DocType not available)")
+	else:
+		try:
+			for comp in components_to_update:
+				frappe.db.sql(
+					"""
+					UPDATE `tabCompany Contribution`
+					SET amount_based_on_formula = 1, formula = %(formula)s
+					WHERE salary_component = %(name)s
+					""",
+					comp,
+				)
+			frappe.db.commit()
+		except Exception as e:
+			print(f"  ! Could not update Company Contribution child rows: {e}")
 	print("✓ Statutory formulas applied")
 
 def import_master_data():
@@ -438,12 +463,12 @@ def insert_custom_records():
 	print("✓ Custom records inserted successfully")
 
 
-def import_workspace():
+def import_workspace(enable_payroll: bool | None = None):
 	"""
 	Import South Africa workspaces for Tax & Compliance and Payroll Localization.
 	
 	- Tax & Compliance workspace is always imported (no HRMS dependency)
-	- Payroll Localization workspace is imported only when HRMS is available
+	- Payroll Localization workspace is imported only when HRMS is available or explicitly enabled
 	"""
 	import json
 	from pathlib import Path
@@ -453,6 +478,10 @@ def import_workspace():
 	print("Importing South Africa workspaces...")
 
 	hrms_installed = is_hrms_installed()
+	if enable_payroll is None:
+		should_include_payroll = hrms_installed
+	else:
+		should_include_payroll = bool(enable_payroll) and hrms_installed
 
 	# Ensure the South Africa module definition exists (rename legacy module if needed)
 	try:
@@ -487,7 +516,9 @@ def import_workspace():
 
 	# Determine which workspaces should exist for the current environment
 	desired_workspace_names = {
-		wd["name"] for wd in workspace_definitions if not wd.get("requires_hrms") or hrms_installed
+		wd["name"]
+		for wd in workspace_definitions
+		if not wd.get("requires_hrms") or should_include_payroll
 	}
 
 	# Remove any other South Africa workspaces so navigation stays clean
@@ -508,9 +539,13 @@ def import_workspace():
 		workspace_path = workspace_def["path"]
 		requires_hrms = workspace_def.get("requires_hrms", False)
 
-		if requires_hrms and not hrms_installed:
-			print(f"  ⊙ Skipping workspace {workspace_path.name} (HRMS not installed)")
-			continue
+		if requires_hrms:
+			if not hrms_installed:
+				print(f"  ⊙ Skipping workspace {workspace_path.name} (HRMS not installed)")
+				continue
+			if not should_include_payroll:
+				print(f"  ⊙ Skipping workspace {workspace_path.name} (Payroll localization disabled)")
+				continue
 
 		if not workspace_path.exists():
 			print(f"  ! Workspace file not found: {workspace_path}")
@@ -528,16 +563,12 @@ def import_workspace():
 
 			workspace_exists = frappe.db.exists("Workspace", workspace_name) is not None
 
-			# Filter links for existing DocTypes/Reports and skip HRMS-only entries when HRMS absent
+			# Filter links for existing DocTypes/Reports and skip entries that rely on missing doctypes
 			filtered_links = []
 			for link in workspace_data.get("links", []):
 				if link.get("type") == "Link":
 					link_to = link.get("link_to")
 					link_type = link.get("link_type", "DocType")
-
-					if not hrms_installed and link_type == "DocType" and link_to in hrms_doctypes:
-						print(f"  ⊙ Skipping HRMS-dependent link: {link_to}")
-						continue
 
 					if link_type == "DocType":
 						if frappe.db.exists("DocType", link_to):
