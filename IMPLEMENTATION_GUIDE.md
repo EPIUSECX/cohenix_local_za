@@ -327,11 +327,6 @@ Click **Save** and verify all registration numbers are correctly entered.
 **Time Required:** 30-45 minutes
 
 > **⚠️ Important**:  
-> Critical bug fixes were applied to tax rebate and medical credit calculations. The field names in the code now correctly match the DocType schemas:
-> - Tax Rebates: Uses `tax_rebates_rate` table with `primary`, `secondary`, `tertiary` fields
-> - Medical Credits: Uses `medical_tax_credit` table with `one_dependant`, `two_dependant`, `additional_dependant` fields
-> 
-> When updating an existing site, ensure you run `bench migrate` to apply these fixes.
 
 ### Step 1: Configure Tax Rebates and Medical Tax Credits
 
@@ -2085,15 +2080,15 @@ Click **Fetch from EMP201 and IRP5** button
 
 **Issue 1: EMP201 total ≠ IRP5 total**
 - **Cause**: Employee left mid-year, final payroll not included
-- **Fix**: Create final salary slip, re-generate IRP5
+- **Action**: Create final salary slip, re-generate IRP5
 
 **Issue 2: SARS shows different PAYE amount**
 - **Cause**: Previous tax year adjustments
-- **Fix**: Check prior year IRP5s, make correction submission
+- **Action**: Check prior year IRP5s, make correction submission
 
 **Issue 3: ETI claimed but not approved by SARS**
 - **Cause**: Employee doesn't meet eligibility criteria
-- **Fix**: Review ETI logs, remove ineligible ETI, re-submit EMP501
+- **Action**: Review ETI logs, remove ineligible ETI, re-submit EMP501
 
 ### Success Indicator
 
@@ -3116,11 +3111,11 @@ VAT claimable on next return: R29,700
 
 ---
 
-## 18. Business Trip Management (New in v3.1)
+## 18. Business Trip Management
 
 ### Overview
 
-za_local v3.1 introduces comprehensive Business Trip management with SARS-compliant travel allowances, mileage claims, and automatic expense claim generation.
+za_local provides comprehensive Business Trip management with SARS-compliant travel allowances, mileage claims, and automatic expense claim generation.
 
 ### Features
 
@@ -4034,25 +4029,13 @@ A: Verify:
 3. Required fields: region_name, daily_allowance_rate
 4. File path: `za_local/data/business_trip_region.csv`
 
-### Error Messages
+### Configuration Issues
 
-**Error:** "Document Links Row #1: Invalid doctype or fieldname"
-
-**Solution:** This error during installation means a DocType Link references a non-existent field. Check `hooks.py` for invalid link configurations. All DocType Links have been validated in v3.1.
-
-**Error:** "Custom field already exists"
-
-**Solution:** During reinstall, custom fields may already exist. The system skips duplicates automatically. If persistent, manually delete custom fields via Customize Form before reinstall.
-
-**Error:** "'<' not supported between instances of 'str' and 'int'"
-
-**Solution:** CSV import type conversion issue (fixed in v3.1). Ensure `csv_importer.py` includes `convert_csv_types()` function.
-
-**Error:** "Please set account in Salary Component ... All components must have associated accounts for SA payroll compliance."
+**Issue:** "Please set account in Salary Component ... All components must have associated accounts for SA payroll compliance."
 
 **What it means:** One or more Salary Components on the Salary Slip/Structure do not have a `Salary Component Account` configured for the company.
 
-**Solution:** Add accounts on each component. The error lists all missing components with clickable links (e.g. `Basic Salary`, `PAYE`, `UIF Employer Contribution`). Open each component and add rows in the "Salary Component Account" child table for your company.
+**Action:** Add accounts on each component. The error lists all missing components with clickable links (e.g. `Basic Salary`, `PAYE`, `UIF Employer Contribution`). Open each component and add rows in the "Salary Component Account" child table for your company.
 
 ### Performance Optimization
 
@@ -4248,7 +4231,7 @@ ANALYZE TABLE `tabEmployee`;
 - **README.md**: Quick overview and features
 - **QUICK_SETUP_CHECKLIST.md**: 2-hour setup guide
 - **FEATURE_COMPARISON.md**: vs erpnext_germany
-- **VALIDATION_REPORT_v3.1.md**: System validation
+- **VALIDATION_REPORT.md**: System validation
 - **TUTORIAL_OUTLINE.md**: Video tutorial scripts
 - **FINAL_SUMMARY.md**: Implementation summary
 
@@ -4319,11 +4302,9 @@ Cohenix and the za_local contributors are not liable for penalties, interest, or
 
 **Always consult qualified professionals** (accountants, tax attorneys, labour consultants) for complex compliance matters.
 
-### Updates & Changelog
+### Features Overview
 
-**Current Version:** 3.1.0 (January 2025)
-
-**Recent Updates:**
+**Key Features:**
 - ✅ Business Trip Management (8 DocTypes)
 - ✅ Document deletion protection (SARS audit)
 - ✅ Property setters (40+ DocTypes)
@@ -4331,13 +4312,6 @@ Cohenix and the za_local contributors are not liable for penalties, interest, or
 - ✅ Automated compliance tasks (5 scheduled)
 - ✅ CSV master data import (51 records)
 - ✅ Bidirectional DocType links (21 links)
-
-**Coming Soon (Roadmap):**
-- 🔄 SARS API integration (direct eFiling)
-- 🔄 Advanced BEE scorecard calculator
-- 🔄 Pension fund integrations
-- 🔄 Mobile app (employee self-service)
-- 🔄 Advanced analytics dashboard
 
 ### Contributing
 
@@ -4392,7 +4366,7 @@ You've completed the za_local Implementation Guide. You now have the knowledge t
 
 **Built with ❤️ by Cohenix for the South African ERPNext community** 🇿🇦
 
-**za_local v3.1.0** - World-Class South African Localization
+**za_local** - World-Class South African Localization
 
 ---
 

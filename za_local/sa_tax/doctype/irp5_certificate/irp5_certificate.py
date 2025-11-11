@@ -533,6 +533,112 @@ class IRP5Certificate(Document):
         result_pdf.seek(0)
         return result_pdf.getvalue()
 
+    def generate_it3_pdf(self):
+        """
+        Generate IT3 certificate PDF using HTML template approach.
+        This is more reliable than coordinate-based PDF form filling.
+        All fields will be properly populated from the IRP5 Certificate document.
+        """
+        try:
+            from frappe.utils.pdf import get_pdf
+        except ImportError:
+            frappe.throw(_("PDF generation not available. Please ensure WeasyPrint or wkhtmltopdf is installed."))
+        
+        # Get all data needed for the template
+        employee_doc = frappe.get_doc("Employee", self.employee)
+        company_doc = frappe.get_doc("Company", self.company)
+        
+        # Convert child tables to format expected by template
+        income_table = []
+        for income in self.income_details:
+            income_table.append({
+                "code": str(income.income_code) if income.income_code else "",
+                "description": income.description or "",
+                "amount": flt(income.amount, 2) if income.amount is not None else 0.00,
+                "label": income.description or ""
+            })
+        
+        deduction_table = []
+        for deduction in self.deduction_details:
+            deduction_table.append({
+                "code": str(deduction.deduction_code) if deduction.deduction_code else "",
+                "description": deduction.description or "",
+                "amount": flt(deduction.amount, 2) if deduction.amount is not None else 0.00,
+                "label": deduction.description or ""
+            })
+        
+        # Add company contributions to deductions table
+        for contrib in self.company_contribution_details:
+            deduction_table.append({
+                "code": str(contrib.contribution_code) if contrib.contribution_code else "",
+                "description": contrib.description or "",
+                "amount": flt(contrib.amount, 2) if contrib.amount is not None else 0.00,
+                "label": contrib.description or ""
+            })
+        
+        # Prepare comprehensive context for template
+        # The template uses doc.get() to access fields, so we ensure all needed data is on the doc
+        # Set certificate type to IT3
+        if not hasattr(self, 'certificate_type') or not self.certificate_type:
+            self.certificate_type = "IT3"
+        
+        # Add income and deduction tables to doc for template access
+        self.income_table = income_table
+        self.incomes = income_table
+        self.deduction_table = deduction_table
+        self.deductions = deduction_table
+        
+        # Set employee and company reference numbers
+        self.id_number = frappe.db.get_value("Employee", self.employee, "za_id_number") or ""
+        self.income_tax_ref_no = frappe.db.get_value("Employee", self.employee, "custom_tax_number") or ""
+        self.paye_reference_no = frappe.db.get_value("Company", self.company, "custom_paye_reference_number") or ""
+        self.sdl_reference_no = frappe.db.get_value("Company", self.company, "za_sdl_reference_number") or ""
+        self.uif_reference_no = frappe.db.get_value("Company", self.company, "za_uif_reference_number") or ""
+        
+        # Set employee name fields
+        if employee_doc.employee_name:
+            name_parts = employee_doc.employee_name.split(" ", 1)
+            self.first_names = name_parts[0] if len(name_parts) > 0 else ""
+            self.last_name = name_parts[1] if len(name_parts) > 1 else name_parts[0]
+            self.surname = self.last_name
+        
+        # Set tax year as string
+        if self.tax_year:
+            self.transaction_year = str(self.tax_year)
+            self.assessment_year = str(self.tax_year)
+        
+        context = {
+            "doc": self,
+            "employee": employee_doc,
+            "company": company_doc,
+        }
+        
+        # Use the existing IRP5 HTML template (works for IT3 as well - same structure)
+        html = frappe.render_template("za_local/templates/print_format/irp5_employee_certificate.html", context)
+        
+        # Generate PDF from HTML - this ensures all fields are properly populated
+        pdf_content = get_pdf(html)
+        return pdf_content
+
+@frappe.whitelist()
+def get_it3_pdf(docname):
+    """Server method to generate IT3 PDF for print format or download"""
+    doc = frappe.get_doc("IRP5 Certificate", docname)
+    if doc.status == "Draft":
+        frappe.throw(_("Cannot export draft certificate..."))
+    if not pdf_generation_available:
+        frappe.throw(_("PDF generation libraries not installed..."))
+    try:
+        if not doc.certificate_number:
+            doc.set_certificate_number()
+        pdf_content = doc.generate_it3_pdf()
+        # Return base64 encoded content for JavaScript
+        import base64
+        return base64.b64encode(pdf_content).decode('utf-8')
+    except Exception as e:
+        frappe.log_error(message=frappe.get_traceback(), title=f"Error generating IT3 PDF for {docname}")
+        frappe.throw(_("Error generating PDF: {0}").format(str(e)))
+
 @frappe.whitelist()
 def bulk_generate_certificates(filters_json=None):
     """
