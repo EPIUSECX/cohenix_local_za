@@ -121,12 +121,14 @@
    "reqd": 1
   },
   {
+   "fetch_from": "company.za_sdl_reference_number",
    "fieldname": "sdl_reference_number",
    "fieldtype": "Data",
    "label": "SDL Reference Number",
    "reqd": 1
   },
   {
+   "fetch_from": "company.za_uif_reference_number",
    "fieldname": "uif_reference_number",
    "fieldtype": "Data",
    "label": "UIF Reference Number",

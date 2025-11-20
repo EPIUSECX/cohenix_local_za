@@ -28,6 +28,8 @@ def setup_custom_fields():
     - Salary Component: Additional calculation fields
     - Salary Structure: Company contributions
     - Employee Benefit Claim: SA-specific fields
+    - Item Group: Capital goods flag for VAT201 classification
+    - Customer: VAT vendor status
     """
     
     # Fields to delete if they exist (old custom_ prefix versions)
@@ -486,6 +488,17 @@ def setup_custom_fields():
                 "insert_after": "za_company_registration",
                 "default": 0,
                 "description": "Check if customer is registered for VAT in South Africa"
+            }
+        ],
+        
+        "Item Group": [
+            {
+                "fieldname": "is_capital_goods",
+                "label": "Is Capital Goods",
+                "fieldtype": "Check",
+                "insert_after": "parent_item_group",
+                "default": 0,
+                "description": "Mark this item group as capital goods for VAT201 input tax classification. Items in this group will be classified as 'Capital Goods Input' in VAT201 returns."
             }
         ]
     }

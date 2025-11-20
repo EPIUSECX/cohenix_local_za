@@ -288,8 +288,13 @@ class VAT201Return(Document):
                 
                 for item in items:
                     # Check if item group is marked as capital goods
-                    if frappe.db.get_value("Item Group", item.item_group, "is_capital_goods"):
-                        is_capital = True
+                    # Handle case where is_capital_goods field may not exist
+                    if item.item_group:
+                        # Check if field exists in Item Group doctype
+                        item_group_meta = frappe.get_meta("Item Group")
+                        if item_group_meta.has_field("is_capital_goods"):
+                            if frappe.db.get_value("Item Group", item.item_group, "is_capital_goods"):
+                                is_capital = True
                 
                 # Add to appropriate input tax field
                 if is_capital:

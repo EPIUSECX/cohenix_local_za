@@ -113,7 +113,11 @@ class IRP5Certificate(Document):
     def before_submit(self):
         self.status = "Prepared"
         self.calculate_totals()
-        
+    
+    def on_cancel(self):
+        """Handle cancellation of IRP5 Certificate"""
+        self.status = "Cancelled"
+        frappe.msgprint(_("IRP5 Certificate {0} has been cancelled.").format(self.name))
 
     def calculate_totals(self):
         self.paye, self.uif, self.sdl = 0, 0, 0

@@ -53,3 +53,8 @@ jspm_packages/
 
 # Aider AI Chat
 .aider*
+
+# MCP Server (development only, not for production)
+za_local/mcp_server.py
+**/mcp_server.py
+**/*mcp*.py

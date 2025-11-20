@@ -116,6 +116,34 @@ class EMP501Reconciliation(Document):
         
         self.total_tax_payable = self.total_paye + self.total_sdl + self.total_uif - self.total_eti
     
+    def before_submit(self):
+        """
+        Validate that EMP501 is ready for submission.
+        Ensures IRP5 certificates have been generated.
+        """
+        # Check if IRP5 certificates have been generated
+        if not self.irp5_certificates or len(self.irp5_certificates) == 0:
+            frappe.throw(
+                _("Please generate IRP5 certificates before submitting. Click 'Generate IRP5 Certificates' button in the Actions menu."),
+                title=_("IRP5 Certificates Required")
+            )
+        
+        # Validate that EMP201 submissions are linked (recommended but not strictly required)
+        if not self.emp201_submissions or len(self.emp201_submissions) == 0:
+            frappe.msgprint(
+                _("Warning: No EMP201 submissions are linked. It is recommended to fetch EMP201 submissions before submitting."),
+                title=_("No EMP201 Submissions"),
+                indicator="orange"
+            )
+        
+        # Validate that all required reference numbers are present
+        if not self.paye_reference_number:
+            frappe.throw(_("PAYE Reference Number is required before submission."), title=_("Missing PAYE Reference"))
+        if not self.sdl_reference_number:
+            frappe.throw(_("SDL Reference Number is required before submission."), title=_("Missing SDL Reference"))
+        if not self.uif_reference_number:
+            frappe.throw(_("UIF Reference Number is required before submission."), title=_("Missing UIF Reference"))
+    
     def on_submit(self):
         self.status = "Submitted" 
         
@@ -155,6 +183,7 @@ class EMP501Reconciliation(Document):
             frappe.log_error(frappe.get_traceback())
             frappe.throw(_("Error fetching EMP201 submissions: {0}").format(e), title=_("Fetch Error"))
 
+        count = 0
         for emp201_doc in emp201_docs:
             self.append("emp201_submissions", {
                 "emp201_submission": emp201_doc.name,
@@ -164,15 +193,42 @@ class EMP501Reconciliation(Document):
                 "uif": emp201_doc.uif,
                 "eti": emp201_doc.eti
             })
+            count += 1
             
         self.calculate_totals()
-        return self
+        self.save(ignore_permissions=True)
+        
+        if count == 0:
+            frappe.msgprint(
+                _("No EMP201 submissions found for the selected period. You can still proceed to generate IRP5 certificates."),
+                title=_("No EMP201 Submissions Found"),
+                indicator="orange"
+            )
+        
+        return {
+            "count": count,
+            "message": _("{0} EMP201 submission(s) fetched successfully.").format(count) if count > 0 else _("No EMP201 submissions found.")
+        }
     
     @frappe.whitelist()
     def generate_irp5_certificates(self):
+        """
+        Generate IRP5 Certificates in bulk for all employees with salary slips in the period.
+        Links certificates to this EMP501 Reconciliation and populates all certificate data.
+        """
         if not self.from_date or not self.to_date or not self.tax_year or not self.company:
             frappe.throw(_("Company, Tax Year, From Date, and To Date are required to generate IRP5s."))
+        
+        if not self.reconciliation_period:
+            frappe.throw(_("Reconciliation Period is required to generate IRP5s."))
+        
+        # Ensure document is saved before generating certificates (needed for linking)
+        if self.is_new() or (hasattr(self, 'name') and self.name and self.name.startswith('new-')):
+            # Save the document first to get a proper name
+            self.save(ignore_permissions=True)
+            frappe.db.commit()  # Commit to ensure name is available
             
+        # Get all unique employees with salary slips in the period
         salary_slips = frappe.get_all("Salary Slip",
             filters={
                 "company": self.company,
@@ -183,24 +239,64 @@ class EMP501Reconciliation(Document):
             fields=["distinct employee", "employee_name"]
         )
         
+        if not salary_slips:
+            frappe.msgprint(_("No salary slips found for the selected period. Cannot generate IRP5 certificates."), 
+                          indicator="orange")
+            return {"created": 0, "updated": 0, "errors": 0, "message": "No salary slips found"}
+        
         unique_employees = {sl.employee: sl.employee_name for sl in salary_slips}
 
+        # Clear existing references (will be regenerated)
         self.irp5_certificates = []
         
         created_count = 0
+        updated_count = 0
+        errors = []
+        
         for emp_id, emp_name in unique_employees.items():
-            existing_cert_name = frappe.db.get_value("IRP5 Certificate", {
-                "employee": emp_id,
-                "tax_year": self.tax_year,
-                "company": self.company,
-                "reconciliation_period": self.reconciliation_period
-            }, "name")
-            
-            cert_status = "Previously Generated"
-            irp5_cert_name = existing_cert_name
-
-            if not existing_cert_name:
-                try:
+            try:
+                # Check if certificate already exists
+                existing_cert_name = frappe.db.get_value("IRP5 Certificate", {
+                    "employee": emp_id,
+                    "tax_year": self.tax_year,
+                    "company": self.company,
+                    "reconciliation_period": self.reconciliation_period
+                }, "name")
+                
+                if existing_cert_name:
+                    # Update existing certificate
+                    cert = frappe.get_doc("IRP5 Certificate", existing_cert_name)
+                    
+                    # Only update if certificate is not submitted
+                    if cert.docstatus == 1:
+                        # Certificate is submitted, cannot modify
+                        errors.append({
+                            "employee": emp_name,
+                            "error": f"IRP5 Certificate {existing_cert_name} is already submitted and cannot be updated."
+                        })
+                        # Still add to child table for reference
+                        self.append("irp5_certificates", {
+                            "irp5_certificate": existing_cert_name,
+                            "employee": emp_id,
+                            "employee_name": emp_name,
+                            "status": cert.status
+                        })
+                        continue
+                    
+                    # Update certificate fields
+                    cert.from_date = self.from_date
+                    cert.to_date = self.to_date
+                    # Only update emp501_reconciliation if it's not already set or if it's different
+                    if not cert.emp501_reconciliation or cert.emp501_reconciliation != self.name:
+                        cert.emp501_reconciliation = self.name
+                    # Regenerate certificate data to ensure it's up to date
+                    cert.generate_certificate_data()
+                    cert.save(ignore_permissions=True)
+                    cert_status = cert.status
+                    irp5_cert_name = cert.name
+                    updated_count += 1
+                else:
+                    # Create new certificate
                     cert = frappe.new_doc("IRP5 Certificate")
                     cert.employee = emp_id
                     cert.tax_year = self.tax_year
@@ -208,24 +304,81 @@ class EMP501Reconciliation(Document):
                     cert.from_date = self.from_date
                     cert.to_date = self.to_date
                     cert.reconciliation_period = self.reconciliation_period
+                    cert.emp501_reconciliation = self.name
+                    # Generate certificate data from salary slips
+                    cert.generate_certificate_data()
+                    # Validate before inserting
+                    cert.validate()
                     cert.insert(ignore_permissions=True)
+                    # Refresh to get the actual saved document
+                    cert.reload()
                     cert_status = cert.status
                     irp5_cert_name = cert.name
-                    created_count +=1
-                except Exception as e:
-                    frappe.log_error(f"Failed to create IRP5 for {emp_id}: {e}", "IRP5 Generation")
-                    continue
-            
-            self.append("irp5_certificates", {
-                "irp5_certificate": irp5_cert_name,
-                "employee": emp_id,
-                "employee_name": emp_name,
-                "status": cert_status
-            })
+                    created_count += 1
+                
+                # Verify certificate exists in database before adding to child table
+                if irp5_cert_name:
+                    # Double-check that the certificate actually exists
+                    cert_exists = frappe.db.exists("IRP5 Certificate", irp5_cert_name)
+                    if cert_exists:
+                        self.append("irp5_certificates", {
+                            "irp5_certificate": irp5_cert_name,
+                            "employee": emp_id,
+                            "employee_name": emp_name,
+                            "status": cert_status
+                        })
+                    else:
+                        # Certificate was supposed to be created but doesn't exist
+                        error_msg = f"Certificate {irp5_cert_name} was created but not found in database"
+                        frappe.log_error(error_msg, f"IRP5 Certificate Missing - {emp_name}")
+                        errors.append({
+                            "employee": emp_name,
+                            "error": "Certificate creation failed - certificate not found in database"
+                        })
+                
+            except Exception as e:
+                # Log full traceback for debugging
+                error_traceback = frappe.get_traceback()
+                error_msg = f"Failed to process IRP5 for employee {emp_name} ({emp_id}): {str(e)}"
+                frappe.log_error(error_traceback, f"IRP5 Generation Error - {emp_name}")
+                # Include more details in error message
+                error_details = {
+                    "employee": emp_name,
+                    "employee_id": emp_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                }
+                errors.append(error_details)
+                # Don't add to child table if certificate creation failed
+                continue
         
-        self.save()
-        frappe.msgprint(_("{0} IRP5 certificates processed. {1} newly created.").format(len(unique_employees), created_count))
-        return len(unique_employees)
+        # Save EMP501 with updated IRP5 references
+        self.save(ignore_permissions=True)
+        
+        # Prepare summary message
+        total_processed = created_count + updated_count
+        message = _("{0} IRP5 certificates processed. {1} newly created, {2} updated.").format(
+            total_processed, created_count, updated_count
+        )
+        
+        if errors:
+            error_details = "\n".join([f"- {e.get('employee', 'Unknown')}: {e.get('error', 'Unknown error')}" for e in errors[:5]])  # Show first 5 errors
+            if len(errors) > 5:
+                error_details += f"\n... and {len(errors) - 5} more errors"
+            message += _(" {0} errors encountered.").format(len(errors))
+            full_error_message = message + "<br><br><b>Error Details:</b><br>" + error_details.replace("\n", "<br>")
+            frappe.msgprint(full_error_message, indicator="orange", title=_("IRP5 Generation Complete"))
+        else:
+            frappe.msgprint(message, indicator="green", title=_("IRP5 Generation Complete"))
+        
+        return {
+            "created": created_count,
+            "updated": updated_count,
+            "errors": errors,  # Return full error details, not just count
+            "error_count": len(errors),
+            "total": total_processed,
+            "message": message
+        }
     
     @frappe.whitelist()
     def submit_to_sars(self):
