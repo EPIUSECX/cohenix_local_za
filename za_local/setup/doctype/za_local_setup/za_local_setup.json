@@ -21,6 +21,8 @@
   "load_seta_list",
   "column_break_13",
   "load_bargaining_councils",
+  "section_break_14",
+  "load_chart_of_accounts",
   "section_break_15",
   "setup_completed_on"
  ],
@@ -124,6 +126,19 @@
    "fieldname": "load_bargaining_councils",
    "fieldtype": "Check",
    "label": "Load Bargaining Councils"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_14",
+   "fieldtype": "Section Break",
+   "label": "Chart of Accounts"
+  },
+  {
+   "default": "1",
+   "description": "Load South African Chart of Accounts with all required tax accounts (VAT, PAYE, UIF, SDL, COIDA)",
+   "fieldname": "load_chart_of_accounts",
+   "fieldtype": "Check",
+   "label": "Load Chart of Accounts"
   },
   {
    "collapsible": 1,

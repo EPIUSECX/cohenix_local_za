@@ -388,10 +388,26 @@ def setup_za_localization(args):
 	load_tax_rebates = args.get("za_load_tax_rebates", 1)
 	load_medical = args.get("za_load_medical_credits", 1)
 	load_regions = args.get("za_load_business_trip_regions", 1)
+	load_chart_of_accounts = args.get("za_load_chart_of_accounts", 1)
+	
+	# Get company name from args
+	company = args.get("company_name") or frappe.defaults.get_user_default("Company")
 	
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
 	
 	try:
+		# Step 0: Load Chart of Accounts (if selected and company exists)
+		if load_chart_of_accounts and company:
+			print("Loading South African Chart of Accounts...")
+			try:
+				from za_local.accounts.setup_chart import load_sa_chart_of_accounts
+				load_sa_chart_of_accounts(company)
+				print("  ✓ Chart of Accounts loaded successfully")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Chart of Accounts: {e}")
+				print("  Note: Chart of Accounts can be loaded manually later")
+				frappe.log_error(f"Chart of Accounts loading failed: {str(e)}", "ZA Local Setup")
+		
 		# Step 1: Setup SA print formats as default
 		setup_sa_print_formats()
 

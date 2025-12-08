@@ -183,6 +183,35 @@ def setup_hrms_monkey_patches():
 # Setup monkey patches after hooks are loaded
 setup_hrms_monkey_patches()
 
+# Chart of Accounts Integration
+# ------------------
+# Extend ERPNext's chart discovery to include South African Chart of Accounts
+def extend_charts_for_country():
+	"""Extend ERPNext's chart discovery to include za_local charts"""
+	try:
+		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module
+		original_get_charts = coa_module.get_charts_for_country
+		
+		def get_charts_for_country_with_za(country, with_standard=False):
+			charts = original_get_charts(country, with_standard)
+			
+			# Add ZA chart if country is South Africa
+			if country == "South Africa":
+				from za_local.accounts.setup_chart import get_chart_template_name
+				chart_name = get_chart_template_name()
+				if chart_name and chart_name not in charts:
+					charts.insert(0, chart_name)  # Add at beginning
+			
+			return charts
+		
+		coa_module.get_charts_for_country = get_charts_for_country_with_za
+	except ImportError:
+		# ERPNext not fully loaded yet, will be called during after_migrate
+		pass
+
+# Extend chart discovery after hooks are loaded
+extend_charts_for_country()
+
 # Custom Records (DocType Links for Bidirectional Connections)
 # ------------------
 # Creates links between za_local DocTypes and standard DocTypes

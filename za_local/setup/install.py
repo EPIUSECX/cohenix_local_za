@@ -80,6 +80,30 @@ def after_migrate():
 	make_property_setters()
 	apply_statutory_formulas()
 	import_workspace()
+	
+	# Extend chart discovery to include ZA chart
+	try:
+		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module
+		from za_local.accounts.setup_chart import get_chart_template_name
+		
+		original_get_charts = coa_module.get_charts_for_country
+		
+		def get_charts_for_country_with_za(country, with_standard=False):
+			charts = original_get_charts(country, with_standard)
+			
+			# Add ZA chart if country is South Africa
+			if country == "South Africa":
+				chart_name = get_chart_template_name()
+				if chart_name and chart_name not in charts:
+					charts.insert(0, chart_name)
+			
+			return charts
+		
+		coa_module.get_charts_for_country = get_charts_for_country_with_za
+	except Exception as e:
+		# Chart discovery extension is optional, don't fail migration
+		print(f"  ! Could not extend chart discovery: {e}")
+	
 	frappe.db.commit()
 
 
@@ -706,6 +730,18 @@ def run_za_local_setup(setup_doc):
 			from za_local.utils.csv_importer import import_csv_data
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
 			print("✓ Loaded business trip regions")
+		
+		# Load Chart of Accounts
+		if setup_doc.load_chart_of_accounts and setup_doc.company:
+			print("Loading South African Chart of Accounts...")
+			try:
+				from za_local.accounts.setup_chart import load_sa_chart_of_accounts
+				load_sa_chart_of_accounts(setup_doc.company)
+				print("✓ Loaded Chart of Accounts")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Chart of Accounts: {e}")
+				print("  Note: Chart of Accounts can be loaded manually later")
+				frappe.log_error(f"Chart of Accounts loading failed: {str(e)}", "ZA Local Setup")
 
 		# Mark as completed
 		setup_doc.setup_status = "Completed"
