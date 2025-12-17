@@ -34,12 +34,22 @@ def calculate_south_african_tax(annual_taxable_income, tax_slab=None):
     if not tax_slab:
         frappe.throw("No tax slab found for the current period")
     
-    # Calculate tax using tax slab
-    from hrms.payroll.doctype.salary_slip.salary_slip import calculate_tax_by_tax_slab
+    # Calculate tax using tax slab (requires HRMS)
+    from za_local.utils.hrms_detection import require_hrms, safe_import_hrms
+    calculate_tax_by_tax_slab, = safe_import_hrms(
+        "hrms.payroll.doctype.salary_slip.salary_slip",
+        "calculate_tax_by_tax_slab"
+    )
     
+    if calculate_tax_by_tax_slab is None:
+        require_hrms("Tax Calculation")
+    
+    # Pass empty dict for eval_locals to avoid NoneType error
     tax_amount = calculate_tax_by_tax_slab(
         annual_taxable_income,
-        tax_slab
+        tax_slab,
+        eval_globals=None,
+        eval_locals={}
     )
     
     return flt(tax_amount)

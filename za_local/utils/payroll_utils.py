@@ -8,7 +8,18 @@ including frequency calculations, payroll period handling, and employee mapping.
 import frappe
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from hrms.payroll.doctype.payroll_period.payroll_period import get_payroll_period
+from za_local.utils.hrms_detection import safe_import_hrms, require_hrms
+
+# Conditionally import HRMS functions
+get_payroll_period, = safe_import_hrms(
+    "hrms.payroll.doctype.payroll_period.payroll_period",
+    "get_payroll_period"
+)
+
+if get_payroll_period is None:
+    def get_payroll_period(*args, **kwargs):
+        require_hrms("Payroll Period")
+        return None
 
 
 # Frequency mapping for payroll calculations
@@ -29,59 +40,96 @@ def get_current_block(frequency, date, payroll_period):
         payroll_period (Document): Payroll Period document
         
     Returns:
-        frappe._dict: Dict with start_date and end_date of the block
+        frappe._dict: Dict with start_date and end_date of the block, or None if invalid
     """
     if frequency not in FREQUENCY_MONTHS:
-        frappe.throw(f"Invalid frequency: {frequency}")
+        return None
     
-    start_date = payroll_period.start_date
-    end_date = payroll_period.end_date
-    months = FREQUENCY_MONTHS[frequency]
+    if not payroll_period or not hasattr(payroll_period, 'start_date'):
+        return None
     
-    while True:
-        start_date = datetime.strptime(str(start_date), "%Y-%m-%d").date()
-        block_end_date = (start_date + relativedelta(months=months) - timedelta(days=1))
+    try:
+        start_date = payroll_period.start_date
+        end_date = payroll_period.end_date
+        months = FREQUENCY_MONTHS[frequency]
         
-        date = datetime.strptime(str(date), "%Y-%m-%d").date()
-        if start_date <= date <= block_end_date:
-            return frappe._dict({
-                "start_date": start_date,
-                "end_date": block_end_date
-            })
-        else:
-            start_date = block_end_date + timedelta(days=1)
+        # Convert to date objects if strings
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(str(start_date), "%Y-%m-%d").date()
+        if isinstance(date, str):
+            date = datetime.strptime(str(date), "%Y-%m-%d").date()
+        if isinstance(start_date, datetime):
+            start_date = start_date.date()
+        if isinstance(date, datetime):
+            date = date.date()
+        
+        current_start = start_date
+        
+        # Limit iterations to prevent infinite loop
+        max_iterations = 20
+        iteration = 0
+        
+        while iteration < max_iterations:
+            iteration += 1
+            block_end_date = (current_start + relativedelta(months=months) - timedelta(days=1))
+            
+            if current_start <= date <= block_end_date:
+                return frappe._dict({
+                    "start_date": current_start,
+                    "end_date": block_end_date
+                })
+            else:
+                current_start = block_end_date + timedelta(days=1)
+                # Check if we've gone past the payroll period end
+                if current_start > end_date:
+                    break
+        
+        return None
+    except Exception as e:
+        frappe.log_error(f"Error calculating block period for {frequency}: {str(e)}", "Payroll Block Calculation")
+        return None
 
 
-def get_current_block_period(salary_slip):
+def get_current_block_period(doc):
     """
     Get current block period for all configured frequencies.
     
     Args:
-        salary_slip: Salary Slip document
+        doc: Document with start_date, end_date, and company (Salary Slip or Payroll Entry)
         
     Returns:
         dict: Map of frequency to block period
     """
+    # Handle both Salary Slip and Payroll Entry
+    start_date = getattr(doc, 'start_date', None)
+    end_date = getattr(doc, 'end_date', None)
+    company = getattr(doc, 'company', None)
+    
+    if not all([start_date, end_date, company]):
+        return {}
+    
     payroll_period = get_payroll_period(
-        salary_slip.start_date, 
-        salary_slip.end_date, 
-        salary_slip.company
+        start_date, 
+        end_date, 
+        company
     )
     
     if not payroll_period:
         return {}
     
-    payroll_period_doc = frappe.get_doc("Payroll Period", payroll_period)
-    frequency_map = {}
-    
-    for freq in FREQUENCY_MONTHS:
-        frequency_map[freq] = get_current_block(
-            freq, 
-            salary_slip.start_date, 
-            payroll_period_doc
-        )
-    
-    return frequency_map
+    try:
+        payroll_period_doc = frappe.get_doc("Payroll Period", payroll_period)
+        frequency_map = {}
+        
+        for freq in FREQUENCY_MONTHS:
+            block = get_current_block(freq, start_date, payroll_period_doc)
+            if block:  # Only include if valid block was calculated
+                frequency_map[freq] = block
+        
+        return frequency_map
+    except Exception as e:
+        frappe.log_error(f"Error getting block period: {str(e)}", "Payroll Block Period")
+        return {}
 
 
 def get_employee_frequency_map():

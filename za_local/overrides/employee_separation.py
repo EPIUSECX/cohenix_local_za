@@ -2,12 +2,25 @@
 South African Employee Separation Override
 
 Extends HRMS Employee Separation with BCEA compliance and SA calculations.
+
+Note: This module only works when HRMS is installed.
 """
 
 import frappe
 from frappe import _
 from frappe.utils import getdate, flt, date_diff
-from hrms.hr.doctype.employee_separation.employee_separation import EmployeeSeparation
+from za_local.utils.hrms_detection import require_hrms, get_hrms_doctype_class
+
+# Conditionally import HRMS classes
+EmployeeSeparation = get_hrms_doctype_class(
+    "hrms.hr.doctype.employee_separation.employee_separation",
+    "EmployeeSeparation"
+)
+
+if EmployeeSeparation is None:
+    # HRMS not available - create a dummy class to prevent import errors
+    class EmployeeSeparation:
+        pass
 
 
 class ZAEmployeeSeparation(EmployeeSeparation):
@@ -21,8 +34,15 @@ class ZAEmployeeSeparation(EmployeeSeparation):
 	- Final settlement generation
 	"""
 	
+	def __init__(self, *args, **kwargs):
+		"""Ensure HRMS is available before initialization"""
+		if EmployeeSeparation is None:
+			require_hrms("Employee Separation")
+		super().__init__(*args, **kwargs)
+	
 	def validate(self):
 		"""Validate with SA-specific checks"""
+		require_hrms("Employee Separation")
 		super().validate()
 		self.calculate_notice_period()
 		self.calculate_severance_pay()

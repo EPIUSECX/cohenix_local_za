@@ -1,0 +1,26 @@
+/* South African Localization Styles */
+
+/* Hide Flexible Benefits section in Salary Structure and Salary Structure Assignment - not used in SA payroll */
+.form-section[data-fieldname="employee_benefits"],
+.form-section[data-fieldname="employee_benefits_section"],
+.form-section:has([data-fieldname="employee_benefits"]):not(:has([data-fieldname="company_contribution"])),
+.form-section:has([data-fieldname="employee_benefits_section"]):not(:has([data-fieldname="company_contribution"])),
+.form-section:has([data-fieldname="max_benefits"]):not(:has([data-fieldname="company_contribution"])),
+.za-hidden-flexible-benefits {
+	display: none !important;
+	visibility: hidden !important;
+}
+
+/* Fallback for browsers that don't support :has() selector */
+[data-fieldname="employee_benefits"]:not(:has([data-fieldname="company_contribution"])) {
+	display: none !important;
+}
+
+[data-fieldname="employee_benefits_section"] {
+	display: none !important;
+}
+
+[data-fieldname="max_benefits"]:not(:has([data-fieldname="company_contribution"])) {
+	display: none !important;
+}
+

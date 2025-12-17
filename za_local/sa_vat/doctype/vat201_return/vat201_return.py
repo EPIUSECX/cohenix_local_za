@@ -3,11 +3,13 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, today, add_months
+from frappe.utils import flt, getdate, today, formatdate
 
 class VAT201Return(Document):
     def validate(self):
         self.validate_dates()
+        self.ensure_period_dates()
+        self.set_submission_period()
         self.set_vat_registration_number()
         self.calculate_totals()
         
@@ -15,17 +17,36 @@ class VAT201Return(Document):
         """Validate submission date"""
         if getdate(self.submission_date) > getdate(today()):
             frappe.throw("Submission Date cannot be in the future")
+        if self.from_date and self.to_date and getdate(self.from_date) > getdate(self.to_date):
+            frappe.throw("From Date cannot be after To Date")
+
+    def ensure_period_dates(self):
+        """Ensure period fields exist to prevent attribute lookups from failing"""
+        # The DocType now defines these fields, but guard for legacy documents
+        if not hasattr(self, "from_date"):
+            self.from_date = None
+        if not hasattr(self, "to_date"):
+            self.to_date = None
+
+    def set_submission_period(self):
+        """Populate submission period label from date range"""
+        if getattr(self, "from_date", None) and getattr(self, "to_date", None):
+            from_label = formatdate(getdate(self.from_date))
+            to_label = formatdate(getdate(self.to_date))
+            self.submission_period = f"{from_label} to {to_label}"
+        else:
+            self.submission_period = None
             
     def set_vat_registration_number(self):
         """Set VAT registration number from company"""
         if self.company and not self.vat_registration_number:
             # Try to get from company
-            vat_number = frappe.db.get_value("Company", self.company, "custom_vat_number")
+            vat_number = frappe.db.get_value("Company", self.company, "za_vat_number")
             if vat_number:
                 self.vat_registration_number = vat_number
             else:
                 # Try to get from VAT settings
-                vat_settings = frappe.get_doc("South African VAT Settings")
+                vat_settings = frappe.get_doc("South Africa VAT Settings")
                 if vat_settings.vat_registration_number:
                     self.vat_registration_number = vat_settings.vat_registration_number
                     
@@ -35,7 +56,7 @@ class VAT201Return(Document):
         self.total_supplies = flt(self.standard_rated_supplies) + flt(self.zero_rated_supplies) + flt(self.exempt_supplies)
         
         # Calculate standard rated output tax
-        vat_settings = frappe.get_doc("South African VAT Settings")
+        vat_settings = frappe.get_doc("South Africa VAT Settings")
         standard_rate = flt(vat_settings.standard_vat_rate) / 100
         self.standard_rated_output = flt(self.standard_rated_supplies) * standard_rate
         
@@ -92,9 +113,9 @@ class VAT201Return(Document):
             frappe.throw("VAT201 Return must be in 'Prepared' status before submission to SARS")
             
         # Check if VAT settings has e-Filing credentials
-        vat_settings = frappe.get_doc("South African VAT Settings")
+        vat_settings = frappe.get_doc("South Africa VAT Settings")
         if not vat_settings.sars_efiling_username or not vat_settings.sars_efiling_password:
-            frappe.throw("SARS e-Filing credentials not configured in South African VAT Settings")
+            frappe.throw("SARS e-Filing credentials not configured in South Africa VAT Settings")
             
         # Implementation of SARS e-Filing integration
         try:
@@ -156,6 +177,7 @@ class VAT201Return(Document):
             
     def prepare_efiling_submission_data(self):
         """Prepare data for e-Filing submission"""
+        self.set_submission_period()
         return {
             "vendor_number": self.vat_registration_number,
             "submission_period": self.submission_period,
@@ -190,9 +212,9 @@ class VAT201Return(Document):
         to_date = getdate(self.to_date)
         
         # Get VAT settings
-        vat_settings = frappe.get_doc("South African VAT Settings")
+        vat_settings = frappe.get_doc("South Africa VAT Settings")
         if not vat_settings.output_vat_account or not vat_settings.input_vat_account:
-            frappe.throw("VAT accounts not configured in South African VAT Settings")
+            frappe.throw("VAT accounts not configured in South Africa VAT Settings")
         
         # Reset existing values
         self.standard_rated_supplies = 0
@@ -266,8 +288,13 @@ class VAT201Return(Document):
                 
                 for item in items:
                     # Check if item group is marked as capital goods
-                    if frappe.db.get_value("Item Group", item.item_group, "is_capital_goods"):
-                        is_capital = True
+                    # Handle case where is_capital_goods field may not exist
+                    if item.item_group:
+                        # Check if field exists in Item Group doctype
+                        item_group_meta = frappe.get_meta("Item Group")
+                        if item_group_meta.has_field("is_capital_goods"):
+                            if frappe.db.get_value("Item Group", item.item_group, "is_capital_goods"):
+                                is_capital = True
                 
                 # Add to appropriate input tax field
                 if is_capital:
@@ -277,6 +304,7 @@ class VAT201Return(Document):
         
         # Calculate totals
         self.calculate_totals()
+        self.set_submission_period()
         
         # Return summary
         return {

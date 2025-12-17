@@ -11,14 +11,14 @@ This module is built with clean architecture, modular design, and following mode
 - **🚀 Integrated Setup Wizard**: Automatic activation during ERPNext setup - no bench commands required
 - **📦 Default Data**: Pre-configured salary components, tax slabs, and master data - ready in 15 minutes
 - **🖨️ SA-Compliant Print Formats**: SARS-compliant invoices (Full/Abridged), quotations, orders, and all client-facing documents - automatically set as default
-- **💰 SARS Tax Compliance**: PAYE calculations, EMP201 monthly submissions, EMP501 bi-annual reconciliations, IRP5/IT3(b) tax certificates with PDF generation
+- **💰 SARS Tax Compliance**: PAYE calculations, EMP201 monthly submissions, EMP501 bi-annual reconciliations, IRP5/IRP5-it3 tax certificates with PDF generation
 - **🎯 Employment Tax Incentive (ETI)**: Automated ETI eligibility checking and calculations
 - **💼 Payroll Management**: UIF, SDL, and frequency-based payroll processing with full automation
 - **🏥 COIDA Management**: Workplace injury tracking, OID claims, annual returns
 - **📊 VAT Management**: VAT201 returns, VAT analysis, vendor classification, VAT-compliant invoicing
 - **🏛️ Employment Equity & BEE**: Complete EE reporting, workforce demographics, BEE scorecard
 - **✈️ Business Trip Management**: SARS-compliant mileage and allowance tracking
-- **⚡ Bulk Generation Tools**: IT3(b) Certificate bulk generation with progress tracking
+- **⚡ Bulk Generation Tools**: IRP5-it3 Certificate bulk generation with progress tracking
 - **🏗️ Modern Architecture**: Modular structure with 5 focused modules (SA Payroll, SA Tax, SA VAT, COIDA, SA EE)
 
 ---
@@ -42,9 +42,12 @@ This module is built with clean architecture, modular design, and following mode
 ### Prerequisites
 
 - ERPNext v14 or v15
-- HRMS app installed
 - Python 3.10+
 - Frappe Framework v14 or v15
+
+**Note**: HRMS is **optional**. ZA Local works in two modes:
+- **With HRMS**: Full features including payroll processing, leave management, employee features
+- **Without HRMS**: Core features including tax/VAT/COIDA compliance, print formats, business trip management
 
 ### Quick Start (New ERPNext Installations)
 
@@ -88,7 +91,7 @@ bench restart
 **Recommended Selections (All Enabled by Default):**
 - ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
 - ✅ Create Earnings Components (Basic, Housing, Transport, Bonuses, etc.)
-- ✅ Load 2024-2025 Income Tax Slab (7 SARS brackets)
+- ✅ Load 2024-2025 Income Tax Slab (8 SARS brackets, including 0% band)
 - ✅ Load Tax Rebates & Medical Credits (linked to 2024-2025 Payroll Period)
 - ✅ Load Business Trip Regions (16 SA cities + 6 international zones)
 
@@ -116,7 +119,7 @@ The setup automatically creates:
    - Commission
 
 3. **Tax Configuration**
-   - 7 Income tax slabs for 2024-2025 (18% to 45%)
+   - 8 Income tax slabs for 2024-2025 (0% to 45%)
    - Tax rebates (Primary: R17,235, Secondary: R9,444, Tertiary: R3,145)
    - Medical tax credits (Main: R364, Dependants: R246)
 

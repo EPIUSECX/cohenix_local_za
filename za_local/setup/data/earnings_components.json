@@ -5,6 +5,7 @@
         "salary_component_abbr": "BS",
         "type": "Earning",
         "is_tax_applicable": 1,
+        "is_flexible_benefit": 0,
         "description": "Basic monthly/hourly salary"
     },
     {
@@ -13,6 +14,7 @@
         "salary_component_abbr": "HA",
         "type": "Earning",
         "is_tax_applicable": 1,
+        "is_flexible_benefit": 0,
         "description": "Housing/accommodation allowance"
     },
     {
@@ -21,6 +23,7 @@
         "salary_component_abbr": "TA",
         "type": "Earning",
         "is_tax_applicable": 1,
+        "is_flexible_benefit": 0,
         "description": "Transport/travel allowance"
     },
     {
@@ -29,6 +32,7 @@
         "salary_component_abbr": "13TH",
         "type": "Earning",
         "is_tax_applicable": 1,
+        "is_flexible_benefit": 0,
         "description": "Annual 13th cheque bonus"
     },
     {
@@ -37,6 +41,7 @@
         "salary_component_abbr": "BONUS",
         "type": "Earning",
         "is_tax_applicable": 1,
+        "is_flexible_benefit": 0,
         "description": "Performance-based bonus"
     },
     {
@@ -45,6 +50,7 @@
         "salary_component_abbr": "OT",
         "type": "Earning",
         "is_tax_applicable": 1,
+        "is_flexible_benefit": 0,
         "description": "Overtime pay"
     },
     {
@@ -53,6 +59,7 @@
         "salary_component_abbr": "COMM",
         "type": "Earning",
         "is_tax_applicable": 1,
+        "is_flexible_benefit": 0,
         "description": "Sales commission"
     }
 ]

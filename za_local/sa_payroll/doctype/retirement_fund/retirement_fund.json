@@ -10,6 +10,8 @@
   "employee_contribution_percentage",
   "employer_contribution_percentage",
   "tax_deductible_limit",
+  "fund_administrator",
+  "policy_number",
   "company"
  ],
  "fields": [
@@ -28,7 +30,8 @@
   {
    "fieldname": "fund_type",
    "fieldtype": "Select",
-   "label": "Fund Type"
+   "label": "Fund Type",
+   "options": "Pension Fund\nProvident Fund\nRetirement Annuity\nPreservation Fund"
   },
   {
    "fieldname": "employee_contribution_percentage",
@@ -46,6 +49,16 @@
    "label": "Tax Deductible Limit"
   },
   {
+   "fieldname": "fund_administrator",
+   "fieldtype": "Data",
+   "label": "Fund Administrator"
+  },
+  {
+   "fieldname": "policy_number",
+   "fieldtype": "Data",
+   "label": "Policy Number"
+  },
+  {
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
@@ -59,6 +72,7 @@
  "module": "SA Payroll",
  "name": "Retirement Fund",
  "naming_rule": "By \"Naming Series\" field",
+ "title_field": "fund_name",
  "owner": "Administrator",
  "permissions": [
   {

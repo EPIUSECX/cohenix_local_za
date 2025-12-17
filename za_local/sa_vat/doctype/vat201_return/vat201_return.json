@@ -10,6 +10,9 @@
   "vat_registration_number",
   "column_break_3",
   "tax_period",
+  "from_date",
+  "to_date",
+  "submission_period",
   "submission_date",
   "section_break_6",
   "standard_rated_supplies_tab",
@@ -75,6 +78,24 @@
    "label": "Tax Period",
    "options": "Monthly\nBi-Monthly\nQuarterly\nAnnually",
    "reqd": 1
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "submission_period",
+   "fieldtype": "Data",
+   "label": "Submission Period",
+   "read_only": 1
   },
   {
    "default": "Today",

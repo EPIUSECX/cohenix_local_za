@@ -14,16 +14,27 @@ from frappe.custom.doctype.customize_form.customize_form import (
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from za_local.setup.custom_fields import setup_custom_fields
 from za_local.setup.property_setters import get_property_setters
+from za_local.utils.hrms_detection import is_hrms_installed
 
+
+UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
+SDL_FORMULA = "gross_pay * 0.01"
 
 def before_install():
 	"""
 	Run before app installation.
 	
 	Creates essential DocTypes that are required before the app is fully installed:
-	- Company Contribution (child table for Salary Structure)
+	- Company Contribution (child table for Salary Structure) - only if HRMS is installed
 	"""
-	create_company_contribution_doctype()
+	# Only create Company Contribution if HRMS is available
+	# This is called during install, so we check if HRMS will be available
+	try:
+		create_company_contribution_doctype()
+	except Exception as e:
+		# Don't fail installation if this can't be created
+		print(f"  ! Could not create Company Contribution DocType: {e}")
+		print("  Note: This is only needed when HRMS is installed")
 
 
 def after_install():
@@ -35,6 +46,7 @@ def after_install():
 	- Property setters for default values
 	- Default data (ETI slabs, tax rebates, etc.)
 	- Master data from CSV files
+	- SA Payroll workspace
 	"""
 	cleanup_invalid_doctype_links()
 	setup_custom_fields()
@@ -43,6 +55,7 @@ def after_install():
 	apply_statutory_formulas()
 	import_master_data()
 	insert_custom_records()
+	import_workspace()
 	frappe.db.commit()
 	print("\n" + "="*80)
 	print("South African Localization installed successfully!")
@@ -64,7 +77,33 @@ def after_migrate():
 	"""
 	cleanup_invalid_doctype_links()
 	setup_custom_fields()
+	make_property_setters()
 	apply_statutory_formulas()
+	import_workspace()
+	
+	# Extend chart discovery to include ZA chart
+	try:
+		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module
+		from za_local.accounts.setup_chart import get_chart_template_name
+		
+		original_get_charts = coa_module.get_charts_for_country
+		
+		def get_charts_for_country_with_za(country, with_standard=False):
+			charts = original_get_charts(country, with_standard)
+			
+			# Add ZA chart if country is South Africa
+			if country == "South Africa":
+				chart_name = get_chart_template_name()
+				if chart_name and chart_name not in charts:
+					charts.insert(0, chart_name)
+			
+			return charts
+		
+		coa_module.get_charts_for_country = get_charts_for_country_with_za
+	except Exception as e:
+		# Chart discovery extension is optional, don't fail migration
+		print(f"  ! Could not extend chart discovery: {e}")
+	
 	frappe.db.commit()
 
 
@@ -109,17 +148,28 @@ def create_company_contribution_doctype():
 	
 	This is a child table used in Salary Structure for company contributions
 	like UIF employer portion, SDL, COIDA, etc.
+	
+	Note: Only creates if HRMS is installed, as it's used by Salary Structure.
 	"""
+	if not is_hrms_installed():
+		print("  ⊙ Skipping Company Contribution DocType (HRMS not installed)")
+		return
+	
 	if frappe.db.exists("DocType", "Company Contribution"):
 		print("Company Contribution DocType already exists")
 		return
 	
 	print("Creating Company Contribution DocType...")
 	
+	# Determine module - use Payroll if available, otherwise SA Payroll
+	module_name = "Payroll"  # HRMS module
+	if not frappe.db.exists("Module Def", "Payroll"):
+		module_name = "SA Payroll"  # Fallback to our module
+	
 	doc = frappe.get_doc({
 		"doctype": "DocType",
 		"name": "Company Contribution",
-		"module": "Payroll",  # Use existing Payroll module from HRMS
+		"module": module_name,
 		"custom": 1,
 		"istable": 1,
 		"editable_grid": 1,
@@ -245,15 +295,15 @@ def setup_default_salary_components():
 	Create default South African salary components.
 	
 	Creates components for:
-	- PAYE (4102)
-	- UIF Employee (4141)
-	- UIF Employer (4141)
-	- SDL (4142)
+	- PAYE
+	- UIF Employee Contribution
+	- UIF Employer Contribution
+	- SDL Contribution
 	- COIDA
 	"""
 	components = [
 		{
-			"name": "4102 PAYE",
+			"name": "PAYE",
 			"salary_component_abbr": "PAYE",
 			"type": "Deduction",
 			"description": "Pay As You Earn - Income Tax",
@@ -261,28 +311,31 @@ def setup_default_salary_components():
 			"variable_based_on_taxable_salary": 1
 		},
 		{
-			"name": "4141 UIF Employee Contribution",
+			"name": "UIF Employee Contribution",
 			"salary_component_abbr": "UIF_EE",
 			"type": "Deduction",
 			"description": "Unemployment Insurance Fund - Employee Contribution (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12"
+			"formula": UIF_FORMULA,
+			"amount_based_on_formula": 1
 		},
 		{
-			"name": "4141 UIF Employer Contribution",
+			"name": "UIF Employer Contribution",
 			"salary_component_abbr": "UIF_ER",
-			"type": "Deduction",
+			"type": "Company Contribution",
 			"description": "Unemployment Insurance Fund - Employer Contribution (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12"
+			"formula": UIF_FORMULA,
+			"amount_based_on_formula": 1
 		},
 		{
-			"name": "4142 SDL Contribution",
+			"name": "SDL Contribution",
 			"salary_component_abbr": "SDL",
-			"type": "Deduction",
+			"type": "Company Contribution",
 			"description": "Skills Development Levy (1%)",
 			"is_tax_applicable": 0,
-			"formula": "(BS)/100"
+			"formula": SDL_FORMULA,
+			"amount_based_on_formula": 1
 		}
 	]
 	
@@ -301,11 +354,29 @@ def make_property_setters():
 	"""
 	print("Creating property setters...")
 	
+	hrms_installed = is_hrms_installed()
+	hrms_only_doctypes = {
+		"Salary Component",
+		"Salary Slip",
+		"Salary Structure",
+		"Salary Structure Assignment",
+		"Payroll Entry",
+		"Additional Salary",
+	}
+	
 	for doctypes, property_setters in get_property_setters().items():
 		if isinstance(doctypes, str):
 			doctypes = (doctypes,)
 
 		for doctype in doctypes:
+			if doctype in hrms_only_doctypes and not hrms_installed:
+				print(f"  ⊙ Skipping property setters for {doctype} (HRMS not installed)")
+				continue
+
+			if not frappe.db.exists("DocType", doctype):
+				print(f"  ⊙ Skipping property setters for {doctype} (DocType not found)")
+				continue
+
 			for property_setter in property_setters:
 				if property_setter[0]:
 					for_doctype = False
@@ -321,6 +392,7 @@ def make_property_setters():
 					value=property_setter[2],
 					property_type=property_type,
 					for_doctype=for_doctype,
+					validate_fields_for_doctype=False,
 				)
 	
 	print("✓ Property setters created successfully")
@@ -328,47 +400,74 @@ def make_property_setters():
 
 def apply_statutory_formulas():
 	"""Ensure statutory Salary Components and Company Contribution rows carry correct formulas.
-	- UIF Employer: (BS)/100 capped at 177.12
-	- SDL: (BS)/100
+	- UIF Employee & Employer: 1% of gross pay capped at 177.12
+	- SDL: 1% of gross pay
 	Also enable Amount based on Formula on these components and child rows.
 	"""
 	print("Applying statutory formulas to salary components and company contribution rows...")
-	components_to_update = [
-		{
-			"name": "4141 UIF Employer Contribution",
-			"formula": "(BS)/100 if (BS)<=17712 else 177.12",
+
+	if not frappe.db.table_exists("tabSalary Component"):
+		print("  ⊙ Skipping statutory formula updates (Salary Component DocType not available)")
+		return
+
+	component_updates = {
+		"UIF Employee Contribution": {
+			"amount_based_on_formula": 1,
+			"formula": UIF_FORMULA,
 		},
-		{
-			"name": "4142 SDL Contribution",
-			"formula": "(BS)/100",
+		"UIF Employer Contribution": {
+			"amount_based_on_formula": 1,
+			"formula": UIF_FORMULA,
+			"type": "Company Contribution",
 		},
-	]
-	for comp in components_to_update:
-		if frappe.db.exists("Salary Component", comp["name"]):
+		"SDL Contribution": {
+			"amount_based_on_formula": 1,
+			"formula": SDL_FORMULA,
+			"type": "Company Contribution",
+		},
+	}
+
+	for canonical_name, fields in component_updates.items():
+		if frappe.db.exists("Salary Component", canonical_name):
 			try:
-				frappe.db.set_value(
-					"Salary Component", comp["name"], {
-						"amount_based_on_formula": 1,
-						"formula": comp["formula"],
-					}
-				)
+				frappe.db.set_value("Salary Component", canonical_name, fields)
 			except Exception as e:
-				print(f"  ! Could not update Salary Component {comp['name']}: {e}")
-	# Update existing Salary Structure child rows
-	try:
-		for comp in components_to_update:
+				print(f"  ! Could not update Salary Component {canonical_name}: {e}")
+
+	# Update existing Salary Structure child rows and Salary Detail records
+	_update_statutory_formulas_in_child_tables(component_updates)
+
+	print("✓ Statutory formulas applied")
+
+
+def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict]):
+	if not frappe.db.table_exists("tabCompany Contribution"):
+		print("  ⊙ Skipping Company Contribution child row updates (DocType not available)")
+	else:
+		for name, fields in component_updates.items():
+			if name not in ("UIF Employer Contribution", "SDL Contribution"):
+				continue
 			frappe.db.sql(
 				"""
 				UPDATE `tabCompany Contribution`
 				SET amount_based_on_formula = 1, formula = %(formula)s
 				WHERE salary_component = %(name)s
 				""",
-				comp,
+				{"name": name, "formula": fields["formula"]},
 			)
-		frappe.db.commit()
-	except Exception as e:
-		print(f"  ! Could not update Company Contribution child rows: {e}")
-	print("✓ Statutory formulas applied")
+
+	if frappe.db.table_exists("tabSalary Detail"):
+		for name, fields in component_updates.items():
+			frappe.db.sql(
+				"""
+				UPDATE `tabSalary Detail`
+				SET amount_based_on_formula = 1, formula = %(formula)s
+				WHERE salary_component = %(name)s
+				""",
+				{"name": name, "formula": fields["formula"]},
+			)
+
+	frappe.db.commit()
 
 def import_master_data():
 	"""
@@ -409,6 +508,159 @@ def insert_custom_records():
 			frappe.get_doc(custom_record).insert(ignore_if_duplicate=True)
 	
 	print("✓ Custom records inserted successfully")
+
+
+def import_workspace(enable_payroll: bool | None = None):
+	"""
+	Import South Africa workspaces for Tax & Compliance and Payroll Localization.
+	
+	- Tax & Compliance workspace is always imported (no HRMS dependency)
+	- Payroll Localization workspace is imported only when HRMS is available or explicitly enabled
+	"""
+	import json
+	from pathlib import Path
+	from za_local.utils.hrms_detection import is_hrms_installed
+
+	print("Importing South Africa workspaces...")
+
+	hrms_installed = is_hrms_installed()
+	if enable_payroll is None:
+		should_include_payroll = hrms_installed
+	else:
+		should_include_payroll = bool(enable_payroll) and hrms_installed
+
+	if not frappe.db.exists("Module Def", "South Africa"):
+		try:
+			frappe.get_doc({
+				"doctype": "Module Def",
+				"module_name": "South Africa",
+				"app_name": "za_local"
+			}).insert(ignore_permissions=True)
+			frappe.db.commit()
+		except Exception as e:
+			print(f"  ! Could not create Module Def 'South Africa': {e}")
+
+	workspace_definitions = [
+		{
+			"name": "Tax & Compliance",
+			"path": Path(frappe.get_app_path("za_local", "south_africa", "workspace", "tax_&_compliance", "tax_&_compliance.json")),
+			"requires_hrms": False,
+		},
+		{
+			"name": "Payroll",
+			"path": Path(frappe.get_app_path("za_local", "south_africa", "workspace", "payroll", "payroll.json")),
+			"requires_hrms": True,
+		},
+	]
+
+	# Determine which workspaces should exist for the current environment
+	desired_workspace_names = {
+		wd["name"]
+		for wd in workspace_definitions
+		if not wd.get("requires_hrms") or should_include_payroll
+	}
+
+	# Remove any other South Africa workspaces so navigation stays clean
+	existing_workspaces = frappe.get_all(
+		"Workspace",
+		filters={"module": "South Africa"},
+		fields=["name"],
+	)
+	for ws in existing_workspaces:
+		if ws.name not in desired_workspace_names:
+			try:
+				frappe.delete_doc("Workspace", ws.name, force=True, ignore_permissions=True)
+				print(f"  ⊙ Removed workspace '{ws.name}' (not part of South Africa navigation)")
+			except Exception as delete_error:
+				print(f"  ! Could not delete workspace '{ws.name}': {delete_error}")
+
+	for workspace_def in workspace_definitions:
+		workspace_path = workspace_def["path"]
+		requires_hrms = workspace_def.get("requires_hrms", False)
+
+		if requires_hrms:
+			if not hrms_installed:
+				print(f"  ⊙ Skipping workspace {workspace_path.name} (HRMS not installed)")
+				continue
+			if not should_include_payroll:
+				print(f"  ⊙ Skipping workspace {workspace_path.name} (Payroll localization disabled)")
+				continue
+
+		if not workspace_path.exists():
+			print(f"  ! Workspace file not found: {workspace_path}")
+			continue
+
+		try:
+			with open(workspace_path, "r") as f:
+				workspace_data = json.load(f)
+
+			workspace_name = workspace_def["name"]
+			workspace_data["name"] = workspace_name
+			workspace_data["label"] = workspace_name
+			workspace_data["title"] = workspace_name
+			workspace_data["module"] = "South Africa"
+
+			workspace_exists = frappe.db.exists("Workspace", workspace_name) is not None
+
+			# Filter links for existing DocTypes/Reports and skip entries that rely on missing doctypes
+			filtered_links = []
+			for link in workspace_data.get("links", []):
+				if link.get("type") == "Link":
+					link_to = link.get("link_to")
+					link_type = link.get("link_type", "DocType")
+
+					if link_type == "DocType":
+						if frappe.db.exists("DocType", link_to):
+							filtered_links.append(link)
+						else:
+							print(f"  ⊙ Skipping link to non-existent DocType: {link_to}")
+					elif link_type == "Report":
+						if frappe.db.exists("Report", link_to):
+							filtered_links.append(link)
+						else:
+							print(f"  ⊙ Skipping link to non-existent Report: {link_to}")
+					else:
+						filtered_links.append(link)
+				else:
+					filtered_links.append(link)
+
+			workspace_data["links"] = filtered_links
+
+			if not workspace_exists:
+				doc = frappe.get_doc(workspace_data)
+				doc.flags.ignore_links = True
+				doc.insert(ignore_permissions=True)
+				frappe.db.commit()
+				print(f"  ✓ Imported workspace: {workspace_name}")
+			else:
+				print(f"  ⊙ Workspace '{workspace_name}' exists, updating with latest content")
+				doc = frappe.get_doc("Workspace", workspace_name)
+				fields_to_update = [
+					"label",
+					"public",
+					"icon",
+					"module",
+					"app",
+					"title",
+					"content",
+					"links",
+					"charts",
+					"custom_blocks",
+					"quick_lists",
+					"shortcuts",
+					"number_cards"
+				]
+				for field in fields_to_update:
+					if field in workspace_data:
+						doc.set(field, workspace_data[field])
+				doc.flags.ignore_links = True
+				doc.save(ignore_permissions=True)
+				frappe.db.commit()
+				print(f"  ✓ Updated workspace: {workspace_name}")
+		except Exception as e:
+			print(f"  ! Error importing workspace from {workspace_path}: {e}")
+			import traceback
+			traceback.print_exc()
 
 
 def setup_default_retirement_funds():
@@ -479,6 +731,18 @@ def run_za_local_setup(setup_doc):
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
 			print("✓ Loaded business trip regions")
 		
+		# Load Chart of Accounts
+		if setup_doc.load_chart_of_accounts and setup_doc.company:
+			print("Loading South African Chart of Accounts...")
+			try:
+				from za_local.accounts.setup_chart import load_sa_chart_of_accounts
+				load_sa_chart_of_accounts(setup_doc.company)
+				print("✓ Loaded Chart of Accounts")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Chart of Accounts: {e}")
+				print("  Note: Chart of Accounts can be loaded manually later")
+				frappe.log_error(f"Chart of Accounts loading failed: {str(e)}", "ZA Local Setup")
+
 		# Mark as completed
 		setup_doc.setup_status = "Completed"
 		setup_doc.setup_completed_on = frappe.utils.now()
@@ -525,18 +789,29 @@ def load_data_from_json(file_path):
 		# List of records
 		for record in data:
 			insert_record(record)
+	
+	# Commit after loading all records from this file
+	frappe.db.commit()
 
 
 def insert_record(record):
 	"""
 	Insert a single record, skip if exists.
 	Handles both regular DocTypes and Single DocTypes.
+	Also handles child tables (like Holiday List with holidays).
 	
 	Args:
 		record: Dict with doctype and field values
 	"""
 	doctype = record.get("doctype")
-	name = record.get("name") or record.get("salary_component")
+	
+	# Determine the name field - different DocTypes use different name fields
+	# Standard: "name"
+	# Salary Component: "salary_component" 
+	# Holiday List: "holiday_list_name"
+	name = (record.get("name") or 
+	        record.get("salary_component") or 
+	        record.get("holiday_list_name"))
 	
 	# Check if it's a Single DocType
 	meta = frappe.get_meta(doctype)
@@ -565,10 +840,41 @@ def insert_record(record):
 			print(f"  ✓ Updated Single DocType: {doctype}")
 		else:
 			# For regular DocTypes, check if exists
-			if not frappe.db.exists(doctype, name):
+			# Special handling for Holiday List - check by holiday_list_name
+			if doctype == "Holiday List" and name:
+				exists = frappe.db.exists("Holiday List", name)
+			elif name:
+				exists = frappe.db.exists(doctype, name)
+			else:
+				# If no name field, check if we should create anyway
+				exists = False
+			
+			if not exists:
+				# Create the document
+				# frappe.get_doc() automatically handles child tables when you pass them in the record dict
+				# For Holiday List, the "holidays" array will be automatically converted to child table rows
+				# Each item in the "holidays" array becomes a row in the Holiday child table
 				doc = frappe.get_doc(record)
 				doc.insert(ignore_permissions=True, ignore_mandatory=True)
-				print(f"  ✓ Created {doctype}: {name}")
+				
+				created_name = name or doc.name
+				print(f"  ✓ Created {doctype}: {created_name}")
+				
+				# For Holiday List, verify holidays were saved
+				if doctype == "Holiday List":
+					# Reload document to get latest state from database
+					doc.reload()
+					holiday_count = len(doc.get("holidays", [])) if hasattr(doc, 'get') else 0
+					if holiday_count > 0:
+						print(f"    → Added {holiday_count} holidays to '{created_name}'")
+					else:
+						# If no holidays in doc, check the original record
+						holiday_count_from_record = len(record.get("holidays", []))
+						if holiday_count_from_record > 0:
+							print(f"    ! Warning: {holiday_count_from_record} holidays in record but not saved.")
+							print(f"    ! This may indicate a child table field name mismatch or HRMS not fully installed.")
+						else:
+							print(f"    ! Warning: No holidays found in record")
 			else:
 				print(f"  ⊙ Skipped {doctype}: {name} (already exists)")
 		
@@ -577,7 +883,15 @@ def insert_record(record):
 	except Exception as e:
 		# Restore message log even on error
 		frappe.local.message_log = _message_log
-		print(f"  ✗ Error with {doctype} {name}: {e}")
+		print(f"  ✗ Error with {doctype} {name or 'unknown'}: {e}")
+		
+		# For Holiday List, provide more specific error information
+		if doctype == "Holiday List":
+			print(f"    ! Holiday List creation failed. Check:")
+			print(f"      - Is HRMS installed? (Holiday List is an HRMS DocType)")
+			print(f"      - Does the record have 'holidays' child table array?")
+			print(f"      - Are holiday items properly formatted with 'holiday_date' and 'description'?")
+		
 		import traceback
 		traceback.print_exc()
 

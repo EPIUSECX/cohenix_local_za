@@ -17,7 +17,6 @@ PROTECTED_FILE_DOCTYPES = (
 	
 	# SARS Tax Documents
 	"IRP5 Certificate",
-	"IT3b Certificate",
 	"EMP201 Submission",
 	"EMP501 Reconciliation",
 	"Tax Directive",
@@ -92,6 +91,25 @@ def get_property_setters():
 		"Salary Structure": [
 			# Default currency for salary structures
 			("currency", "default", "ZAR"),
+			
+			# Hide Flexible Benefits section - not used in South African payroll
+			# Flexible benefits are for cafeteria-style plans (US/UK), not SA payroll
+			# Note: The actual fieldname is "employee_benefits" (child table), not "flexible_benefit"
+			("employee_benefits", "hidden", 1),
+			("max_benefits", "hidden", 1),
+		],
+		
+		"Salary Structure Assignment": [
+			# Hide Flexible Benefits section - not used in South African payroll
+			# Flexible benefits are for cafeteria-style plans (US/UK), not SA payroll
+			("employee_benefits_section", "hidden", 1),
+			("employee_benefits", "hidden", 1),
+			("max_benefits", "hidden", 1),
+		],
+		
+		"Salary Component": [
+			# Add "Company Contribution" as a Type option alongside Earning and Deduction
+			("type", "options", "Earning\nDeduction\nCompany Contribution"),
 		],
 		
 		# Protect attachments on submitted documents (SARS audit requirement)

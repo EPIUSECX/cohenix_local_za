@@ -1,0 +1,306 @@
+{
+    "country_code": "za",
+    "name": "South Africa - Standard Chart of Accounts",
+    "tree": {
+        "Assets": {
+            "root_type": "Asset",
+            "Current Assets": {
+                "account_type": "Asset",
+                "is_group": 1,
+                "Bank Accounts": {
+                    "account_type": "Bank",
+                    "is_group": 1
+                },
+                "Cash In Hand": {
+                    "account_type": "Cash",
+                    "is_group": 1,
+                    "Cash": {
+                        "account_type": "Cash"
+                    }
+                },
+                "Accounts Receivable": {
+                    "account_type": "Receivable",
+                    "is_group": 1,
+                    "Debtors": {
+                        "account_type": "Receivable"
+                    }
+                },
+                "Stock Assets": {
+                    "account_type": "Stock",
+                    "is_group": 1,
+                    "Stock In Hand": {
+                        "account_type": "Stock"
+                    }
+                },
+                "Loans and Advances (Assets)": {
+                    "account_type": "Asset",
+                    "is_group": 1,
+                    "Employee Advances": {
+                        "account_type": "Payable"
+                    }
+                },
+                "Securities and Deposits": {
+                    "account_type": "Asset",
+                    "is_group": 1,
+                    "Earnest Money": {}
+                },
+                "Tax Assets": {
+                    "account_type": "Tax",
+                    "is_group": 1,
+                    "VAT Paid - Purchases": {
+                        "account_type": "Tax"
+                    }
+                }
+            },
+            "Fixed Assets": {
+                "account_type": "Asset",
+                "is_group": 1,
+                "Capital Equipment": {
+                    "account_type": "Fixed Asset"
+                },
+                "Electronic Equipment": {
+                    "account_type": "Fixed Asset"
+                },
+                "Furniture and Fixtures": {
+                    "account_type": "Fixed Asset"
+                },
+                "Office Equipment": {
+                    "account_type": "Fixed Asset"
+                },
+                "Plants and Machineries": {
+                    "account_type": "Fixed Asset"
+                },
+                "Buildings": {
+                    "account_type": "Fixed Asset"
+                },
+                "Software": {
+                    "account_type": "Fixed Asset"
+                },
+                "Accumulated Depreciation": {
+                    "account_type": "Accumulated Depreciation"
+                },
+                "CWIP Account": {
+                    "account_type": "Capital Work in Progress"
+                }
+            },
+            "Investments": {
+                "account_type": "Asset",
+                "is_group": 1
+            },
+            "Temporary Accounts": {
+                "account_type": "Asset",
+                "is_group": 1,
+                "Temporary Opening": {
+                    "account_type": "Temporary"
+                }
+            }
+        },
+        "Liabilities": {
+            "root_type": "Liability",
+            "Current Liabilities": {
+                "account_type": "Liability",
+                "is_group": 1,
+                "Accounts Payable": {
+                    "account_type": "Payable",
+                    "is_group": 1,
+                    "Creditors": {
+                        "account_type": "Payable"
+                    },
+                    "Payroll Payable": {
+                        "account_type": "Payable"
+                    }
+                },
+                "Stock Liabilities": {
+                    "account_type": "Liability",
+                    "is_group": 1,
+                    "Stock Received But Not Billed": {
+                        "account_type": "Stock Received But Not Billed"
+                    },
+                    "Asset Received But Not Billed": {
+                        "account_type": "Asset Received But Not Billed"
+                    }
+                },
+                "Tax Liabilities": {
+                    "account_type": "Tax",
+                    "is_group": 1,
+                    "VAT Collected - Sales": {
+                        "account_type": "Tax"
+                    },
+                    "VAT Payable - SARS": {
+                        "account_type": "Tax"
+                    },
+                    "PAYE Payable - SARS": {
+                        "account_type": "Tax"
+                    },
+                    "UIF Employee Contribution": {
+                        "account_type": "Tax"
+                    },
+                    "UIF Employer Contribution": {
+                        "account_type": "Tax"
+                    },
+                    "SDL Payable - SARS": {
+                        "account_type": "Tax"
+                    },
+                    "COIDA Payable": {
+                        "account_type": "Tax"
+                    }
+                },
+                "Loans (Liabilities)": {
+                    "account_type": "Liability",
+                    "is_group": 1,
+                    "Secured Loans": {
+                        "account_type": "Liability"
+                    },
+                    "Unsecured Loans": {
+                        "account_type": "Liability"
+                    },
+                    "Bank Overdraft Account": {
+                        "account_type": "Liability"
+                    }
+                }
+            },
+            "Long Term Liabilities": {
+                "account_type": "Liability",
+                "is_group": 1
+            }
+        },
+        "Equity": {
+            "root_type": "Equity",
+            "Share Capital": {
+                "account_type": "Equity"
+            },
+            "Capital Stock": {
+                "account_type": "Equity"
+            },
+            "Dividends Paid": {
+                "account_type": "Equity"
+            },
+            "Opening Balance Equity": {
+                "account_type": "Equity"
+            },
+            "Retained Earnings": {
+                "account_type": "Equity"
+            },
+            "Revaluation Surplus": {
+                "account_type": "Equity"
+            },
+            "Reserves": {
+                "account_type": "Equity",
+                "is_group": 1
+            }
+        },
+        "Income": {
+            "root_type": "Income",
+            "Direct Income": {
+                "account_type": "Income Account",
+                "is_group": 1,
+                "Sales": {
+                    "account_type": "Income Account"
+                },
+                "Service": {
+                    "account_type": "Income Account"
+                }
+            },
+            "Indirect Income": {
+                "account_type": "Income Account",
+                "is_group": 1
+            }
+        },
+        "Expenses": {
+            "root_type": "Expense",
+            "Direct Expenses": {
+                "account_type": "Expense Account",
+                "is_group": 1,
+                "Stock Expenses": {
+                    "account_type": "Expense Account",
+                    "is_group": 1,
+                    "Cost of Goods Sold": {
+                        "account_type": "Cost of Goods Sold"
+                    },
+                    "Expenses Included In Asset Valuation": {
+                        "account_type": "Expenses Included In Asset Valuation"
+                    },
+                    "Expenses Included In Valuation": {
+                        "account_type": "Expenses Included In Valuation"
+                    },
+                    "Stock Adjustment": {
+                        "account_type": "Stock Adjustment"
+                    }
+                }
+            },
+            "Indirect Expenses": {
+                "account_type": "Expense Account",
+                "is_group": 1,
+                "Administrative Expenses": {
+                    "account_type": "Expense Account",
+                    "is_group": 1
+                },
+                "Commission on Sales": {
+                    "account_type": "Expense Account"
+                },
+                "Depreciation": {
+                    "account_type": "Depreciation"
+                },
+                "Entertainment Expenses": {
+                    "account_type": "Expense Account"
+                },
+                "Freight and Forwarding Charges": {
+                    "account_type": "Chargeable"
+                },
+                "Legal Expenses": {
+                    "account_type": "Expense Account"
+                },
+                "Marketing Expenses": {
+                    "account_type": "Chargeable"
+                },
+                "Miscellaneous Expenses": {
+                    "account_type": "Chargeable"
+                },
+                "Office Maintenance Expenses": {
+                    "account_type": "Expense Account"
+                },
+                "Office Rent": {
+                    "account_type": "Expense Account"
+                },
+                "Postal Expenses": {
+                    "account_type": "Expense Account"
+                },
+                "Print and Stationery": {
+                    "account_type": "Expense Account"
+                },
+                "Round Off": {
+                    "account_type": "Round Off"
+                },
+                "Salary": {
+                    "account_type": "Expense Account"
+                },
+                "Sales Expenses": {
+                    "account_type": "Expense Account",
+                    "is_group": 1
+                },
+                "Telephone Expenses": {
+                    "account_type": "Expense Account"
+                },
+                "Travel Expenses": {
+                    "account_type": "Expense Account"
+                },
+                "Utility Expenses": {
+                    "account_type": "Expense Account"
+                },
+                "Write Off": {
+                    "account_type": "Expense Account"
+                },
+                "Exchange Gain/Loss": {
+                    "account_type": "Expense Account"
+                },
+                "Gain/Loss on Asset Disposal": {
+                    "account_type": "Expense Account"
+                },
+                "Impairment": {
+                    "account_type": "Expense Account"
+                }
+            }
+        }
+    }
+}
+

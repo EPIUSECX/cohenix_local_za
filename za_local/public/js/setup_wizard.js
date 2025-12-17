@@ -18,6 +18,14 @@ za_local.setup.za_localization_slide = {
 			options: `<h3>${__("Configure South African Compliance")}</h3>
 				<p>${__("Select which default configurations to load. All can be customized later.")}</p>`
 		},
+		{ fieldtype: "Section Break", label: __("Feature Selection") },
+		{
+			fieldname: "za_enable_hrms_payroll",
+			label: __("Enable ZA HR/Payroll Localisation (requires HRMS)"),
+			fieldtype: "Check",
+			default: 0,
+			description: __("Enable payroll processing, leave management, and employee features. Requires Frappe HRMS app to be installed. If unchecked, only tax/VAT/COIDA features will be available.")
+		},
 		{ fieldtype: "Section Break", label: __("Salary Components") },
 		{
 			fieldname: "za_load_salary_components",
@@ -55,6 +63,13 @@ za_local.setup.za_localization_slide = {
 			default: 1,
 			description: __("Main member and dependant credits")
 		},
+		{
+			fieldname: "za_load_holiday_list",
+			label: __("Load South African Holiday List"),
+			fieldtype: "Check",
+			default: 1,
+			description: __("2024 and 2025 public holidays")
+		},
 		{ fieldtype: "Section Break", label: __("Master Data") },
 		{
 			fieldname: "za_load_business_trip_regions",
@@ -66,13 +81,49 @@ za_local.setup.za_localization_slide = {
 	],
 	
 	onload: function(slide) {
-		// Set default values
-		slide.get_field("za_load_salary_components").set_value(1);
-		slide.get_field("za_load_earnings_components").set_value(1);
+		// Check if HRMS is installed to pre-select HRMS option
+		frappe.call({
+			method: "za_local.utils.hrms_detection.is_hrms_installed",
+			callback: function(r) {
+				if (r.message) {
+					const hrmsField = slide.get_field("za_enable_hrms_payroll");
+					if (hrmsField) {
+						hrmsField.set_value(1);
+					}
+				}
+			}
+		});
+		
+		// Set default values for non-HRMS features (always available)
 		slide.get_field("za_load_tax_slabs").set_value(1);
 		slide.get_field("za_load_tax_rebates").set_value(1);
 		slide.get_field("za_load_medical_credits").set_value(1);
 		slide.get_field("za_load_business_trip_regions").set_value(1);
+		
+		// Setup conditional visibility for HRMS-dependent fields
+		const hrmsCheckbox = slide.get_field("za_enable_hrms_payroll");
+		const hrmsFields = [
+			"za_load_salary_components",
+			"za_load_earnings_components",
+			"za_load_holiday_list",
+			"za_load_tax_slabs",
+			"za_load_tax_rebates",
+			"za_load_medical_credits"
+		];
+		
+		function toggleHrmsFields() {
+			const enabled = hrmsCheckbox.get_value();
+			hrmsFields.forEach(function(fieldname) {
+				const field = slide.get_field(fieldname);
+				if (field) {
+					field.set_value(enabled ? 1 : 0);
+					field.refresh_input();
+				}
+			});
+		}
+		
+		hrmsCheckbox.$input.on("change", toggleHrmsFields);
+		toggleHrmsFields(); // Initial state
 	}
 };
 

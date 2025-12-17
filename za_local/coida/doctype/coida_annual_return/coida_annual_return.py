@@ -49,6 +49,15 @@ class COIDAAnnualReturn(Document):
         if not self.company or not self.from_date or not self.to_date:
             frappe.throw(_("Company and date range are required to fetch data"))
         
+        # Skip automatic pull if payroll tables are unavailable (HRMS not installed)
+        if not frappe.db.table_exists("tabSalary Slip"):
+            frappe.msgprint(
+                _("Salary Slip data not available. Using the figures already entered on the form."),
+                alert=True,
+            )
+            self.calculate_assessment_fee()
+            return self
+        
         # Get total employees
         employees = frappe.db.sql("""
             SELECT COUNT(DISTINCT employee) as count

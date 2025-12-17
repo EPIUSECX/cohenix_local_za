@@ -4,7 +4,7 @@
 import frappe
 from frappe.model.document import Document
 
-class SouthAfricanVATSettings(Document):
+class SouthAfricaVATSettings(Document):
     def validate(self):
         self.validate_vat_rates()
         self.validate_vat_accounts()

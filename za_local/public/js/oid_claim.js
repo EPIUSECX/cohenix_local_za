@@ -188,11 +188,11 @@ frappe.ui.form.on('OID Claim', {
     employee: function(frm) {
         // Get employee details
         if (frm.doc.employee) {
-            frappe.db.get_value('Employee', frm.doc.employee, ['company', 'custom_id_number'])
+            frappe.db.get_value('Employee', frm.doc.employee, ['company', 'za_id_number'])
                 .then(r => {
                     if (r.message) {
                         frm.set_value('company', r.message.company);
-                        frm.set_value('id_number', r.message.custom_id_number);
+                        frm.set_value('id_number', r.message.za_id_number);
                     }
                 });
         }

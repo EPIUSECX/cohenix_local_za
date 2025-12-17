@@ -3,6 +3,11 @@
 
 frappe.ui.form.on('IRP5 Certificate', {
     refresh: function(frm) {
+        // Ensure tax_year is always enabled for new/saved documents (unless submitted)
+        if (frm.doc.docstatus === 0) {
+            frm.set_df_property('tax_year', 'read_only', 0);
+        }
+        
         // Always update UI based on generation_mode
         if (frm.doc.generation_mode === 'Bulk') {
             frm.set_df_property('income_details', 'hidden', 1);
@@ -86,6 +91,48 @@ frappe.ui.form.on('IRP5 Certificate', {
                 }
             }).addClass('btn-primary');
         }
+        
+        // Add Export IT3 PDF button if certificate is not in Draft status
+        if (frm.doc.docstatus === 0 && frm.doc.status !== "Draft" && frm.doc.status) {
+            frm.add_custom_button(__('Export IT3 PDF'), function() {
+                frappe.call({
+                    method: 'za_local.sa_tax.doctype.irp5_certificate.irp5_certificate.get_it3_pdf',
+                    args: { docname: frm.doc.name },
+                    freeze: true,
+                    freeze_message: __('Generating IT3 PDF...'),
+                    callback: function(r) {
+                        if (r.message) {
+                            // Decode base64 and create blob for download
+                            const binaryString = atob(r.message);
+                            const bytes = new Uint8Array(binaryString.length);
+                            for (let i = 0; i < binaryString.length; i++) {
+                                bytes[i] = binaryString.charCodeAt(i);
+                            }
+                            const blob = new Blob([bytes], { type: 'application/pdf' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${frm.doc.certificate_number || 'IT3-Certificate'}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                            frappe.show_alert({
+                                message: __('IT3 PDF generated successfully'),
+                                indicator: 'green'
+                            }, 3);
+                        }
+                    },
+                    error: function(r) {
+                        frappe.msgprint({
+                            title: __('Error'),
+                            message: __('Failed to generate IT3 PDF. Please check the error logs.'),
+                            indicator: 'red'
+                        });
+                    }
+                });
+            }, __('Export'));
+        }
     },
     from_date: function(frm) {
         if(frm.doc.from_date && !frm.doc.to_date) {
@@ -151,6 +198,11 @@ frappe.ui.form.on('IRP5 Certificate', {
         }
     },
     onload: function(frm) {
+        // Ensure tax_year is always enabled for new documents
+        if (frm.is_new()) {
+            frm.set_df_property('tax_year', 'read_only', 0);
+        }
+        
         // Hide Employee field if in Bulk mode on load
         if (frm.doc.generation_mode === 'Bulk') {
             frm.set_df_property('employee', 'hidden', 1);

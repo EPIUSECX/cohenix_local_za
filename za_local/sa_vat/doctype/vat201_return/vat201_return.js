@@ -2,6 +2,10 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('VAT201 Return', {
+    onload: function(frm) {
+        update_submission_period(frm);
+    },
+
     refresh: function(frm) {
         // Add custom buttons
         if (frm.doc.docstatus === 1 && frm.doc.status === "Prepared") {
@@ -64,17 +68,19 @@ frappe.ui.form.on('VAT201 Return', {
         } else if (frm.doc.vat_refundable > 0) {
             frm.page.add_indicator(__(`VAT Refundable: ${format_currency(frm.doc.vat_refundable)}`), "green");
         }
+
+        update_submission_period(frm);
     },
     
     company: function(frm) {
         // When company changes, fetch VAT registration number
         if (frm.doc.company) {
-            frappe.db.get_value('Company', frm.doc.company, 'custom_vat_number', function(r) {
-                if (r && r.custom_vat_number) {
-                    frm.set_value('vat_registration_number', r.custom_vat_number);
+            frappe.db.get_value('Company', frm.doc.company, 'za_vat_number', function(r) {
+                if (r && r.za_vat_number) {
+                    frm.set_value('vat_registration_number', r.za_vat_number);
                 } else {
                     // If company doesn't have VAT number, try to get from VAT settings
-                    frappe.db.get_single_value('South African VAT Settings', 'vat_registration_number')
+                    frappe.db.get_single_value('South Africa VAT Settings', 'vat_registration_number')
                         .then(vat_reg_number => {
                             if (vat_reg_number) {
                                 frm.set_value('vat_registration_number', vat_reg_number);
@@ -84,10 +90,18 @@ frappe.ui.form.on('VAT201 Return', {
             });
         }
     },
+
+    from_date: function(frm) {
+        update_submission_period(frm);
+    },
+
+    to_date: function(frm) {
+        update_submission_period(frm);
+    },
     
     standard_rated_supplies: function(frm) {
         // Calculate standard rated output tax
-        frappe.db.get_single_value('South African VAT Settings', 'standard_vat_rate')
+        frappe.db.get_single_value('South Africa VAT Settings', 'standard_vat_rate')
             .then(standard_rate => {
                 if (standard_rate) {
                     const rate = flt(standard_rate) / 100;
@@ -113,6 +127,10 @@ frappe.ui.form.on('VAT201 Return', {
         if (!frm.doc.vat_registration_number) {
             frappe.throw(__('VAT Registration Number is required'));
         }
+
+        if (!frm.doc.from_date || !frm.doc.to_date) {
+            frappe.throw(__('From Date and To Date are required'));
+        }
         
         // Ensure total supplies match the sum of components
         const total_supplies = flt(frm.doc.standard_rated_supplies) + 
@@ -124,3 +142,13 @@ frappe.ui.form.on('VAT201 Return', {
         }
     }
 });
+
+const update_submission_period = (frm) => {
+    if (frm.doc.from_date && frm.doc.to_date) {
+        const from_label = frappe.datetime.str_to_user(frm.doc.from_date);
+        const to_label = frappe.datetime.str_to_user(frm.doc.to_date);
+        frm.set_value('submission_period', `${from_label} to ${to_label}`);
+    } else {
+        frm.set_value('submission_period', null);
+    }
+};

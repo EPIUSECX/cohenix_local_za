@@ -2,12 +2,25 @@
 South African Leave Application Override
 
 Extends HRMS Leave Application with BCEA compliance checks.
+
+Note: This module only works when HRMS is installed.
 """
 
 import frappe
 from frappe import _
 from frappe.utils import getdate, date_diff
-from hrms.hr.doctype.leave_application.leave_application import LeaveApplication
+from za_local.utils.hrms_detection import require_hrms, get_hrms_doctype_class
+
+# Conditionally import HRMS classes
+LeaveApplication = get_hrms_doctype_class(
+    "hrms.hr.doctype.leave_application.leave_application",
+    "LeaveApplication"
+)
+
+if LeaveApplication is None:
+    # HRMS not available - create a dummy class to prevent import errors
+    class LeaveApplication:
+        pass
 
 
 class ZALeaveApplication(LeaveApplication):
@@ -21,8 +34,15 @@ class ZALeaveApplication(LeaveApplication):
 	- Leave accrual validations
 	"""
 	
+	def __init__(self, *args, **kwargs):
+		"""Ensure HRMS is available before initialization"""
+		if LeaveApplication is None:
+			require_hrms("Leave Application")
+		super().__init__(*args, **kwargs)
+	
 	def validate(self):
 		"""Validate leave application with SA-specific checks"""
+		require_hrms("Leave Application")
 		super().validate()
 		self.validate_medical_certificate()
 		self.validate_bcea_requirements()

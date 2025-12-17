@@ -49,6 +49,7 @@ class FringeBenefit(Document):
 		elif self.docstatus == 1:
 			self.status = "Active"
 			
+	@frappe.whitelist()
 	def calculate_taxable_value(self):
 		"""Calculate taxable value based on benefit type"""
 		if self.benefit_type == "Company Car" and self.company_car_details:

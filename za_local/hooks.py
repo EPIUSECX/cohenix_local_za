@@ -1,16 +1,22 @@
 from . import __version__ as app_version
 
 app_name = "za_local"
-app_title = "South African Localization"
+app_title = "South Africa"
 app_publisher = "Cohenix"
 app_description = "Comprehensive South African localization for ERPNext covering payroll, tax, VAT, and COIDA compliance"
 app_email = "info@cohenix.com"
 app_license = "mit"
 app_version = app_version
 
+# App logo for toolbar and app switcher
+# Path must be under public/ to be served as /assets/za_local/...
+app_logo_url = "/assets/za_local/images/sa_map.jpg"
+
 # Apps
 # ------------------
-required_apps = ["frappe", "erpnext", "hrms"]
+# Note: HRMS is optional - za_local works with or without HRMS
+# If HRMS is not installed, payroll/HR features will be disabled
+required_apps = ["frappe", "erpnext"]
 
 # Fixtures
 # ------------------
@@ -34,11 +40,13 @@ fixtures = [
                 "SA Purchase Order",
                 "SA Payment Entry",
                 "SA Credit Note",
-                "SA Debit Note",
-                "IT3b Certificate Print"
+                "SA Debit Note"
             ]]
         ]
     },
+    
+    # SA Payroll Workspace
+    {"dt": "Workspace", "filters": [["name", "=", "SA Payroll"]]},
 ]
 
 # Includes in <head>
@@ -47,16 +55,31 @@ app_include_css = "/assets/za_local/css/za_local.css"
 
 # Include JS in doctype views
 # ------------------
+# Base JS files (always available)
 doctype_js = {
-    "Employee": "public/js/employee.js",
-    "Payroll Entry": "public/js/payroll_entry.js",
-    "Employee Benefit Claim": "public/js/employee_benefit_claim.js",
-    "Salary Structure": "public/js/salary_structure.js",
     "COIDA Annual Return": "public/js/coida_annual_return.js",
     "Workplace Injury": "public/js/workplace_injury.js",
     "OID Claim": "public/js/oid_claim.js",
     "EMP501 Reconciliation": "public/js/emp501_reconciliation.js"
 }
+
+# HRMS-dependent JS files (added conditionally)
+def get_hrms_doctype_js():
+	"""Conditionally add HRMS-dependent doctype JS files"""
+	from za_local.utils.hrms_detection import is_hrms_installed
+	hrms_js = {}
+	if is_hrms_installed():
+		hrms_js.update({
+			"Employee": "public/js/employee.js",
+			"Payroll Entry": "public/js/payroll_entry.js",
+			"Employee Benefit Claim": "public/js/employee_benefit_claim.js",
+			"Salary Structure": "public/js/salary_structure.js",
+			"Salary Structure Assignment": "public/js/salary_structure_assignment.js",
+		})
+	return hrms_js
+
+# Merge HRMS-dependent JS if HRMS is installed
+doctype_js.update(get_hrms_doctype_js())
 
 doctype_list_js = {
     "EMP501 Reconciliation": "public/js/emp501_reconciliation_list.js"
@@ -80,13 +103,23 @@ setup_wizard_stages = "za_local.setup.setup_wizard.get_sa_localization_stages"
 # DocType Class Overrides
 # ------------------
 # Override standard doctype classes with South African implementations
-override_doctype_class = {
+# Only register HRMS overrides if HRMS is installed
+def get_override_doctype_class():
+	"""Get override doctype classes conditionally based on HRMS availability"""
+	from za_local.utils.hrms_detection import is_hrms_installed
+	overrides = {}
+	if is_hrms_installed():
+		overrides.update({
     "Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
     "Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
     "Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary",
     "Leave Application": "za_local.overrides.leave_application.ZALeaveApplication",
-    "Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation"
-}
+    "Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation",
+    "Salary Structure Assignment": "za_local.overrides.salary_structure_assignment.ZASalaryStructureAssignment"
+		})
+	return overrides
+
+override_doctype_class = get_override_doctype_class()
 
 # Document Events
 # ------------------
@@ -134,16 +167,62 @@ doc_events = {
 
 # Monkey Patching
 # ------------------
-# Extend HRMS payroll entry functionality
-from hrms.payroll.doctype.payroll_entry import payroll_entry as _payroll_entry
-from za_local.overrides import payroll_entry as _za_payroll_entry
-_payroll_entry.get_payroll_entry_bank_entries = _za_payroll_entry.get_payroll_entry_bank_entries
+# Extend HRMS payroll entry functionality (only if HRMS is installed)
+def setup_hrms_monkey_patches():
+	"""Conditionally setup HRMS monkey patches"""
+	from za_local.utils.hrms_detection import is_hrms_installed
+	if is_hrms_installed():
+		try:
+			from hrms.payroll.doctype.payroll_entry import payroll_entry as _payroll_entry
+			from za_local.overrides import payroll_entry as _za_payroll_entry
+			_payroll_entry.get_payroll_entry_bank_entries = _za_payroll_entry.get_payroll_entry_bank_entries
+		except ImportError:
+			# HRMS not fully installed or version mismatch
+			pass
+
+# Setup monkey patches after hooks are loaded
+setup_hrms_monkey_patches()
+
+# Chart of Accounts Integration
+# ------------------
+# Extend ERPNext's chart discovery to include South African Chart of Accounts
+def extend_charts_for_country():
+	"""Extend ERPNext's chart discovery to include za_local charts"""
+	try:
+		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module
+		original_get_charts = coa_module.get_charts_for_country
+		
+		def get_charts_for_country_with_za(country, with_standard=False):
+			charts = original_get_charts(country, with_standard)
+			
+			# Add ZA chart if country is South Africa
+			if country == "South Africa":
+				from za_local.accounts.setup_chart import get_chart_template_name
+				chart_name = get_chart_template_name()
+				if chart_name and chart_name not in charts:
+					charts.insert(0, chart_name)  # Add at beginning
+			
+			return charts
+		
+		coa_module.get_charts_for_country = get_charts_for_country_with_za
+	except ImportError:
+		# ERPNext not fully loaded yet, will be called during after_migrate
+		pass
+
+# Extend chart discovery after hooks are loaded
+extend_charts_for_country()
 
 # Custom Records (DocType Links for Bidirectional Connections)
 # ------------------
 # Creates links between za_local DocTypes and standard DocTypes
 # These appear in the "Connections" tab of documents
-za_local_custom_records = [
+# HRMS-dependent links are filtered conditionally
+def get_za_local_custom_records():
+	"""Get custom records conditionally based on HRMS availability"""
+	from za_local.utils.hrms_detection import is_hrms_installed
+	hrms_installed = is_hrms_installed()
+	
+	records = [
 	# Employee-related DocTypes (13 links)
 	{
 		"doctype": "DocType Link",
@@ -276,17 +355,7 @@ za_local_custom_records = [
 		"custom": 1,
 	},
 	
-	# Company-related DocTypes (5 links)
-	{
-		"doctype": "DocType Link",
-		"parent": "Company",
-		"parentfield": "links",
-		"parenttype": "DocType",
-		"group": "Tax & Compliance",
-		"link_doctype": "IT3b Certificate",
-		"link_fieldname": "company",
-		"custom": 1,
-	},
+	# Company-related DocTypes (4 links)
 	{
 		"doctype": "DocType Link",
 		"parent": "Company",
@@ -365,6 +434,17 @@ za_local_custom_records = [
 		"custom": 1,
 	},
 ]
+	
+	# Filter out HRMS-dependent links if HRMS is not installed
+	if not hrms_installed:
+		# HRMS-dependent parent doctypes
+		hrms_parents = ["Employee", "Payroll Entry", "Expense Claim"]
+		records = [r for r in records if r.get("parent") not in hrms_parents]
+	
+	return records
+
+# Assign custom records conditionally
+za_local_custom_records = get_za_local_custom_records()
 
 # Scheduled Tasks
 # ------------------

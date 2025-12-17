@@ -1,0 +1,22 @@
+{
+  "doctype": "Print Format",
+  "name": "IRP5-it3 Certificate",
+  "module": "Kartoza",
+  "doc_type": "IRP5 Certificate",
+  "custom_format": 1,
+  "standard": "Yes",
+  "default": 0,
+  "disabled": 0,
+  "print_format_type": "Jinja",
+  "align_labels_right": 0,
+  "font": "Default",
+  "print_style": "",
+  "html": "{% include \"za_local/templates/print_format/irp5_employee_certificate.html\" %}",
+  "css": "",
+  "raw_printing": 0,
+  "line_breaks": 0,
+  "print_settings": {},
+  "letterhead": "",
+  "idx": 0
+}
+

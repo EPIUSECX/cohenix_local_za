@@ -9,6 +9,7 @@ Based on modern Frappe best practices.
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from za_local.utils.hrms_detection import is_hrms_installed
 
 
 def setup_custom_fields():
@@ -27,6 +28,8 @@ def setup_custom_fields():
     - Salary Component: Additional calculation fields
     - Salary Structure: Company contributions
     - Employee Benefit Claim: SA-specific fields
+    - Item Group: Capital goods flag for VAT201 classification
+    - Customer: VAT vendor status
     """
     
     # Fields to delete if they exist (old custom_ prefix versions)
@@ -43,7 +46,8 @@ def setup_custom_fields():
             "custom_coida_salary_component", "custom_disable_eti_calculation"
         ],
         "Salary Structure Assignment": ["custom_annual_bonus"],
-        "Additional Salary": ["is_company_contribution"],
+        "Additional Salary": ["is_company_contribution"],  # Note: This is different - it's on Additional Salary, not Salary Component
+        "Salary Component": ["is_company_contribution"],  # Remove old flag field - now using Type = "Company Contribution"
     }
     
     # Delete old fields
@@ -58,6 +62,20 @@ def setup_custom_fields():
                 except Exception as e:
                     print(f"Error deleting custom field {custom_field_name}: {e}")
 
+    hrms_installed = is_hrms_installed()
+
+    # Define HRMS-only doctypes so we can skip them when HRMS is absent
+    hrms_only_doctypes = {
+        "HR Settings",
+        "Payroll Settings",
+        "Salary Component",
+        "Salary Slip",
+        "Salary Structure",
+        "Salary Structure Assignment",
+        "Additional Salary",
+        "Payroll Employee Detail",
+    }
+
     # Define all custom fields
     custom_fields = {
         "HR Settings": [
@@ -70,15 +88,12 @@ def setup_custom_fields():
             }
         ],
         
-        "Salary Component": [
-            {
-                "fieldname": "is_company_contribution",
-                "label": "Is Company Contribution",
-                "fieldtype": "Check",
-                "insert_after": "is_tax_applicable",
-                "description": "Marks this component as an employer/company contribution"
-            }
-        ],
+        # IMPORTANT: Company Contribution functionality corrected
+        # Previously used a flag (is_company_contribution) which was incorrect design.
+        # Now uses Type field option "Company Contribution" - correct fundamental approach.
+        # All code has been updated to check type == "Company Contribution" instead of flag.
+        # The is_company_contribution field is removed - this is a functional correction, not a patch.
+        "Salary Component": [],
         
         "Payroll Settings": [
             {
@@ -474,11 +489,37 @@ def setup_custom_fields():
                 "default": 0,
                 "description": "Check if customer is registered for VAT in South Africa"
             }
+        ],
+        
+        "Item Group": [
+            {
+                "fieldname": "is_capital_goods",
+                "label": "Is Capital Goods",
+                "fieldtype": "Check",
+                "insert_after": "parent_item_group",
+                "default": 0,
+                "description": "Mark this item group as capital goods for VAT201 input tax classification. Items in this group will be classified as 'Capital Goods Input' in VAT201 returns."
+            }
         ]
     }
     
-    # Create custom fields
-    create_custom_fields(custom_fields)
+    # Filter out doctypes that shouldn't be processed in the current environment
+    filtered_custom_fields = {}
+    for doctype, fields in custom_fields.items():
+        if doctype in hrms_only_doctypes and not hrms_installed:
+            print(f"  ⊙ Skipping custom fields for {doctype} (HRMS not installed)")
+            continue
+
+        if not frappe.db.exists("DocType", doctype):
+            print(f"  ⊙ Skipping custom fields for {doctype} (DocType not found)")
+            continue
+
+        filtered_custom_fields[doctype] = fields
+
+    if filtered_custom_fields:
+        create_custom_fields(filtered_custom_fields)
+    else:
+        print("  ⊙ No custom fields to create for current configuration")
     
     # Setup property setters
     setup_property_setters()
@@ -491,6 +532,12 @@ def setup_property_setters():
     Setup property setters to modify standard field behaviors for South African requirements.
     """
     
+    hrms_installed = is_hrms_installed()
+    hrms_only_doctypes = {
+        "Salary Structure Assignment",
+        "Salary Slip",
+    }
+
     properties = {
         "Salary Structure Assignment": {
             "variable": {"hidden": 0, "read_only": 0},
@@ -509,6 +556,14 @@ def setup_property_setters():
     }
     
     for doctype, field_properties in properties.items():
+        if doctype in hrms_only_doctypes and not hrms_installed:
+            print(f"  ⊙ Skipping property setters for {doctype} (HRMS not installed)")
+            continue
+
+        if not frappe.db.exists("DocType", doctype):
+            print(f"  ⊙ Skipping property setters for {doctype} (DocType not found)")
+            continue
+
         for fieldname, props in field_properties.items():
             for prop, value in props.items():
                 try:

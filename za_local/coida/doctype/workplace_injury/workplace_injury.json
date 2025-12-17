@@ -189,6 +189,7 @@
    "label": "Leave Days"
   },
   {
+   "depends_on": "eval:doc.requires_leave==1",
    "fieldname": "leave_application",
    "fieldtype": "Link",
    "label": "Leave Application",

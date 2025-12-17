@@ -3,11 +3,24 @@ South African Additional Salary Override
 
 This module extends the standard HRMS Additional Salary functionality to support
 company contribution flagging for SA payroll.
+
+Note: This module only works when HRMS is installed.
 """
 
 import frappe
 from frappe import _
-from hrms.payroll.doctype.additional_salary.additional_salary import AdditionalSalary
+from za_local.utils.hrms_detection import require_hrms, get_hrms_doctype_class
+
+# Conditionally import HRMS classes
+AdditionalSalary = get_hrms_doctype_class(
+    "hrms.payroll.doctype.additional_salary.additional_salary",
+    "AdditionalSalary"
+)
+
+if AdditionalSalary is None:
+    # HRMS not available - create a dummy class to prevent import errors
+    class AdditionalSalary:
+        pass
 
 
 class ZAAdditionalSalary(AdditionalSalary):
@@ -19,10 +32,17 @@ class ZAAdditionalSalary(AdditionalSalary):
     - Proper filtering for company vs employee components
     """
     
+    def __init__(self, *args, **kwargs):
+        """Ensure HRMS is available before initialization"""
+        if AdditionalSalary is None:
+            require_hrms("Additional Salary")
+        super().__init__(*args, **kwargs)
+    
     def validate(self):
         """
         Validate additional salary with SA-specific checks.
         """
+        require_hrms("Additional Salary")
         super().validate()
         
         # Validate company contribution flag consistency

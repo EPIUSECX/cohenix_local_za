@@ -5,6 +5,7 @@
  "engine": "InnoDB",
  "field_order": [
   "naming_series",
+  "rate_name",
   "effective_from",
   "reimbursive_rate_per_km",
   "fixed_allowance_rate",
@@ -19,9 +20,16 @@
    "reqd": 1
   },
   {
-   "fieldname": "effective_from",
+   "fieldname": "rate_name",
    "fieldtype": "Data",
-   "label": "Effective From"
+   "label": "Rate Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "label": "Effective From",
+   "reqd": 1
   },
   {
    "fieldname": "reimbursive_rate_per_km",
@@ -47,6 +55,7 @@
  "module": "SA Payroll",
  "name": "Travel Allowance Rate",
  "naming_rule": "By \"Naming Series\" field",
+ "title_field": "rate_name",
  "owner": "Administrator",
  "permissions": [
   {
