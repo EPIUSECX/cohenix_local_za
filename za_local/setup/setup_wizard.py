@@ -312,21 +312,37 @@ def setup_sa_print_formats():
 def get_sa_localization_stages(args):
 	"""
 	Return za_local setup stage for the wizard.
-	Only returns a stage if country is South Africa.
+	
+	Returns a stage if:
+	- Country is South Africa, OR
+	- Country is not set yet (fresh install) and za_local is installed
 	
 	Called by Frappe's setup wizard via setup_wizard_stages hook.
 	"""
 	import frappe
 	from frappe import _
 	
-	# Only add stage if country is South Africa
+	# Get country from args
 	country = args.get("country")
-	if country != "South Africa":
-		return []
 	
-	# Default to using SA print formats
-	if "use_sa_print_formats" not in args:
-		args["use_sa_print_formats"] = True
+	# Check if za_local is installed (if app is installed, we should show the wizard)
+	# This allows the wizard to run even if country isn't set yet during fresh install
+	za_local_installed = False
+	try:
+		# Check if za_local module exists in the database
+		za_local_installed = frappe.db.exists("Module Def", {"app_name": "za_local"})
+	except Exception:
+		# If database check fails, assume za_local is installed (we're in za_local code)
+		# This handles cases where database isn't fully initialized yet
+		za_local_installed = True
+	
+	# Add stage if:
+	# 1. Country is explicitly set to South Africa, OR
+	# 2. Country is not set (fresh install) and za_local is installed
+	if country == "South Africa" or (not country and za_local_installed):
+		# Default to using SA print formats
+		if "use_sa_print_formats" not in args:
+			args["use_sa_print_formats"] = True
 	
 	return [
 		{
@@ -341,6 +357,9 @@ def get_sa_localization_stages(args):
 			]
 		}
 	]
+	
+	# If country is set to something other than South Africa, don't add stage
+	return []
 
 
 def setup_za_localization(args):
@@ -388,34 +407,29 @@ def setup_za_localization(args):
 	load_tax_rebates = args.get("za_load_tax_rebates", 1)
 	load_medical = args.get("za_load_medical_credits", 1)
 	load_regions = args.get("za_load_business_trip_regions", 1)
-	load_chart_of_accounts = args.get("za_load_chart_of_accounts", 1)
 	
-	# Get company name from args
+	# Get company name from args (still used for other setup pieces)
 	company = args.get("company_name") or frappe.defaults.get_user_default("Company")
 	
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
 	
 	try:
-		# Step 0: Load Chart of Accounts (if selected and company exists)
-		if load_chart_of_accounts and company:
-			print("Loading South African Chart of Accounts...")
-			try:
-				from za_local.accounts.setup_chart import load_sa_chart_of_accounts
-				load_sa_chart_of_accounts(company)
-				print("  ✓ Chart of Accounts loaded successfully")
-			except Exception as e:
-				print(f"  ! Warning: Could not load Chart of Accounts: {e}")
-				print("  Note: Chart of Accounts can be loaded manually later")
-				frappe.log_error(f"Chart of Accounts loading failed: {str(e)}", "ZA Local Setup")
-		
 		# Step 1: Setup SA print formats as default
-		setup_sa_print_formats()
+		try:
+			setup_sa_print_formats()
+		except Exception as e:
+			print(f"  ! Warning: Could not setup print formats: {e}")
+			frappe.log_error(f"Print formats setup failed: {str(e)}", "ZA Local Setup")
 
 		# Step 1.5: Ensure BCEA-compliant Leave Types exist (only if HRMS is enabled)
 		if enable_hrms_payroll:
 			print("Loading BCEA Leave Types (SA)...")
-			from za_local.setup.leave_types import setup_sa_leave_types
-			setup_sa_leave_types()
+			try:
+				from za_local.setup.leave_types import setup_sa_leave_types
+				setup_sa_leave_types()
+			except Exception as e:
+				print(f"  ! Warning: Could not load Leave Types: {e}")
+				frappe.log_error(f"Leave Types setup failed: {str(e)}", "ZA Local Setup")
 		
 		# Load in correct order (dependencies first)
 		
@@ -434,24 +448,40 @@ def setup_za_localization(args):
 		# 3. Load Tax Rebates (depends on Payroll Period)
 		if load_tax_rebates or load_medical:
 			print("Loading Tax Rebates and Medical Credits...")
-			load_data_from_json(data_dir / "tax_rebates_2024.json")
-			load_data_from_json(data_dir / "tax_rebates_2025.json")
+			try:
+				load_data_from_json(data_dir / "tax_rebates_2024.json")
+				load_data_from_json(data_dir / "tax_rebates_2025.json")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Tax Rebates: {e}")
+				frappe.log_error(f"Tax Rebates loading failed: {str(e)}", "ZA Local Setup")
 		
 		# 4. Load Income Tax Slab
 		if load_tax_slabs:
 			print("Loading Income Tax Slab...")
-			load_data_from_json(data_dir / "tax_slabs_2024.json")
-			load_data_from_json(data_dir / "tax_slabs_2025.json")
+			try:
+				load_data_from_json(data_dir / "tax_slabs_2024.json")
+				load_data_from_json(data_dir / "tax_slabs_2025.json")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Tax Slabs: {e}")
+				frappe.log_error(f"Tax Slabs loading failed: {str(e)}", "ZA Local Setup")
 		
 		# 5. Load Salary Components
 		if load_salary:
 			print("Loading Salary Components...")
-			load_data_from_json(data_dir / "salary_components.json")
+			try:
+				load_data_from_json(data_dir / "salary_components.json")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Salary Components: {e}")
+				frappe.log_error(f"Salary Components loading failed: {str(e)}", "ZA Local Setup")
 		
 		# 6. Load Earnings Components
 		if load_earnings:
 			print("Loading Earnings Components...")
-			load_data_from_json(data_dir / "earnings_components.json")
+			try:
+				load_data_from_json(data_dir / "earnings_components.json")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Earnings Components: {e}")
+				frappe.log_error(f"Earnings Components loading failed: {str(e)}", "ZA Local Setup")
 		
 		# 7. Load Holiday Lists (match the years for which tax slabs are loaded)
 		# Note: Holiday List is an HRMS DocType, so only load if HRMS is enabled
@@ -475,14 +505,27 @@ def setup_za_localization(args):
 		# 8. Load Master Data (Business Trip Regions)
 		if load_regions:
 			print("Loading Business Trip Regions...")
-			import_csv_data("Business Trip Region", "business_trip_region.csv")
+			try:
+				import_csv_data("Business Trip Region", "business_trip_region.csv")
+			except Exception as e:
+				print(f"  ! Warning: Could not load Business Trip Regions: {e}")
+				frappe.log_error(f"Business Trip Regions loading failed: {str(e)}", "ZA Local Setup")
 		
 		# 9. Refresh South Africa workspaces to respect payroll selection
-		import_workspace(enable_payroll=bool(enable_hrms_payroll))
+		try:
+			import_workspace(enable_payroll=bool(enable_hrms_payroll))
+		except Exception as e:
+			print(f"  ! Warning: Could not import workspace: {e}")
+			frappe.log_error(f"Workspace import failed: {str(e)}", "ZA Local Setup")
 		
-		frappe.msgprint(_("South African localization configured successfully!"))
+		# Don't use msgprint in setup wizard - it can cause issues
+		# frappe.msgprint(_("South African localization configured successfully!"))
+		print("✓ South African localization configured successfully!")
 		
 	except Exception as e:
+		# Log the error but don't raise - allow setup wizard to continue
 		frappe.log_error(f"SA Localization setup failed: {str(e)}", "ZA Local Setup")
-		raise
+		print(f"✗ SA Localization setup encountered errors: {e}")
+		print("  Note: Some features may not be configured. Check error logs for details.")
+		# Don't raise - let setup wizard complete even if some steps failed
 
