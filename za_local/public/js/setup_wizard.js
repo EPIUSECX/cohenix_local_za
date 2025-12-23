@@ -1,8 +1,7 @@
 frappe.provide("za_local.setup");
 
 frappe.setup.on("before_load", function () {
-	// Always add slide when za_local is installed
-	// If user has za_local, they're running a SA company
+	// Register slide; visibility is controlled by its before_show hook (country == South Africa)
 	frappe.setup.add_slide(za_local.setup.za_localization_slide);
 });
 
@@ -79,28 +78,15 @@ za_local.setup.za_localization_slide = {
 			description: __("16 SA cities + international rates")
 		}
 	],
-	
+	before_show: function () {
+		// Only show this slide when country is explicitly South Africa
+		const country =
+			(frappe.wizard && frappe.wizard.values && frappe.wizard.values.country) ||
+			frappe.defaults.get_default("country");
+		return country === "South Africa";
+	},
+
 	onload: function(slide) {
-		// Check if HRMS is installed to pre-select HRMS option
-		frappe.call({
-			method: "za_local.utils.hrms_detection.is_hrms_installed",
-			callback: function(r) {
-				if (r.message) {
-					const hrmsField = slide.get_field("za_enable_hrms_payroll");
-					if (hrmsField) {
-						hrmsField.set_value(1);
-					}
-				}
-			}
-		});
-		
-		// Set default values for non-HRMS features (always available)
-		slide.get_field("za_load_tax_slabs").set_value(1);
-		slide.get_field("za_load_tax_rebates").set_value(1);
-		slide.get_field("za_load_medical_credits").set_value(1);
-		slide.get_field("za_load_business_trip_regions").set_value(1);
-		
-		// Setup conditional visibility for HRMS-dependent fields
 		const hrmsCheckbox = slide.get_field("za_enable_hrms_payroll");
 		const hrmsFields = [
 			"za_load_salary_components",
@@ -111,19 +97,64 @@ za_local.setup.za_localization_slide = {
 			"za_load_medical_credits"
 		];
 		
-		function toggleHrmsFields() {
-			const enabled = hrmsCheckbox.get_value();
-			hrmsFields.forEach(function(fieldname) {
-				const field = slide.get_field(fieldname);
-				if (field) {
-					field.set_value(enabled ? 1 : 0);
-					field.refresh_input();
-				}
+		function setFieldState(fieldname, checked, enabled) {
+			const field = slide.get_field(fieldname);
+			if (!field) return;
+			
+			field.set_value(checked ? 1 : 0);
+			
+			// Disable input when not applicable (e.g. HRMS not installed)
+			if (field.df) {
+				field.df.read_only = enabled ? 0 : 1;
+				field.df.hidden = 0;
+			}
+			
+			field.refresh_input && field.refresh_input();
+		}
+		
+		function applyHrmsState(enabled) {
+			// Parent checkbox always enabled visually, but can be read-only when HRMS missing
+			setFieldState("za_enable_hrms_payroll", enabled, true);
+			hrmsFields.forEach(function (fieldname) {
+				setFieldState(fieldname, enabled, enabled);
 			});
 		}
 		
-		hrmsCheckbox.$input.on("change", toggleHrmsFields);
-		toggleHrmsFields(); // Initial state
+		// Non‑HRMS features are always available and should default ON
+		setFieldState("za_load_business_trip_regions", true, true);
+		
+		// Check if HRMS is installed and configure HR‑dependent fields accordingly
+		let hrmsAvailable = false;
+		frappe.call({
+			method: "za_local.utils.hrms_detection.is_hrms_installed",
+			callback: function (r) {
+				hrmsAvailable = !!r.message;
+				
+				if (hrmsAvailable) {
+					// HRMS present: enable HR/Payroll and all dependent options by default
+					applyHrmsState(true);
+				} else {
+					// HRMS missing: leave HR options off and make them read‑only
+					applyHrmsState(false);
+					if (hrmsCheckbox && hrmsCheckbox.df) {
+						hrmsCheckbox.df.read_only = 1;
+						hrmsCheckbox.refresh_input && hrmsCheckbox.refresh_input();
+					}
+				}
+			}
+		});
+		
+		// When HRMS is available, allow user to toggle HR/Payroll and its dependent fields
+		if (hrmsCheckbox && hrmsCheckbox.$input) {
+			hrmsCheckbox.$input.on("change", function () {
+				if (!hrmsAvailable) {
+					// If HRMS is not installed, force it back to off
+					applyHrmsState(false);
+				} else {
+					applyHrmsState(hrmsCheckbox.get_value());
+				}
+			});
+		}
 	}
 };
 

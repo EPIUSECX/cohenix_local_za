@@ -2,7 +2,8 @@
 Chart of Accounts Setup for South Africa
 
 This module handles loading the South African Chart of Accounts
-for companies during setup.
+for companies during setup and provides integration helpers
+for the ERPNext setup wizard.
 """
 
 import frappe
@@ -28,9 +29,6 @@ def load_sa_chart_of_accounts(company):
 	if not frappe.db.exists("Company", company):
 		frappe.throw(_("Company '{0}' does not exist").format(company))
 	
-	# Check if company already has accounts
-	existing_accounts = frappe.db.count("Account", {"company": company})
-	
 	# Get chart file path
 	chart_path = Path(frappe.get_app_path("za_local", "accounts", "chart_of_accounts",
 										  "za_south_africa_chart_template.json"))
@@ -38,33 +36,27 @@ def load_sa_chart_of_accounts(company):
 	if not chart_path.exists():
 		frappe.throw(_("Chart of Accounts file not found: {0}").format(chart_path))
 	
-	# Load chart data
-	with open(chart_path, "r") as f:
-		chart_data = json.load(f)
-	
 	try:
+		# Company should already have a base chart created by ERPNext's setup wizard.
+		# We only *augment* that chart with SA-specific tax accounts.
+		existing_accounts = frappe.db.count("Account", {"company": company})
 		if existing_accounts == 0:
-			# No accounts exist - load full SA chart
-			from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import create_charts
-			
-			create_charts(company, chart_template=chart_data["name"], custom_chart=chart_data.get("tree"))
-			
-			frappe.msgprint(
-				_("South African Chart of Accounts loaded successfully for {0}").format(company),
-				title=_("Chart of Accounts Loaded"),
-				indicator="green"
+			# If no accounts exist yet, don't try to build an entire chart here.
+			# Let ERPNext's own setup logic handle the base chart, then ZA can be
+			# applied later via a separate action.
+			frappe.log_error(
+				f"No accounts found for company {company} when attempting to load ZA Chart of Accounts. "
+				"Skipping ZA chart augmentation.",
+				"ZA Local Chart of Accounts",
 			)
-			return True
-		else:
-			# Accounts exist - add only SA-specific tax accounts
-			_add_sa_tax_accounts(company, chart_data.get("tree"))
-			
-			frappe.msgprint(
-				_("South African tax accounts added to existing Chart of Accounts for {0}").format(company),
-				title=_("Tax Accounts Added"),
-				indicator="green"
-			)
-			return True
+			return False
+		
+		# Load chart data from ZA template and add SA-specific tax accounts
+		with open(chart_path, "r") as f:
+			chart_data = json.load(f)
+		
+		_add_sa_tax_accounts(company, chart_data.get("tree"))
+		return True
 		
 	except Exception as e:
 		frappe.log_error(
@@ -238,13 +230,64 @@ def _get_or_create_account(company, account_name, account_type, parent=None, is_
 
 def get_chart_template_name():
 	"""Get the name of the South African Chart of Accounts template"""
-	chart_path = Path(frappe.get_app_path("za_local", "accounts", "chart_of_accounts",
-										  "za_south_africa_chart_template.json"))
-	
-	if chart_path.exists():
-		with open(chart_path, "r") as f:
-			chart_data = json.load(f)
-			return chart_data.get("name")
+	try:
+		chart_path = Path(frappe.get_app_path("za_local", "accounts", "chart_of_accounts",
+											  "za_south_africa_chart_template.json"))
+		
+		if chart_path.exists():
+			with open(chart_path, "r") as f:
+				chart_data = json.load(f)
+				return chart_data.get("name")
+	except Exception as e:
+		# Log error but don't fail - chart template loading is optional
+		frappe.log_error(f"Error getting chart template name: {str(e)}", "ZA Chart Template")
 	
 	return None
+
+
+def get_za_chart_tree():
+	"""
+	Return the full ZA Chart of Accounts tree from the JSON template.
+
+	This is used by the hooks-level monkey patch of ERPNext's
+	`get_chart` so that when the ZA template is selected in the
+	Company / Setup Wizard flows, ERPNext can create the complete
+	South African chart using its standard `create_charts` logic.
+	"""
+	try:
+		chart_path = Path(
+			frappe.get_app_path(
+				"za_local", "accounts", "chart_of_accounts", "za_south_africa_chart_template.json"
+			)
+		)
+
+		if not chart_path.exists():
+			return None
+
+		with open(chart_path, "r") as f:
+			chart_data = json.load(f)
+
+		return chart_data.get("tree")
+	except Exception as e:
+		# Log error but don't fail - this is a best-effort helper
+		frappe.log_error(f"Error getting ZA chart tree: {str(e)}", "ZA Chart Template")
+		return None
+
+
+@frappe.whitelist()
+def get_charts_for_country_with_za(country, with_standard: bool = False):
+	"""
+	Whitelisted wrapper used by ERPNext setup wizard to fetch charts.
+
+	This function is registered via `override_whitelisted_methods` in hooks.py
+	as an override for:
+	erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts.get_charts_for_country
+
+	It simply delegates to ERPNext's (monkey-patched) implementation so that:
+	- The existing setup wizard JS continues to work unchanged
+	- Our ZA chart extension is applied transparently
+	"""
+	from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
+
+	return coa_module.get_charts_for_country(country, with_standard)
 

@@ -100,6 +100,15 @@ after_uninstall = "za_local.setup.uninstall.after_uninstall"
 setup_wizard_requires = "assets/za_local/js/setup_wizard.js"
 setup_wizard_stages = "za_local.setup.setup_wizard.get_sa_localization_stages"
 
+# Override Whitelisted Methods
+# ------------------
+# Override ERPNext's get_charts_for_country to use our whitelisted wrapper
+# This allows the setup wizard to call the function via API
+override_whitelisted_methods = {
+	"erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts.get_charts_for_country":
+		"za_local.accounts.setup_chart.get_charts_for_country_with_za",
+}
+
 # DocType Class Overrides
 # ------------------
 # Override standard doctype classes with South African implementations
@@ -173,7 +182,7 @@ def setup_hrms_monkey_patches():
 	from za_local.utils.hrms_detection import is_hrms_installed
 	if is_hrms_installed():
 		try:
-			from hrms.payroll.doctype.payroll_entry import payroll_entry as _payroll_entry
+			from hrms.payroll.doctype.payroll_entry import payroll_entry as _payroll_entry  # type: ignore
 			from za_local.overrides import payroll_entry as _za_payroll_entry
 			_payroll_entry.get_payroll_entry_bank_entries = _za_payroll_entry.get_payroll_entry_bank_entries
 		except ImportError:
@@ -185,32 +194,184 @@ setup_hrms_monkey_patches()
 
 # Chart of Accounts Integration
 # ------------------
-# Extend ERPNext's chart discovery to include South African Chart of Accounts
+# 1) Extend ERPNext's chart discovery to include South African Chart of Accounts
+# 2) Make financial report template sync robust for custom ZA charts (avoid setup failure)
+
 def extend_charts_for_country():
-	"""Extend ERPNext's chart discovery to include za_local charts"""
+	"""Extend ERPNext's chart discovery to include za_local charts."""
 	try:
-		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module
+		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
+		from za_local.accounts.setup_chart import get_chart_template_name
+		from functools import wraps
+		import frappe  # type: ignore
+
+		# Check if function exists and hasn't been wrapped already
+		if not hasattr(coa_module, "get_charts_for_country"):
+			return
+
+		# Avoid double wrapping
+		if getattr(coa_module.get_charts_for_country, "_za_wrapped", False):
+			return
+
 		original_get_charts = coa_module.get_charts_for_country
-		
-		def get_charts_for_country_with_za(country, with_standard=False):
-			charts = original_get_charts(country, with_standard)
-			
-			# Add ZA chart if country is South Africa
-			if country == "South Africa":
-				from za_local.accounts.setup_chart import get_chart_template_name
-				chart_name = get_chart_template_name()
-				if chart_name and chart_name not in charts:
-					charts.insert(0, chart_name)  # Add at beginning
-			
+
+		@wraps(original_get_charts)
+		def get_charts_for_country_with_za(country, with_standard: bool = False):
+			"""Return core charts plus ZA template for South Africa."""
+			try:
+				charts = original_get_charts(country, with_standard)
+			except Exception:
+				# Hard fallback to original behaviour if wrapper misbehaves
+				try:
+					return original_get_charts(country, with_standard)
+				except Exception:
+					return []
+
+			# Inject ZA chart name only for South Africa
+			if country == "South Africa" and isinstance(charts, list):
+				try:
+					chart_name = get_chart_template_name()
+					if chart_name and chart_name not in charts:
+						# Add at the beginning so it's the default suggestion
+						charts.insert(0, chart_name)
+				except Exception as e:
+					try:
+						frappe.log_error(f"Could not load ZA chart template name: {e}", "ZA Chart Extension")
+					except Exception:
+						# Logging failure should not break chart discovery
+						pass
+
 			return charts
-		
+
+		# Mark as wrapped to avoid double wrapping
+		get_charts_for_country_with_za._za_wrapped = True
 		coa_module.get_charts_for_country = get_charts_for_country_with_za
-	except ImportError:
-		# ERPNext not fully loaded yet, will be called during after_migrate
+	except Exception:
+		# Chart discovery extension is optional, never break hooks loading
 		pass
 
-# Extend chart discovery after hooks are loaded
+
+def extend_chart_loader():
+	"""
+	Extend ERPNext's get_chart so ZA template JSON can be used as a full chart.
+
+	When the selected chart template name matches the ZA chart template, we
+	load the JSON from za_local and return its `tree` so that
+	`create_charts` imports the entire South African chart as the company's
+	Chart of Accounts (full replacement pattern).
+	"""
+
+	try:
+		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
+		from za_local.accounts.setup_chart import get_chart_template_name, get_za_chart_tree
+		from functools import wraps
+
+		if not hasattr(coa_module, "get_chart"):
+			return
+
+		# Avoid double wrapping
+		if getattr(coa_module.get_chart, "_za_wrapped", False):
+			return
+
+		original_get_chart = coa_module.get_chart
+		za_template_name = get_chart_template_name()
+
+		@wraps(original_get_chart)
+		def get_chart_with_za(chart_template, existing_company=None):
+			"""
+			If chart_template is ZA template name, return ZA JSON tree;
+			otherwise delegate to core get_chart.
+			"""
+			try:
+				if za_template_name and chart_template == za_template_name:
+					tree = get_za_chart_tree()
+					if tree:
+						return tree
+			except Exception:
+				# Silently ignore and fall through to original_get_chart
+				pass
+
+			return original_get_chart(chart_template, existing_company)
+
+		get_chart_with_za._za_wrapped = True
+		coa_module.get_chart = get_chart_with_za
+	except Exception:
+		# Loader extension is optional, never break hooks loading
+		pass
+
+def patch_financial_report_templates_sync():
+	"""Monkey patch sync_financial_report_templates to tolerate unknown COA names.
+
+	When a custom ZA chart template is selected, ERPNext's default implementation
+	calls get_chart(chart_of_accounts) and assumes it returns a dict. For
+	non-ERPNext charts (e.g. from za_local), this returns None which causes:
+
+	    AttributeError: 'NoneType' object has no attribute 'get'
+
+	This crashes Company creation during setup, so no Company is saved.
+
+	This patch safely handles the "chart not found" case by:
+	- Treating it as if disable_default_financial_report_template == False
+	- Still syncing default templates for all installed apps
+	"""
+
+	try:
+		from erpnext.accounts.doctype.financial_report_template import financial_report_template as frt_module  # type: ignore
+		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
+		import frappe  # local import to avoid circular issues
+
+		if not hasattr(frt_module, "sync_financial_report_templates"):
+			return
+
+		# Avoid double patching
+		if getattr(frt_module.sync_financial_report_templates, "_za_patched", False):
+			return
+
+		original_sync = frt_module.sync_financial_report_templates
+
+		def safe_sync_financial_report_templates(chart_of_accounts, existing_company=None):
+			# For existing companies, keep behaviour unchanged
+			if existing_company:
+				return original_sync(chart_of_accounts, existing_company)
+
+			disable_default_financial_report_template = False
+
+			if chart_of_accounts:
+				try:
+					coa = coa_module.get_chart(chart_of_accounts)
+				except Exception:
+					coa = None
+
+				# Only look for override flag when we have a valid chart dict
+				if isinstance(coa, dict):
+					disable_default_financial_report_template = coa.get(
+						"disable_default_financial_report_template", False
+					)
+
+			installed_apps = frappe.get_installed_apps()
+
+			for app in installed_apps:
+				# If a regional chart disables ERPNext defaults, honour that
+				if disable_default_financial_report_template and app == "erpnext":
+					continue
+
+				frt_module._sync_templates_for(app)
+
+		safe_sync_financial_report_templates._za_patched = True
+		frt_module.sync_financial_report_templates = safe_sync_financial_report_templates
+	except Exception:
+		# Never break setup due to patching issues
+		try:
+			import frappe
+			frappe.log_error("Failed to patch sync_financial_report_templates", "ZA Local Setup")
+		except Exception:
+			pass
+
+
+# Apply monkey patches after hooks are loaded
 extend_charts_for_country()
+extend_chart_loader()
+patch_financial_report_templates_sync()
 
 # Custom Records (DocType Links for Bidirectional Connections)
 # ------------------
@@ -445,6 +606,17 @@ def get_za_local_custom_records():
 
 # Assign custom records conditionally
 za_local_custom_records = get_za_local_custom_records()
+
+# Whitelisted Method Overrides
+# ------------------
+# Provide overrides for core methods so we can hook into setup wizard flows
+override_whitelisted_methods = {
+	# ERPNext Chart of Accounts discovery used during Company / Setup Wizard
+	# Core method is not whitelisted in this ERPNext version, so we expose a
+	# safe wrapper that delegates to the (possibly monkey-patched) implementation.
+	"erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts.get_charts_for_country":
+		"za_local.accounts.setup_chart.get_charts_for_country_with_za",
+}
 
 # Scheduled Tasks
 # ------------------

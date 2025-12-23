@@ -5,7 +5,7 @@
         "Assets": {
             "root_type": "Asset",
             "Current Assets": {
-                "account_type": "Asset",
+                "account_type": "",
                 "is_group": 1,
                 "Bank Accounts": {
                     "account_type": "Bank",
@@ -33,14 +33,14 @@
                     }
                 },
                 "Loans and Advances (Assets)": {
-                    "account_type": "Asset",
+                    "account_type": "",
                     "is_group": 1,
                     "Employee Advances": {
                         "account_type": "Payable"
                     }
                 },
                 "Securities and Deposits": {
-                    "account_type": "Asset",
+                    "account_type": "",
                     "is_group": 1,
                     "Earnest Money": {}
                 },
@@ -53,7 +53,7 @@
                 }
             },
             "Fixed Assets": {
-                "account_type": "Asset",
+                "account_type": "",
                 "is_group": 1,
                 "Capital Equipment": {
                     "account_type": "Fixed Asset"
@@ -84,11 +84,11 @@
                 }
             },
             "Investments": {
-                "account_type": "Asset",
+                "account_type": "",
                 "is_group": 1
             },
             "Temporary Accounts": {
-                "account_type": "Asset",
+                "account_type": "",
                 "is_group": 1,
                 "Temporary Opening": {
                     "account_type": "Temporary"
@@ -161,6 +161,10 @@
             },
             "Long Term Liabilities": {
                 "account_type": "Liability",
+                "is_group": 1
+            },
+            "Duties and Taxes": {
+                "account_type": "Tax",
                 "is_group": 1
             }
         },
