@@ -10,7 +10,7 @@ app_version = app_version
 
 # App logo for toolbar and app switcher
 # Path must be under public/ to be served as /assets/za_local/...
-app_logo_url = "/assets/za_local/images/sa_map.jpg"
+app_logo_url = "/assets/za_local/images/sa_map_icon.jpg"
 
 # Apps
 # ------------------
