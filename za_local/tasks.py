@@ -159,7 +159,7 @@ def validate_employee_id_numbers():
 	2. Check for duplicates
 	3. Flag invalid entries
 	"""
-	from za_local.utils.tax_utils import validate_sa_id_number
+	from za_local.utils.tax_utils import validate_south_african_id
 	
 	employees = frappe.get_all(
 		"Employee",
@@ -182,7 +182,7 @@ def validate_employee_id_numbers():
 		
 		# Validate checksum
 		try:
-			if not validate_sa_id_number(emp.za_id_number):
+			if not validate_south_african_id(emp.za_id_number):
 				invalid_ids.append(emp)
 		except Exception:
 			invalid_ids.append(emp)

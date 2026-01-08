@@ -14,6 +14,7 @@ from frappe.custom.doctype.customize_form.customize_form import (
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from za_local.setup.custom_fields import setup_custom_fields
 from za_local.setup.property_setters import get_property_setters
+from za_local.setup.monkey_patches import setup_all_monkey_patches
 from za_local.utils.hrms_detection import is_hrms_installed
 
 
@@ -51,6 +52,7 @@ def after_install():
 	cleanup_invalid_doctype_links()
 	setup_custom_fields()
 	make_property_setters()
+	setup_all_monkey_patches()
 	setup_default_data()
 	apply_statutory_formulas()
 	import_master_data()
@@ -78,31 +80,9 @@ def after_migrate():
 	cleanup_invalid_doctype_links()
 	setup_custom_fields()
 	make_property_setters()
+	setup_all_monkey_patches()
 	apply_statutory_formulas()
 	import_workspace()
-	
-	# Extend chart discovery to include ZA chart
-	try:
-		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module
-		from za_local.accounts.setup_chart import get_chart_template_name
-		
-		original_get_charts = coa_module.get_charts_for_country
-		
-		def get_charts_for_country_with_za(country, with_standard=False):
-			charts = original_get_charts(country, with_standard)
-			
-			# Add ZA chart if country is South Africa
-			if country == "South Africa":
-				chart_name = get_chart_template_name()
-				if chart_name and chart_name not in charts:
-					charts.insert(0, chart_name)
-			
-			return charts
-		
-		coa_module.get_charts_for_country = get_charts_for_country_with_za
-	except Exception as e:
-		# Chart discovery extension is optional, don't fail migration
-		print(f"  ! Could not extend chart discovery: {e}")
 	
 	frappe.db.commit()
 
