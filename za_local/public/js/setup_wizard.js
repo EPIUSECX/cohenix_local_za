@@ -79,16 +79,11 @@ za_local.setup.za_localization_slide = {
 		}
 	],
 	before_show: function () {
-		// Show this slide when:
-		// 1. Country is explicitly South Africa, OR
-		// 2. Country is not set yet (fresh install) - za_local should run for SA localization
+		// Only show this slide when country is explicitly South Africa
 		const country =
 			(frappe.wizard && frappe.wizard.values && frappe.wizard.values.country) ||
 			frappe.defaults.get_default("country");
-		
-		// Show if country is South Africa or not set (fresh install)
-		// This ensures the wizard runs even if country isn't selected yet
-		return country === "South Africa" || !country;
+		return country === "South Africa";
 	},
 
 	onload: function(slide) {

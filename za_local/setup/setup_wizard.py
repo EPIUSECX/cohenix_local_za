@@ -313,9 +313,9 @@ def get_sa_localization_stages(args):
 	"""
 	Return za_local setup stage for the wizard.
 	
-	Since za_local is a South Africa-specific localization app, the setup stage
-	should always run when za_local is installed, regardless of country setting.
-	This ensures the wizard runs on fresh installs even if country isn't set yet.
+	Returns a stage if:
+	- Country is South Africa, OR
+	- Country is not set yet (fresh install) and za_local is installed
 	
 	Called by Frappe's setup wizard via setup_wizard_stages hook.
 	"""
@@ -325,9 +325,8 @@ def get_sa_localization_stages(args):
 	# Get country from args
 	country = args.get("country")
 	
-	# Check if za_local is installed
-	# If za_local is installed, we should always run the setup stage
-	# since this is a South Africa-specific localization app
+	# Check if za_local is installed (if app is installed, we should show the wizard)
+	# This allows the wizard to run even if country isn't set yet during fresh install
 	za_local_installed = False
 	try:
 		# Check if za_local module exists in the database
@@ -337,29 +336,29 @@ def get_sa_localization_stages(args):
 		# This handles cases where database isn't fully initialized yet
 		za_local_installed = True
 	
-	# Always add stage if za_local is installed
-	# This ensures the wizard runs on fresh installs even if country isn't set yet
-	# Since za_local is SA-specific, if it's installed, the user wants SA localization
-	if za_local_installed:
+	# Add stage if:
+	# 1. Country is explicitly set to South Africa, OR
+	# 2. Country is not set (fresh install) and za_local is installed
+	if country == "South Africa" or (not country and za_local_installed):
 		# Default to using SA print formats
 		if "use_sa_print_formats" not in args:
 			args["use_sa_print_formats"] = True
-		
-		return [
-			{
-				"status": _("Configuring South African Localization"),
-				"fail_msg": _("Failed to configure SA localization"),
-				"tasks": [
-					{
-						"fn": setup_za_localization,
-						"args": args,
-						"fail_msg": _("Failed to setup SA localization")
-					}
-				]
-			}
-		]
 	
-	# If za_local is not installed, don't add stage
+	return [
+		{
+			"status": _("Configuring South African Localization"),
+			"fail_msg": _("Failed to configure SA localization"),
+			"tasks": [
+				{
+					"fn": setup_za_localization,
+					"args": args,
+					"fail_msg": _("Failed to setup SA localization")
+				}
+			]
+		}
+	]
+	
+	# If country is set to something other than South Africa, don't add stage
 	return []
 
 
