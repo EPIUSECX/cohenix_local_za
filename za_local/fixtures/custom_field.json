@@ -303,6 +303,50 @@
   },
   {
     "doctype": "Custom Field",
+    "name": "Employee-za_employment_equity_section",
+    "dt": "Employee",
+    "module": "SA EE",
+    "label": "Employment Equity",
+    "fieldname": "za_employment_equity_section",
+    "fieldtype": "Section Break",
+    "insert_after": "za_highest_qualification",
+    "collapsible": 1,
+    "description": "Employment Equity Act (EEA) classification fields"
+  },
+  {
+    "doctype": "Custom Field",
+    "name": "Employee-za_race",
+    "dt": "Employee",
+    "module": "SA EE",
+    "label": "Race",
+    "fieldname": "za_race",
+    "fieldtype": "Select",
+    "options": "\nAfrican\nColoured\nIndian\nWhite\nOther",
+    "insert_after": "za_employment_equity_section",
+    "description": "Race classification for Employment Equity Act (EEA) reporting"
+  },
+  {
+    "doctype": "Custom Field",
+    "name": "Employee-za_ee_column_break",
+    "dt": "Employee",
+    "module": "SA EE",
+    "fieldname": "za_ee_column_break",
+    "fieldtype": "Column Break",
+    "insert_after": "za_race"
+  },
+  {
+    "doctype": "Custom Field",
+    "name": "Employee-za_is_disabled",
+    "dt": "Employee",
+    "module": "SA EE",
+    "label": "Is Disabled",
+    "fieldname": "za_is_disabled",
+    "fieldtype": "Check",
+    "insert_after": "za_ee_column_break",
+    "description": "Person with disability (PWD) for Employment Equity Act (EEA) reporting"
+  },
+  {
+    "doctype": "Custom Field",
     "name": "Salary Structure-company_contribution_section",
     "dt": "Salary Structure",
     "module": "SA Payroll",
