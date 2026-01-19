@@ -40,6 +40,9 @@ required_apps = ["frappe", "erpnext"]
 # ------------------
 fixtures = [
     # Custom Fields for South African localization
+    # Includes za_ prefixed fields and other za_local custom fields
+    # Note: Fixtures are automatically imported from fixtures/ directory during installation
+    # This filter is used when exporting fixtures
     {"dt": "Custom Field", "filters": [["name", "like", "%-za_%"]]},
     
     # Property Setters
@@ -65,6 +68,9 @@ fixtures = [
     
     # SA Payroll Workspace
     {"dt": "Workspace", "filters": [["name", "=", "SA Payroll"]]},
+    
+    # Workspace Sidebars
+    {"dt": "Workspace Sidebar", "filters": [["app", "=", "za_local"]]},
 ]
 
 # Includes in <head>

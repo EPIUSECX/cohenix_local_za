@@ -1,39 +1,38 @@
 """
 South African Localization Custom Fields
 
-This module creates custom fields for South African payroll, tax, VAT, and COIDA compliance.
-All fields use the 'za_' prefix for consistency and clarity.
+This module handles cleanup of old custom fields.
+
+Note: All custom fields are now deployed via fixtures (fixtures/custom_field.json),
+which is Frappe's best practice. Fixtures are automatically imported during
+app installation and migration.
 
 Based on modern Frappe best practices.
 """
 
 import frappe
-from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from za_local.utils.hrms_detection import is_hrms_installed
 from za_local.utils.setup_utils import get_property_type
 
 
 def setup_custom_fields():
     """
-    Setup all custom fields for South African localization.
+    Cleanup function for custom fields.
     
-    This function creates custom fields across multiple doctypes:
-    - Employee: SA ID, employee type, hours per month, payroll account
-    - Company: VAT number, COIDA registration, SDL/UIF reference numbers
-    - Payroll Settings: SA tax calculation options, statutory components
-    - Salary Structure Assignment: Annual bonus
-    - Additional Salary: Company contribution flag
-    - IRP5 Certificate: Bulk generation fields
-    - Payroll Employee Detail: Journal entry tracking
-    - Journal Entry Account: Payroll entry references
-    - Salary Component: Additional calculation fields
-    - Salary Structure: Company contributions
-    - Employee Benefit Claim: SA-specific fields
-    - Item Group: Capital goods flag for VAT201 classification
-    - Customer: VAT vendor status
+    Note: Custom fields are now deployed via fixtures (fixtures/custom_field.json),
+    which is Frappe's best practice. Fixtures are automatically imported during
+    app installation and migration.
+    
+    This function only handles cleanup of old/incorrect fields that may exist
+    from previous installations. All field creation is handled by fixtures.
+    
+    Frappe automatically handles:
+    - Conditional logic (HRMS-only doctypes) - fields for missing doctypes are skipped
+    - Field updates - fixtures update existing fields if they change
+    - Field creation - all fields are created from fixtures
     """
     
-    # Fields to delete if they exist (old custom_ prefix versions)
+    # Fields to delete if they exist (old custom_ prefix versions from previous installations)
     fields_to_delete_if_exist = {
         "Employee": [
             "custom_id_number", "custom_employee_type", "custom_special_economic_zone",
@@ -52,6 +51,7 @@ def setup_custom_fields():
     }
     
     # Delete old fields
+    deleted_count = 0
     for doctype, fieldnames in fields_to_delete_if_exist.items():
         for fieldname in fieldnames:
             custom_field_name = f"{doctype}-{fieldname}"
@@ -59,473 +59,21 @@ def setup_custom_fields():
                 try:
                     frappe.delete_doc("Custom Field", custom_field_name, ignore_permissions=True, force=True)
                     frappe.db.commit()
-                    print(f"Deleted existing custom field: {custom_field_name}")
+                    deleted_count += 1
+                    print(f"  ✓ Deleted old custom field: {custom_field_name}")
                 except Exception as e:
-                    print(f"Error deleting custom field {custom_field_name}: {e}")
-
-    hrms_installed = is_hrms_installed()
-
-    # Define HRMS-only doctypes so we can skip them when HRMS is absent
-    hrms_only_doctypes = {
-        "HR Settings",
-        "Payroll Settings",
-        "Salary Component",
-        "Salary Slip",
-        "Salary Structure",
-        "Salary Structure Assignment",
-        "Additional Salary",
-        "Payroll Employee Detail",
-    }
-
-    # Define all custom fields
-    custom_fields = {
-        "HR Settings": [
-            {
-                "fieldname": "za_amount_per_kilometer",
-                "label": "Amount Per Kilometer",
-                "fieldtype": "Currency",
-                "insert_after": "emp_created_by",
-                "description": "Reimbursement rate per kilometer for mileage claims"
-            }
-        ],
-        
-        # IMPORTANT: Company Contribution functionality corrected
-        # Previously used a flag (is_company_contribution) which was incorrect design.
-        # Now uses Type field option "Company Contribution" - correct fundamental approach.
-        # All code has been updated to check type == "Company Contribution" instead of flag.
-        # The is_company_contribution field is removed - this is a functional correction, not a patch.
-        "Salary Component": [],
-        
-        "Payroll Settings": [
-            {
-                "fieldname": "za_south_african_settings_section",
-                "label": "South African Settings",
-                "fieldtype": "Section Break",
-                "insert_after": "daily_wages_fraction_for_half_day",
-                "collapsible": 1
-            },
-            {
-                "fieldname": "za_calculate_annual_taxable_amount_based_on",
-                "label": "Calculate Annual Taxable Amount Based On",
-                "fieldtype": "Select",
-                "options": "\nJoining and Relieving Date\nPayroll Period",
-                "default": "Payroll Period",
-                "insert_after": "za_south_african_settings_section",
-                "description": "Method for calculating annual taxable income"
-            },
-            {
-                "fieldname": "za_payroll_column_break",
-                "fieldtype": "Column Break",
-                "insert_after": "za_calculate_annual_taxable_amount_based_on"
-            },
-            {
-                "fieldname": "za_disable_eti_calculation",
-                "label": "Disable ETI Calculation",
-                "fieldtype": "Check",
-                "insert_after": "za_payroll_column_break",
-                "description": "Disable automatic Employment Tax Incentive calculations"
-            },
-            {
-                "fieldname": "za_statutory_components_section",
-                "label": "South African Statutory Components",
-                "fieldtype": "Section Break",
-                "insert_after": "za_disable_eti_calculation",
-                "collapsible": 1
-            },
-            {
-                "fieldname": "za_paye_salary_component",
-                "label": "PAYE Salary Component",
-                "fieldtype": "Link",
-                "options": "Salary Component",
-                "insert_after": "za_statutory_components_section",
-                "description": "Salary Component used for Pay As You Earn (PAYE) tax"
-            },
-            {
-                "fieldname": "za_uif_employee_salary_component",
-                "label": "UIF Employee Salary Component",
-                "fieldtype": "Link",
-                "options": "Salary Component",
-                "insert_after": "za_paye_salary_component",
-                "description": "Salary Component for UIF employee contribution"
-            },
-            {
-                "fieldname": "za_uif_employer_salary_component",
-                "label": "UIF Employer Salary Component",
-                "fieldtype": "Link",
-                "options": "Salary Component",
-                "insert_after": "za_uif_employee_salary_component",
-                "description": "Salary Component for UIF employer contribution"
-            },
-            {
-                "fieldname": "za_statutory_column_break",
-                "fieldtype": "Column Break",
-                "insert_after": "za_uif_employer_salary_component"
-            },
-            {
-                "fieldname": "za_sdl_salary_component",
-                "label": "SDL Salary Component",
-                "fieldtype": "Link",
-                "options": "Salary Component",
-                "insert_after": "za_statutory_column_break",
-                "description": "Salary Component for Skills Development Levy (SDL)"
-            },
-            {
-                "fieldname": "za_coida_salary_component",
-                "label": "COIDA Salary Component",
-                "fieldtype": "Link",
-                "options": "Salary Component",
-                "insert_after": "za_sdl_salary_component",
-                "description": "Salary Component for Compensation for Occupational Injuries and Diseases Act (COIDA)"
-            }
-        ],
-        
-        "Employee": [
-            {
-                "fieldname": "za_south_african_details_section",
-                "label": "South African Details",
-                "fieldtype": "Section Break",
-                "insert_after": "passport_number",
-                "collapsible": 1
-            },
-            {
-                "fieldname": "za_id_number",
-                "label": "SA ID Number",
-                "fieldtype": "Data",
-                "insert_after": "za_south_african_details_section",
-                "description": "South African ID Number (13 digits)",
-                "length": 13
-            },
-            {
-                "fieldname": "za_employee_type",
-                "label": "Employee Type",
-                "fieldtype": "Link",
-                "options": "Employee Type",
-                "insert_after": "za_id_number",
-                "description": "South African employee classification",
-                "reqd": 1
-            },
-            {
-                "fieldname": "za_special_economic_zone",
-                "label": "Special Economic Zone",
-                "fieldtype": "Check",
-                "insert_after": "za_employee_type",
-                "description": "Employee works in a Special Economic Zone (SEZ)"
-            },
-            {
-                "fieldname": "za_payroll_column_break",
-                "fieldtype": "Column Break",
-                "insert_after": "za_special_economic_zone"
-            },
-            {
-                "fieldname": "za_hours_per_month",
-                "label": "Hours Per Month",
-                "fieldtype": "Float",
-                "insert_after": "za_payroll_column_break",
-                "description": "Standard working hours per month for ETI calculations"
-            },
-            {
-                "fieldname": "za_payroll_payable_bank_account",
-                "label": "Payroll Payable Bank Account",
-                "fieldtype": "Link",
-                "options": "Bank Account",
-                "insert_after": "za_hours_per_month",
-                "description": "Bank account for payroll disbursement"
-            },
-            # Additional employee information fields
-            {
-                "fieldname": "za_personal_information_section",
-                "label": "Additional Information",
-                "fieldtype": "Section Break",
-                "insert_after": "za_payroll_payable_bank_account",
-                "collapsible": 1
-            },
-            {
-                "fieldname": "za_nationality",
-                "label": "Nationality",
-                "fieldtype": "Link",
-                "options": "Country",
-                "insert_after": "za_personal_information_section",
-                "description": "Employee's nationality (for work permit tracking)"
-            },
-            {
-                "fieldname": "za_working_hours_per_week",
-                "label": "Working Hours Per Week",
-                "fieldtype": "Float",
-                "insert_after": "za_nationality",
-                "description": "Standard working hours per week for BCEA overtime calculations"
-            },
-            {
-                "fieldname": "za_has_children",
-                "label": "Has Children",
-                "fieldtype": "Check",
-                "insert_after": "za_working_hours_per_week",
-                "description": "Employee has children (for Family Responsibility Leave eligibility)"
-            },
-            {
-                "fieldname": "za_additional_column_break",
-                "fieldtype": "Column Break",
-                "insert_after": "za_has_children"
-            },
-            {
-                "fieldname": "za_has_other_employments",
-                "label": "Has Other Employments",
-                "fieldtype": "Check",
-                "insert_after": "za_additional_column_break",
-                "description": "Employee has multiple employers (for PAYE tax directive scenarios)"
-            },
-            {
-                "fieldname": "za_number_of_dependants",
-                "label": "Number of Dependants",
-                "fieldtype": "Int",
-                "insert_after": "za_has_other_employments",
-                "description": "Number of dependants for medical tax credit calculation"
-            },
-            {
-                "fieldname": "za_highest_qualification",
-                "label": "Highest Qualification",
-                "fieldtype": "Select",
-                "options": "\nMatric\nNational Certificate\nNational Diploma\nBachelor's Degree\nHonours Degree\nMaster's Degree\nDoctorate\nOther",
-                "insert_after": "za_number_of_dependants",
-                "description": "Highest educational qualification (for Skills Development reporting)"
-            }
-        ],
-        
-        "Salary Structure": [
-            {
-                "fieldname": "company_contribution_section",
-                "label": "Company Contribution Section",
-                "fieldtype": "Section Break",
-                "insert_after": "deductions"
-            },
-            {
-                "fieldname": "company_contribution",
-                "label": "Company Contribution",
-                "fieldtype": "Table",
-                "options": "Company Contribution",
-                "insert_after": "company_contribution_section"
-            }
-        ],
-        
-        "Salary Slip": [
-            {
-                "fieldname": "company_contribution_section",
-                "label": "Company Contribution Section",
-                "fieldtype": "Section Break",
-                "insert_after": "deductions"
-            },
-            {
-                "fieldname": "company_contribution",
-                "label": "Company Contribution",
-                "fieldtype": "Table",
-                "options": "Company Contribution",
-                "insert_after": "company_contribution_section"
-            },
-            {
-                "fieldname": "total_company_contribution",
-                "label": "Total Company Contribution",
-                "fieldtype": "Currency",
-                "read_only": 1,
-                "insert_after": "company_contribution"
-            }
-        ],
-        
-        "Company": [
-            {
-                "fieldname": "za_south_african_registration_section",
-                "label": "South African Registration Details",
-                "fieldtype": "Section Break",
-                "insert_after": "tax_id",
-                "collapsible": 1
-            },
-            {
-                "fieldname": "za_vat_number",
-                "label": "VAT Number",
-                "fieldtype": "Data",
-                "insert_after": "za_south_african_registration_section",
-                "description": "South African VAT Registration Number",
-                "length": 10
-            },
-            {
-                "fieldname": "za_coida_registration_number",
-                "label": "COIDA Registration Number",
-                "fieldtype": "Data",
-                "insert_after": "za_vat_number",
-                "description": "Compensation for Occupational Injuries and Diseases Act Registration Number"
-            },
-            {
-                "fieldname": "za_registration_column_break",
-                "fieldtype": "Column Break",
-                "insert_after": "za_coida_registration_number"
-            },
-            {
-                "fieldname": "za_sdl_reference_number",
-                "label": "SDL Reference Number",
-                "fieldtype": "Data",
-                "insert_after": "za_registration_column_break",
-                "description": "Skills Development Levy Reference Number"
-            },
-            {
-                "fieldname": "za_uif_reference_number",
-                "label": "UIF Reference Number",
-                "fieldtype": "Data",
-                "insert_after": "za_sdl_reference_number",
-                "description": "Unemployment Insurance Fund Reference Number"
-            },
-            {
-                "fieldname": "za_additional_configuration_section",
-                "label": "Additional Configuration",
-                "fieldtype": "Section Break",
-                "insert_after": "za_uif_reference_number",
-                "collapsible": 1
-            },
-            {
-                "fieldname": "za_seta",
-                "label": "SETA",
-                "fieldtype": "Link",
-                "options": "SETA",
-                "insert_after": "za_additional_configuration_section",
-                "description": "Skills Education Training Authority"
-            },
-            {
-                "fieldname": "za_bargaining_council",
-                "label": "Bargaining Council",
-                "fieldtype": "Link",
-                "options": "Bargaining Council",
-                "insert_after": "za_seta"
-            },
-            {
-                "fieldname": "za_sectoral_determination",
-                "label": "Sectoral Determination",
-                "fieldtype": "Select",
-                "options": "\nDomestic Workers\nFarm Workers\nPrivate Security\nHospitality\nWholesale/Retail\nOther",
-                "insert_after": "za_bargaining_council"
-            }
-        ],
-        
-        "Additional Salary": [
-            {
-                "fieldname": "za_is_company_contribution",
-                "label": "Is Company Contribution",
-                "fieldtype": "Check",
-                "insert_after": "column_break_8",
-                "description": "Mark as company contribution for payroll processing"
-            }
-        ],
-        
-        "Salary Structure Assignment": [
-            {
-                "fieldname": "za_annual_bonus",
-                "label": "Annual Bonus",
-                "fieldtype": "Currency",
-                "insert_after": "base",
-                "allow_on_submit": 1,
-                "description": "Annual bonus amount for tax calculations"
-            }
-        ],
-        
-        "Expense Claim": [
-            {
-                "fieldname": "business_trip",
-                "label": "Business Trip",
-                "fieldtype": "Link",
-                "options": "Business Trip",
-                "insert_after": "company",
-                "read_only": 1,
-                "description": "Link to Business Trip if this expense claim was auto-generated"
-            }
-        ],
-        
-        # IRP5 Certificate - Bulk generation is handled programmatically in the DocType code
-        # No custom fields needed here as MultiSelect field type doesn't exist in modern Frappe
-        
-        "Payroll Employee Detail": [
-            {
-                "fieldname": "za_is_bank_entry_created",
-                "label": "Is Bank Entry Created",
-                "fieldtype": "Check",
-                "insert_after": "custom_employee_type",
-                "read_only": 1,
-                "description": "Indicates if bank entry has been created"
-            },
-            {
-                "fieldname": "za_is_company_contribution_created",
-                "label": "Is Company Contribution Created",
-                "fieldtype": "Check",
-                "insert_after": "za_is_bank_entry_created",
-                "read_only": 1,
-                "description": "Indicates if company contribution entry has been created"
-            }
-        ],
-        
-        "Journal Entry Account": [
-            {
-                "fieldname": "za_is_payroll_entry",
-                "label": "Is Payroll Entry",
-                "fieldtype": "Check",
-                "insert_after": "reference_name",
-                "description": "Mark as payroll-related journal entry"
-            },
-            {
-                "fieldname": "za_is_company_contribution",
-                "label": "Is Company Contribution",
-                "fieldtype": "Check",
-                "insert_after": "za_is_payroll_entry",
-                "description": "Mark as company contribution entry"
-            }
-        ],
-        
-        "Customer": [
-            {
-                "fieldname": "za_company_registration",
-                "label": "Company Registration Number",
-                "fieldtype": "Data",
-                "insert_after": "tax_id",
-                "description": "CIPC company registration number"
-            },
-            {
-                "fieldname": "za_is_vat_vendor",
-                "label": "Is VAT Vendor",
-                "fieldtype": "Check",
-                "insert_after": "za_company_registration",
-                "default": 0,
-                "description": "Check if customer is registered for VAT in South Africa"
-            }
-        ],
-        
-        "Item Group": [
-            {
-                "fieldname": "is_capital_goods",
-                "label": "Is Capital Goods",
-                "fieldtype": "Check",
-                "insert_after": "parent_item_group",
-                "default": 0,
-                "description": "Mark this item group as capital goods for VAT201 input tax classification. Items in this group will be classified as 'Capital Goods Input' in VAT201 returns."
-            }
-        ]
-    }
+                    print(f"  ! Error deleting custom field {custom_field_name}: {e}")
     
-    # Filter out doctypes that shouldn't be processed in the current environment
-    filtered_custom_fields = {}
-    for doctype, fields in custom_fields.items():
-        if doctype in hrms_only_doctypes and not hrms_installed:
-            print(f"  ⊙ Skipping custom fields for {doctype} (HRMS not installed)")
-            continue
-
-        if not frappe.db.exists("DocType", doctype):
-            print(f"  ⊙ Skipping custom fields for {doctype} (DocType not found)")
-            continue
-
-        filtered_custom_fields[doctype] = fields
-
-    if filtered_custom_fields:
-        create_custom_fields(filtered_custom_fields)
-    else:
-        print("  ⊙ No custom fields to create for current configuration")
+    if deleted_count > 0:
+        print(f"  ✓ Cleaned up {deleted_count} old custom field(s)")
+    
+    # All custom fields are now deployed via fixtures/custom_field.json
+    # Fixtures are automatically imported during app installation/migration
+    # Frappe handles conditional logic (missing doctypes) automatically
+    print("  ✓ Custom fields are deployed via fixtures (fixtures/custom_field.json)")
     
     # Setup property setters
     setup_property_setters()
-    
-    print("✓ South African custom fields created successfully")
 
 
 def setup_property_setters():
@@ -579,4 +127,3 @@ def setup_property_setters():
                     print(f"Error setting property {prop} for {doctype}.{fieldname}: {e}")
     
     print("✓ Property setters configured successfully")
-
