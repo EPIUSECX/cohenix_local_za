@@ -71,6 +71,10 @@ fixtures = [
     
     # Workspace Sidebars
     {"dt": "Workspace Sidebar", "filters": [["app", "=", "za_local"]]},
+    
+    # App doctype for v16 compatibility
+    # Required for proper app deployment and management in Frappe v16+
+    {"dt": "App", "filters": [["name", "=", "za_local"]]},
 ]
 
 # Includes in <head>
