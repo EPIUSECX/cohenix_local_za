@@ -29,7 +29,7 @@ def get_data(filters):
 			ss.employee_name,
 			e.department,
 			e.designation,
-			ss.base as basic,
+			(SELECT SUM(amount) FROM `tabSalary Detail` WHERE parent = ss.name AND salary_component IN ('Basic', 'Basic Salary') AND parentfield = 'earnings') as basic,
 			ss.gross_pay,
 			ss.total_deduction,
 			ss.net_pay,

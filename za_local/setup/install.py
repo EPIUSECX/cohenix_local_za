@@ -43,14 +43,20 @@ def after_install():
 	Run after app installation.
 	
 	Sets up:
-	- Custom fields for South African compliance
+	- Custom fields for South African compliance (via fixtures, with programmatic fallback)
 	- Property setters for default values
 	- Default data (ETI slabs, tax rebates, etc.)
 	- Master data from CSV files
+	- DocType Links for bidirectional navigation
 	- SA Payroll workspace
+	
+	Note: All setup tasks are handled here, not in patches.txt.
+	Patches should only be used for one-time data migrations, not setup tasks.
 	"""
 	cleanup_invalid_doctype_links()
-	setup_custom_fields()
+	# Custom fields are deployed via fixtures (fixtures/custom_field.json)
+	# Fixtures are automatically imported by Frappe during installation
+	setup_custom_fields()  # Only handles cleanup of old fields
 	make_property_setters()
 	setup_all_monkey_patches()
 	setup_default_data()
@@ -76,10 +82,17 @@ def after_migrate():
 	"""
 	Run after migrations.
 	
-	Ensures custom fields are always up to date after migrations.
+	Ensures all setup is up to date after migrations:
+	- Custom fields (via fixtures, with programmatic fallback)
+	- Property setters
+	- Workspace and desktop icons
+	
+	Note: This ensures the app remains properly configured after Frappe/ERPNext updates.
 	"""
 	cleanup_invalid_doctype_links()
-	setup_custom_fields()
+	# Custom fields are deployed via fixtures (fixtures/custom_field.json)
+	# Fixtures are automatically imported by Frappe during migration
+	setup_custom_fields()  # Only handles cleanup of old fields
 	make_property_setters()
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
@@ -787,64 +800,74 @@ def refresh_desktop_icons():
 					if sidebar_doc.header_icon != workspace_doc.icon:
 						sidebar_doc.header_icon = workspace_doc.icon
 					
-					# If sidebar has empty items, populate from workspace links
-					# This ensures the workspace appears in the sidebar navigation
-					# Replicate the same structure as Payroll workspace sidebar
-					if not sidebar_doc.items or len(sidebar_doc.items) == 0:
-						workspace_links = workspace_doc.get("links", [])
-						if workspace_links:
-							# First, add a "Home" link pointing to the workspace itself (like Payroll has)
-							sidebar_doc.append("items", {
-								"label": "Home",
-								"link_to": w.name,
-								"link_type": "Workspace",
-								"type": "Link",
-								"icon": "home",
-								"indent": 0,
-								"child": 0,
-								"collapsible": 1,
-								"keep_closed": 0,
-								"show_arrow": 0,
-							})
-							
-							# Convert workspace links to sidebar items
-							for link in workspace_links:
-								if link.get("type") == "Link" and link.get("link_to"):
-									# Map icon based on link type or use default
-									icon = link.get("icon", "")
-									if not icon:
-										if link.get("link_type") == "DocType":
-											icon = "file-text"
-										elif link.get("link_type") == "Report":
-											icon = "report"
-									
-									sidebar_doc.append("items", {
-										"label": link.get("label", link.get("link_to")),
-										"link_to": link.get("link_to"),
-										"link_type": link.get("link_type", "DocType"),
-										"type": "Link",
-										"icon": icon,
-										"indent": 0,
-										"child": 0,
-										"collapsible": 1,
-										"keep_closed": 0,
-										"show_arrow": 0,
-									})
-								elif link.get("type") == "Card Break":
-									sidebar_doc.append("items", {
-										"label": link.get("label", ""),
-										"link_type": "DocType",
-										"type": "Section Break",
-										"icon": link.get("icon", ""),
-										"indent": 0,
-										"child": 0,
-										"collapsible": 1,
-										"keep_closed": 1,
-										"show_arrow": 0,
-									})
-							print(f"  ✓ Populated Workspace Sidebar '{w.name}' with {len(sidebar_doc.items)} items from workspace links")
+					# Note: Payroll workspace sidebar structure is now managed via fixtures
+					# (fixtures/workspace_sidebar.json) following Frappe best practices.
+					# Only ensure basic configuration (module, app, icon) is correct.
+					# Sidebar items are imported from fixtures during installation/migration.
+					if w.name == "Payroll":
+						# Ensure Payroll sidebar exists and has correct configuration
+						# Items are managed via fixtures, so we don't rebuild them here
+						print(f"  ✓ Payroll Workspace Sidebar configured (items managed via fixtures)")
+					else:
+						# For other workspaces, use default behavior - populate if empty
+						if not sidebar_doc.items or len(sidebar_doc.items) == 0:
+							workspace_links = workspace_doc.get("links", [])
+							if workspace_links:
+								# First, add a "Home" link pointing to the workspace itself
+								sidebar_doc.append("items", {
+									"label": "Home",
+									"link_to": w.name,
+									"link_type": "Workspace",
+									"type": "Link",
+									"icon": "home",
+									"indent": 0,
+									"child": 0,
+									"collapsible": 1,
+									"keep_closed": 0,
+									"show_arrow": 0,
+								})
+								
+								# Convert workspace links to sidebar items, preserving Card Break structure
+								for link in workspace_links:
+									if link.get("type") == "Link" and link.get("link_to"):
+										# Map icon based on link type or use default
+										icon = link.get("icon", "")
+										if not icon:
+											if link.get("link_type") == "DocType":
+												icon = "file-text"
+											elif link.get("link_type") == "Report":
+												icon = "report"
+										
+										sidebar_doc.append("items", {
+											"label": link.get("label", link.get("link_to")),
+											"link_to": link.get("link_to"),
+											"link_type": link.get("link_type", "DocType"),
+											"type": "Link",
+											"icon": icon,
+											"indent": 0,
+											"child": 0,
+											"collapsible": 1,
+											"keep_closed": 0,
+											"show_arrow": 0,
+										})
+									elif link.get("type") == "Card Break":
+										# Card breaks become section breaks in sidebar for grouping
+										sidebar_doc.append("items", {
+											"label": link.get("label", ""),
+											"link_type": "DocType",
+											"type": "Section Break",
+											"icon": link.get("icon", ""),
+											"indent": 0,
+											"child": 0,
+											"collapsible": 1,
+											"keep_closed": 0,
+											"show_arrow": 0,
+										})
+								print(f"  ✓ Populated Workspace Sidebar '{w.name}' with {len(sidebar_doc.items)} items from workspace links")
 					
+					# Ensure sidebar is saved and will be used for navigation
 					sidebar_doc.save(ignore_permissions=True)
+					frappe.db.commit()
 					print(f"  ✓ Updated Workspace Sidebar '{w.name}' (module: {w.module}, icon: {workspace_doc.icon})")
 				except Exception as e:
 					print(f"  ⊙ Could not update Workspace Sidebar '{w.name}': {e}")
