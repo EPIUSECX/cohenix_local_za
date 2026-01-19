@@ -10,6 +10,7 @@ Based on modern Frappe best practices.
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from za_local.utils.hrms_detection import is_hrms_installed
+from za_local.utils.setup_utils import get_property_type
 
 
 def setup_custom_fields():
@@ -578,57 +579,4 @@ def setup_property_setters():
                     print(f"Error setting property {prop} for {doctype}.{fieldname}: {e}")
     
     print("✓ Property setters configured successfully")
-
-
-def get_property_type(value):
-    """Get the property type based on value type."""
-    if isinstance(value, bool) or isinstance(value, int):
-        return "Check"
-    elif isinstance(value, str):
-        if value.startswith("eval:"):
-            return "Code"
-        return "Data"
-    else:
-        return "Data"
-
-
-def validate_south_african_id(id_number):
-    """
-    Validate South African ID number format and checksum.
-    
-    Format: YYMMDD SSSS CAZ
-    - YYMMDD: Date of birth
-    - SSSS: Gender (Females: 0000-4999, Males: 5000-9999)
-    - C: Citizenship (0: SA, 1: Permanent resident)
-    - A: Usually 8 or 9 (historical)
-    - Z: Checksum digit (Luhn algorithm)
-    
-    Args:
-        id_number (str): South African ID number to validate
-        
-    Returns:
-        bool: True if valid, False otherwise
-    """
-    if not id_number or not id_number.isdigit() or len(id_number) != 13:
-        return False
-        
-    # Birth date validation
-    year = int(id_number[:2])
-    month = int(id_number[2:4])
-    day = int(id_number[4:6])
-    
-    if month < 1 or month > 12 or day < 1 or day > 31:
-        return False
-        
-    # Calculate checksum using Luhn algorithm
-    checksum = 0
-    for i, digit in enumerate(id_number[:-1]):
-        num = int(digit)
-        if i % 2 == 0:
-            checksum += num
-        else:
-            checksum += (num * 2 if num * 2 <= 9 else num * 2 - 9)
-            
-    check_digit = (10 - (checksum % 10)) % 10
-    return check_digit == int(id_number[-1])
 

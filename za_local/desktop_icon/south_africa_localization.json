@@ -1,0 +1,20 @@
+{
+ "app": "za_local",
+ "creation": "2026-01-19 14:39:27.592713",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 1,
+ "icon": "map",
+ "icon_type": "Link",
+ "idx": 0,
+ "label": "South Africa Localization",
+ "link_to": "South Africa Localization",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-01-19 12:47:56.591521",
+ "modified_by": "Administrator",
+ "name": "South Africa Localization",
+ "owner": "Administrator",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

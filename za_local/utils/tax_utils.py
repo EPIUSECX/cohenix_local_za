@@ -351,6 +351,51 @@ def validate_south_african_id_number(id_number):
     }
 
 
+def validate_south_african_id(id_number):
+    """
+    Validate South African ID number format and checksum.
+    
+    This is a simpler boolean validation function that uses basic checks.
+    For detailed validation with gender, DOB, and citizenship info, use
+    validate_south_african_id_number() instead.
+    
+    Format: YYMMDD SSSS CAZ
+    - YYMMDD: Date of birth
+    - SSSS: Gender (Females: 0000-4999, Males: 5000-9999)
+    - C: Citizenship (0: SA, 1: Permanent resident)
+    - A: Usually 8 or 9 (historical)
+    - Z: Checksum digit (Luhn algorithm)
+    
+    Args:
+        id_number (str): South African ID number to validate
+        
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    if not id_number or not id_number.isdigit() or len(id_number) != 13:
+        return False
+        
+    # Birth date validation
+    year = int(id_number[:2])
+    month = int(id_number[2:4])
+    day = int(id_number[4:6])
+    
+    if month < 1 or month > 12 or day < 1 or day > 31:
+        return False
+        
+    # Calculate checksum using Luhn algorithm
+    checksum = 0
+    for i, digit in enumerate(id_number[:-1]):
+        num = int(digit)
+        if i % 2 == 0:
+            checksum += num
+        else:
+            checksum += (num * 2 if num * 2 <= 9 else num * 2 - 9)
+            
+    check_digit = (10 - (checksum % 10)) % 10
+    return check_digit == int(id_number[-1])
+
+
 def get_tax_year_dates(date_in_year=None):
     """
     Get the South African tax year dates (March 1 to Feb 28/29).

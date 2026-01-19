@@ -14,6 +14,7 @@ from frappe.custom.doctype.customize_form.customize_form import (
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from za_local.setup.custom_fields import setup_custom_fields
 from za_local.setup.property_setters import get_property_setters
+from za_local.setup.monkey_patches import setup_all_monkey_patches
 from za_local.utils.hrms_detection import is_hrms_installed
 
 
@@ -51,11 +52,13 @@ def after_install():
 	cleanup_invalid_doctype_links()
 	setup_custom_fields()
 	make_property_setters()
+	setup_all_monkey_patches()
 	setup_default_data()
 	apply_statutory_formulas()
 	import_master_data()
 	insert_custom_records()
 	import_workspace()
+	refresh_desktop_icons()
 	frappe.db.commit()
 	print("\n" + "="*80)
 	print("South African Localization installed successfully!")
@@ -78,31 +81,10 @@ def after_migrate():
 	cleanup_invalid_doctype_links()
 	setup_custom_fields()
 	make_property_setters()
+	setup_all_monkey_patches()
 	apply_statutory_formulas()
 	import_workspace()
-	
-	# Extend chart discovery to include ZA chart
-	try:
-		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module
-		from za_local.accounts.setup_chart import get_chart_template_name
-		
-		original_get_charts = coa_module.get_charts_for_country
-		
-		def get_charts_for_country_with_za(country, with_standard=False):
-			charts = original_get_charts(country, with_standard)
-			
-			# Add ZA chart if country is South Africa
-			if country == "South Africa":
-				chart_name = get_chart_template_name()
-				if chart_name and chart_name not in charts:
-					charts.insert(0, chart_name)
-			
-			return charts
-		
-		coa_module.get_charts_for_country = get_charts_for_country_with_za
-	except Exception as e:
-		# Chart discovery extension is optional, don't fail migration
-		print(f"  ! Could not extend chart discovery: {e}")
+	refresh_desktop_icons()
 	
 	frappe.db.commit()
 
@@ -529,27 +511,52 @@ def import_workspace(enable_payroll: bool | None = None):
 	else:
 		should_include_payroll = bool(enable_payroll) and hrms_installed
 
-	if not frappe.db.exists("Module Def", "South Africa"):
-		try:
-			frappe.get_doc({
+	# Create or update Module Def with proper configuration for Frappe v16
+	# Note: This is an app module, not a custom module, so custom = 0
+	module_exists = frappe.db.exists("Module Def", "South Africa")
+	try:
+		if module_exists:
+			module_doc = frappe.get_doc("Module Def", "South Africa")
+			# Update existing module to ensure proper configuration
+			module_doc.app_name = "za_local"
+			module_doc.custom = 0  # App module, not custom
+			module_doc.save(ignore_permissions=True)
+			frappe.db.commit()
+			print("  ✓ Updated Module Def 'South Africa'")
+		else:
+			# Create new module with proper configuration
+			module_doc = frappe.get_doc({
 				"doctype": "Module Def",
 				"module_name": "South Africa",
-				"app_name": "za_local"
-			}).insert(ignore_permissions=True)
+				"app_name": "za_local",
+				"custom": 0,  # App module, not custom
+			})
+			module_doc.insert(ignore_permissions=True)
 			frappe.db.commit()
-		except Exception as e:
-			print(f"  ! Could not create Module Def 'South Africa': {e}")
+			print("  ✓ Created Module Def 'South Africa'")
+	except Exception as e:
+		print(f"  ! Could not create/update Module Def 'South Africa': {e}")
+		import traceback
+		traceback.print_exc()
 
 	workspace_definitions = [
+		{
+			"name": "South Africa Localization",
+			"path": Path(frappe.get_app_path("za_local", "south_africa", "workspace", "south_africa_localization", "south_africa_localization.json")),
+			"requires_hrms": False,
+			"sequence": 0,  # Main landing workspace - appears first
+		},
 		{
 			"name": "Tax & Compliance",
 			"path": Path(frappe.get_app_path("za_local", "south_africa", "workspace", "tax_&_compliance", "tax_&_compliance.json")),
 			"requires_hrms": False,
+			"sequence": 1,  # Second workspace in module
 		},
 		{
 			"name": "Payroll",
 			"path": Path(frappe.get_app_path("za_local", "south_africa", "workspace", "payroll", "payroll.json")),
 			"requires_hrms": True,
+			"sequence": 2,  # Third workspace in module
 		},
 	]
 
@@ -599,6 +606,10 @@ def import_workspace(enable_payroll: bool | None = None):
 			workspace_data["label"] = workspace_name
 			workspace_data["title"] = workspace_name
 			workspace_data["module"] = "South Africa"
+			workspace_data["app"] = "za_local"
+			# Set sequence_id for proper ordering within the module
+			# Always use sequence from workspace_def to ensure consistent ordering
+			workspace_data["sequence_id"] = float(workspace_def.get("sequence", 1))
 
 			workspace_exists = frappe.db.exists("Workspace", workspace_name) is not None
 
@@ -629,6 +640,7 @@ def import_workspace(enable_payroll: bool | None = None):
 			if not workspace_exists:
 				doc = frappe.get_doc(workspace_data)
 				doc.flags.ignore_links = True
+				doc.flags.ignore_validate = True  # Prevent validation issues during import
 				doc.insert(ignore_permissions=True)
 				frappe.db.commit()
 				print(f"  ✓ Imported workspace: {workspace_name}")
@@ -638,8 +650,9 @@ def import_workspace(enable_payroll: bool | None = None):
 				fields_to_update = [
 					"label",
 					"public",
+					"is_hidden",  # Ensure workspace is visible
 					"icon",
-					"module",
+					"module",  # CRITICAL: Ensure module is set to "South Africa"
 					"app",
 					"title",
 					"content",
@@ -648,19 +661,270 @@ def import_workspace(enable_payroll: bool | None = None):
 					"custom_blocks",
 					"quick_lists",
 					"shortcuts",
-					"number_cards"
+					"number_cards",
+					"sequence_id",  # Ensure proper ordering
 				]
 				for field in fields_to_update:
 					if field in workspace_data:
 						doc.set(field, workspace_data[field])
+				# Force module assignment and visibility to ensure it's under "South Africa" and visible
+				doc.module = "South Africa"
+				doc.app = "za_local"
+				doc.public = 1  # Ensure workspace is public
+				doc.is_hidden = 0  # Ensure workspace is visible
 				doc.flags.ignore_links = True
+				doc.flags.ignore_validate = True  # Prevent validation issues during update
+				# Prevent export to files during save (workspaces are managed by app)
+				doc.flags.do_not_export = True
 				doc.save(ignore_permissions=True)
 				frappe.db.commit()
-				print(f"  ✓ Updated workspace: {workspace_name}")
+				print(f"  ✓ Updated workspace: {workspace_name} (module: {doc.module})")
 		except Exception as e:
 			print(f"  ! Error importing workspace from {workspace_path}: {e}")
 			import traceback
 			traceback.print_exc()
+	
+	# Verify all workspaces are correctly assigned to "South Africa" module
+	print("\nVerifying workspace module assignments...")
+	all_workspaces = frappe.get_all(
+		"Workspace",
+		filters={"app": "za_local"},
+		fields=["name", "module", "sequence_id"]
+	)
+	for ws in all_workspaces:
+		if ws.module != "South Africa":
+			print(f"  ⚠ Warning: Workspace '{ws.name}' has module '{ws.module}' instead of 'South Africa'")
+			try:
+				doc = frappe.get_doc("Workspace", ws.name)
+				doc.module = "South Africa"
+				doc.save(ignore_permissions=True)
+				frappe.db.commit()
+				print(f"  ✓ Fixed: Updated '{ws.name}' to module 'South Africa'")
+			except Exception as fix_error:
+				print(f"  ! Could not fix workspace '{ws.name}': {fix_error}")
+		else:
+			print(f"  ✓ Workspace '{ws.name}' correctly assigned to 'South Africa' module")
+	
+	# Create/refresh Desktop Icons so workspaces appear on Desk
+	refresh_desktop_icons()
+
+
+def refresh_desktop_icons():
+	"""
+	Create/refresh Desktop Icons for South Africa workspaces so they appear on Desk.
+	
+	In Frappe v16, Desktop Icons require Workspace Sidebars to be created first.
+	We ensure both are created immediately after workspace import.
+	"""
+	try:
+		from frappe.desk.doctype.workspace_sidebar.workspace_sidebar import (
+			create_workspace_sidebar_for_workspaces
+		)
+		from frappe.desk.doctype.desktop_icon.desktop_icon import (
+			create_desktop_icons_from_workspace,
+			clear_desktop_icons_cache
+		)
+		print("\nCreating Workspace Sidebars and Desktop Icons...")
+		# First create Workspace Sidebars (required for Desktop Icons)
+		create_workspace_sidebar_for_workspaces()
+		frappe.db.commit()
+		
+		# Ensure all za_local Workspace Sidebars have correct module assignment
+		# This ensures the sidebar shows "South Africa" instead of "Frappe HR" or other modules
+		workspaces = frappe.get_all(
+			"Workspace",
+			filters={"app": "za_local", "public": 1},
+			fields=["name", "module"]
+		)
+		
+		# Special handling for "South Africa Localization" workspace sidebar
+		# Add links to child workspaces (Payroll and Tax & Compliance) so they appear in the sidebar
+		sa_localization_sidebar_name = frappe.db.exists("Workspace Sidebar", "South Africa Localization")
+		if sa_localization_sidebar_name:
+			try:
+				sa_sidebar = frappe.get_doc("Workspace Sidebar", sa_localization_sidebar_name)
+				# Get all za_local workspaces except the main one
+				child_workspaces = [w for w in workspaces if w.name != "South Africa Localization"]
+				
+				# Check if workspace links already exist
+				existing_workspace_links = [item.link_to for item in (sa_sidebar.items or []) if item.link_type == "Workspace"]
+				
+				# Add workspace links for Payroll and Tax & Compliance if they don't exist
+				for child_ws in child_workspaces:
+					if child_ws.name not in existing_workspace_links:
+						# Get the workspace icon for the sidebar item
+						child_ws_doc = frappe.get_doc("Workspace", child_ws.name)
+						sa_sidebar.append("items", {
+							"label": child_ws.name,
+							"link_to": child_ws.name,
+							"link_type": "Workspace",
+							"type": "Link",
+							"icon": child_ws_doc.icon or "file-text",
+							"indent": 0,
+							"child": 0,
+							"collapsible": 1,
+							"keep_closed": 0,
+							"show_arrow": 0,
+						})
+						print(f"  ✓ Added workspace link '{child_ws.name}' to South Africa Localization sidebar")
+				
+				if sa_sidebar.has_value_changed("items"):
+					sa_sidebar.save(ignore_permissions=True)
+					frappe.db.commit()
+			except Exception as e:
+				print(f"  ⊙ Could not update South Africa Localization sidebar with workspace links: {e}")
+		for w in workspaces:
+			sidebar_name = frappe.db.exists("Workspace Sidebar", w.name)
+			if sidebar_name:
+				try:
+					sidebar_doc = frappe.get_doc("Workspace Sidebar", sidebar_name)
+					workspace_doc = frappe.get_doc("Workspace", w.name)
+					# Ensure the sidebar uses the workspace's module
+					if sidebar_doc.module != w.module:
+						sidebar_doc.module = w.module
+						sidebar_doc.app = "za_local"
+					# Update header icon to match workspace icon (for sidebar display)
+					if sidebar_doc.header_icon != workspace_doc.icon:
+						sidebar_doc.header_icon = workspace_doc.icon
+					
+					# If sidebar has empty items, populate from workspace links
+					# This ensures the workspace appears in the sidebar navigation
+					# Replicate the same structure as Payroll workspace sidebar
+					if not sidebar_doc.items or len(sidebar_doc.items) == 0:
+						workspace_links = workspace_doc.get("links", [])
+						if workspace_links:
+							# First, add a "Home" link pointing to the workspace itself (like Payroll has)
+							sidebar_doc.append("items", {
+								"label": "Home",
+								"link_to": w.name,
+								"link_type": "Workspace",
+								"type": "Link",
+								"icon": "home",
+								"indent": 0,
+								"child": 0,
+								"collapsible": 1,
+								"keep_closed": 0,
+								"show_arrow": 0,
+							})
+							
+							# Convert workspace links to sidebar items
+							for link in workspace_links:
+								if link.get("type") == "Link" and link.get("link_to"):
+									# Map icon based on link type or use default
+									icon = link.get("icon", "")
+									if not icon:
+										if link.get("link_type") == "DocType":
+											icon = "file-text"
+										elif link.get("link_type") == "Report":
+											icon = "report"
+									
+									sidebar_doc.append("items", {
+										"label": link.get("label", link.get("link_to")),
+										"link_to": link.get("link_to"),
+										"link_type": link.get("link_type", "DocType"),
+										"type": "Link",
+										"icon": icon,
+										"indent": 0,
+										"child": 0,
+										"collapsible": 1,
+										"keep_closed": 0,
+										"show_arrow": 0,
+									})
+								elif link.get("type") == "Card Break":
+									sidebar_doc.append("items", {
+										"label": link.get("label", ""),
+										"link_type": "DocType",
+										"type": "Section Break",
+										"icon": link.get("icon", ""),
+										"indent": 0,
+										"child": 0,
+										"collapsible": 1,
+										"keep_closed": 1,
+										"show_arrow": 0,
+									})
+							print(f"  ✓ Populated Workspace Sidebar '{w.name}' with {len(sidebar_doc.items)} items from workspace links")
+					
+					sidebar_doc.save(ignore_permissions=True)
+					print(f"  ✓ Updated Workspace Sidebar '{w.name}' (module: {w.module}, icon: {workspace_doc.icon})")
+				except Exception as e:
+					print(f"  ⊙ Could not update Workspace Sidebar '{w.name}': {e}")
+		frappe.db.commit()
+		# Then create Desktop Icons from all public workspaces
+		create_desktop_icons_from_workspace()
+		frappe.db.commit()
+		
+		# Configure Desktop Icons correctly:
+		# 1. Hide "South Africa Localization" workspace icon (it's the main landing page, not a nested item)
+		# 2. Ensure only "Payroll" and "Tax & Compliance" appear as nested items
+		# 3. Link the "South Africa" app icon to the "South Africa Localization" workspace
+		workspaces = frappe.get_all(
+			"Workspace",
+			filters={"app": "za_local", "public": 1},
+			fields=["name"]
+		)
+		
+		app_title = frappe.get_hooks("app_title", app_name="za_local")[0]
+		app_icon_name = frappe.db.exists("Desktop Icon", {"label": app_title, "icon_type": "App"})
+		
+		for w in workspaces:
+			di = frappe.db.exists("Desktop Icon", {"label": w.name, "icon_type": "Link"})
+			try:
+				if di:
+					icon_doc = frappe.get_doc("Desktop Icon", di)
+				else:
+					# Explicitly create missing Desktop Icons for known ZA workspaces (defensive for v16 behaviour)
+					icon_doc = frappe.get_doc({
+						"doctype": "Desktop Icon",
+						"label": w.name,
+						"icon_type": "Link",
+						"link_to": w.name,
+						"link_type": "Workspace Sidebar",
+						"standard": 1,
+					})
+				workspace_doc = frappe.get_doc("Workspace", w.name)
+				icon_doc.app = "za_local"
+
+				# Update icon to match workspace icon (for desktop display)
+				if workspace_doc.icon and icon_doc.icon != workspace_doc.icon:
+					icon_doc.icon = workspace_doc.icon
+
+				# Set logo_url for desktop icons to display images instead of letters
+				# Payroll uses salary_payout.svg, Tax & Compliance uses tax-benefits.svg
+				if w.name == "Payroll" and not icon_doc.logo_url:
+					icon_doc.logo_url = "/assets/hrms/icons/desktop_icons/salary_payout.svg"
+				elif w.name == "Tax & Compliance" and not icon_doc.logo_url:
+					icon_doc.logo_url = "/assets/hrms/icons/desktop_icons/tax-benefits.svg"
+
+				# Hide "South Africa Localization" - it's the main workspace, not a nested item
+				if w.name == "South Africa Localization":
+					icon_doc.hidden = 1
+					icon_doc.parent_icon = None
+				else:
+					# Ensure Payroll and Tax & Compliance are visible and nested under app icon
+					icon_doc.hidden = 0
+					if app_icon_name:
+						icon_doc.parent_icon = app_icon_name
+
+				icon_doc.save(ignore_permissions=True)
+				print(f"  ✓ Updated Desktop Icon '{w.name}' (icon: {workspace_doc.icon})")
+			except Exception as e:
+				print(f"  ⊙ Could not update Desktop Icon for '{w.name}': {e}")
+		
+		
+		# Clear cache so icons appear immediately
+		clear_desktop_icons_cache()
+		frappe.db.commit()
+		print("  ✓ Workspace Sidebars and Desktop Icons created/updated")
+	except Exception as e:
+		print(f"  ⊙ Could not create Desktop Icons: {e}")
+		import traceback
+		traceback.print_exc()
+		# Don't fail installation - try to clear cache anyway
+		try:
+			from frappe.desk.doctype.desktop_icon.desktop_icon import clear_desktop_icons_cache
+			clear_desktop_icons_cache()
+		except:
+			pass
 
 
 def setup_default_retirement_funds():
@@ -894,4 +1158,3 @@ def insert_record(record):
 		
 		import traceback
 		traceback.print_exc()
-
