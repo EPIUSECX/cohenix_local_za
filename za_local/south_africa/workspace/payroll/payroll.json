@@ -8,8 +8,8 @@
  "doctype": "Workspace",
  "for_user": "",
  "hide_custom": 0,
- "icon": "map",
- "idx": 0,
+ "icon": "accounting",
+ "idx": 2,
  "is_hidden": 0,
  "label": "Payroll",
  "links": [
@@ -465,7 +465,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-01-08 17:43:55.529734",
+ "modified": "2026-01-19 12:22:41.246133",
  "modified_by": "Administrator",
  "module": "South Africa",
  "name": "Payroll",
@@ -475,7 +475,7 @@
  "public": 1,
  "quick_lists": [],
  "roles": [],
- "sequence_id": 9.0,
+ "sequence_id": 2.0,
  "shortcuts": [],
  "title": "Payroll",
  "type": "Workspace"

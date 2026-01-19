@@ -25,7 +25,7 @@ add_to_apps_screen = [
 		"name": "za_local",
 		"logo": "/assets/za_local/images/sa_map_icon.png",
 		"title": "South Africa Localization",
-		"route": "/app",
+		"route": "/app/workspace/South Africa Localization",
 		"has_permission": "za_local.api.check_app_permission",
 	}
 ]

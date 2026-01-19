@@ -8,7 +8,7 @@
  "doctype": "Workspace",
  "for_user": "",
  "hide_custom": 0,
- "icon": "file",
+ "icon": "accounting",
  "idx": 0,
  "indicator_color": "blue",
  "is_hidden": 0,
@@ -141,7 +141,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-01-08 17:43:55.501687",
+ "modified": "2026-01-19 12:22:41.229213",
  "modified_by": "Administrator",
  "module": "South Africa",
  "name": "Tax & Compliance",
@@ -151,7 +151,7 @@
  "public": 1,
  "quick_lists": [],
  "roles": [],
- "sequence_id": 5.0,
+ "sequence_id": 1.0,
  "shortcuts": [],
  "title": "Tax & Compliance",
  "type": "Workspace"
