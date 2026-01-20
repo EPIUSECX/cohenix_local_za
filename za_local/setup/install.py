@@ -886,8 +886,31 @@ def refresh_desktop_icons():
 			fields=["name"]
 		)
 		
+		# Ensure the main "South Africa" app icon always points to this app
+		# and uses the SA map image, even on existing sites with older data.
 		app_title = frappe.get_hooks("app_title", app_name="za_local")[0]
+		app_logo = frappe.get_hooks("app_logo_url", app_name="za_local")[0]
 		app_icon_name = frappe.db.exists("Desktop Icon", {"label": app_title, "icon_type": "App"})
+		if app_icon_name:
+			app_icon_doc = frappe.get_doc("Desktop Icon", app_icon_name)
+		else:
+			# Create the app icon if it does not exist (defensive for older sites)
+			app_icon_doc = frappe.get_doc({
+				"doctype": "Desktop Icon",
+				"label": app_title,
+				"icon_type": "App",
+				"link": "/app",
+				"link_type": "External",
+				"standard": 1,
+			})
+		
+		# Always keep the app icon wired to za_local and the SA map image
+		app_icon_doc.app = "za_local"
+		if app_logo and app_icon_doc.logo_url != app_logo:
+			app_icon_doc.logo_url = app_logo
+		app_icon_doc.save(ignore_permissions=True)
+		frappe.db.commit()
+		app_icon_name = app_icon_doc.name
 		
 		for w in workspaces:
 			di = frappe.db.exists("Desktop Icon", {"label": w.name, "icon_type": "Link"})
@@ -906,6 +929,13 @@ def refresh_desktop_icons():
 					})
 				workspace_doc = frappe.get_doc("Workspace", w.name)
 				icon_doc.app = "za_local"
+
+				# Ensure ZA workspaces always open their Workspace Sidebar (not legacy SA VAT module etc.)
+				# This is idempotent and will fix any existing Desktop Icons with wrong link_type/link_to.
+				if w.name in ("Payroll", "Tax & Compliance", "South Africa Localization"):
+					icon_doc.icon_type = "Link"
+					icon_doc.link_type = "Workspace Sidebar"
+					icon_doc.link_to = w.name
 
 				# Update icon to match workspace icon (for desktop display)
 				if workspace_doc.icon and icon_doc.icon != workspace_doc.icon:
