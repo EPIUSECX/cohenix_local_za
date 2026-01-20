@@ -1,4 +1,3 @@
-from . import __version__ as app_version
 
 app_name = "za_local"
 app_title = "South Africa"
@@ -6,16 +5,14 @@ app_publisher = "Cohenix"
 app_description = "Comprehensive South African localization for ERPNext covering payroll, tax, VAT, and COIDA compliance"
 app_email = "info@cohenix.com"
 app_license = "mit"
-app_version = app_version
+app_logo_url = "/assets/za_local/images/sa_map_icon.png"
+
 
 # Import hook utility functions for conditional configuration
 # These are called at import time to generate configuration dynamically
 from za_local.utils.hooks_utils import get_hrms_doctype_js, get_override_doctype_class
 from za_local.setup.custom_records import get_za_local_custom_records
 
-# App logo for toolbar and app switcher
-# Path must be under public/ to be served as /assets/za_local/...
-app_logo_url = "/assets/za_local/images/sa_map_icon.png"
 
 # Add to Apps Screen
 # ------------------
