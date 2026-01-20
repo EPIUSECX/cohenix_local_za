@@ -16,16 +16,8 @@ from za_local.setup.custom_records import get_za_local_custom_records
 
 # Add to Apps Screen
 # ------------------
-# Controls app visibility in the app launcher with permission checks
-add_to_apps_screen = [
-	{
-		"name": "za_local",
-		"logo": "/assets/za_local/images/sa_map_icon.png",
-		"title": "South Africa Localization",
-		"route": "/app/workspace/South Africa Localization",
-		"has_permission": "za_local.api.check_app_permission",
-	}
-]
+# Standard Frappe localization - app appears in module navigation automatically
+# No custom workspace routing needed
 
 # Apps
 # ------------------
@@ -62,16 +54,6 @@ fixtures = [
             ]]
         ]
     },
-    
-    # SA Payroll Workspace
-    {"dt": "Workspace", "filters": [["name", "=", "SA Payroll"]]},
-    
-    # Workspace Sidebars
-    {"dt": "Workspace Sidebar", "filters": [["app", "=", "za_local"]]},
-    
-    # Desktop Icons (module icons for desk grid)
-    # Includes the South Africa module icon with flag image
-    {"dt": "Desktop Icon", "filters": [["app", "=", "za_local"]]},
     
     # App doctype for v16 compatibility
     # Required for proper app deployment and management in Frappe v16+
