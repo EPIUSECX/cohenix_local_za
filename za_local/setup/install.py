@@ -792,10 +792,10 @@ def refresh_desktop_icons():
 				try:
 					sidebar_doc = frappe.get_doc("Workspace Sidebar", sidebar_name)
 					workspace_doc = frappe.get_doc("Workspace", w.name)
-					# Ensure the sidebar uses the workspace's module
-					if sidebar_doc.module != w.module:
-						sidebar_doc.module = w.module
-						sidebar_doc.app = "za_local"
+					# CRITICAL: Ensure the sidebar is correctly linked to the workspace (not SA VAT module)
+					sidebar_doc.workspace = w.name
+					sidebar_doc.module = w.module
+					sidebar_doc.app = "za_local"
 					# Update header icon to match workspace icon (for sidebar display)
 					if sidebar_doc.header_icon != workspace_doc.icon:
 						sidebar_doc.header_icon = workspace_doc.icon
@@ -890,10 +890,15 @@ def refresh_desktop_icons():
 		# and uses the SA map image, even on existing sites with older data.
 		app_title = frappe.get_hooks("app_title", app_name="za_local")[0]
 		app_logo = frappe.get_hooks("app_logo_url", app_name="za_local")[0]
-		app_icon_name = frappe.db.exists("Desktop Icon", {"label": app_title, "icon_type": "App"})
-		if app_icon_name:
-			app_icon_doc = frappe.get_doc("Desktop Icon", app_icon_name)
-		else:
+		
+		# Find ALL app icons with this label (there may be multiple per-user copies)
+		app_icon_names = frappe.get_all(
+			"Desktop Icon",
+			filters={"label": app_title},
+			pluck="name"
+		)
+		
+		if not app_icon_names:
 			# Create the app icon if it does not exist (defensive for older sites)
 			app_icon_doc = frappe.get_doc({
 				"doctype": "Desktop Icon",
@@ -903,65 +908,93 @@ def refresh_desktop_icons():
 				"link_type": "External",
 				"standard": 1,
 			})
-		
-		# Always keep the app icon wired to za_local and the SA map image
-		app_icon_doc.app = "za_local"
-		if app_logo and app_icon_doc.logo_url != app_logo:
+			app_icon_doc.app = "za_local"
 			app_icon_doc.logo_url = app_logo
-		app_icon_doc.save(ignore_permissions=True)
-		frappe.db.commit()
-		app_icon_name = app_icon_doc.name
+			app_icon_doc.insert(ignore_permissions=True)
+			app_icon_names = [app_icon_doc.name]
+		else:
+			# Force-fix ALL app icons to use correct logo and app
+			for icon_name in app_icon_names:
+				app_icon_doc = frappe.get_doc("Desktop Icon", icon_name)
+				app_icon_doc.app = "za_local"
+				app_icon_doc.icon_type = "App"
+				app_icon_doc.link = "/app"
+				app_icon_doc.link_type = "External"
+				if app_logo and app_icon_doc.logo_url != app_logo:
+					app_icon_doc.logo_url = app_logo
+				app_icon_doc.save(ignore_permissions=True)
+				print(f"  ✓ Fixed app icon '{icon_name}' (logo_url: {app_icon_doc.logo_url})")
 		
+		frappe.db.commit()
+		primary_app_icon_name = app_icon_names[0] if app_icon_names else None
+		
+		# CRITICAL: Find and fix ALL Desktop Icons for each workspace
+		# There may be multiple per-user copies or legacy icons pointing to wrong places
 		for w in workspaces:
-			di = frappe.db.exists("Desktop Icon", {"label": w.name, "icon_type": "Link"})
-			try:
-				if di:
-					icon_doc = frappe.get_doc("Desktop Icon", di)
-				else:
-					# Explicitly create missing Desktop Icons for known ZA workspaces (defensive for v16 behaviour)
-					icon_doc = frappe.get_doc({
-						"doctype": "Desktop Icon",
-						"label": w.name,
-						"icon_type": "Link",
-						"link_to": w.name,
-						"link_type": "Workspace Sidebar",
-						"standard": 1,
-					})
-				workspace_doc = frappe.get_doc("Workspace", w.name)
+			workspace_doc = frappe.get_doc("Workspace", w.name)
+			
+			# Find ALL Desktop Icons with this workspace label (not just one!)
+			all_icon_names = frappe.get_all(
+				"Desktop Icon",
+				filters={"label": w.name},
+				pluck="name"
+			)
+			
+			if not all_icon_names:
+				# Create a standard icon if none exists
+				icon_doc = frappe.get_doc({
+					"doctype": "Desktop Icon",
+					"label": w.name,
+					"icon_type": "Link",
+					"link_to": w.name,
+					"link_type": "Workspace Sidebar",
+					"standard": 1,
+				})
 				icon_doc.app = "za_local"
-
-				# Ensure ZA workspaces always open their Workspace Sidebar (not legacy SA VAT module etc.)
-				# This is idempotent and will fix any existing Desktop Icons with wrong link_type/link_to.
-				if w.name in ("Payroll", "Tax & Compliance", "South Africa Localization"):
-					icon_doc.icon_type = "Link"
-					icon_doc.link_type = "Workspace Sidebar"
-					icon_doc.link_to = w.name
-
-				# Update icon to match workspace icon (for desktop display)
-				if workspace_doc.icon and icon_doc.icon != workspace_doc.icon:
-					icon_doc.icon = workspace_doc.icon
-
-				# Set logo_url for desktop icons to display images instead of letters
-				# Payroll uses salary_payout.svg, Tax & Compliance uses tax-benefits.svg
-				if w.name == "Payroll" and not icon_doc.logo_url:
-					icon_doc.logo_url = "/assets/hrms/icons/desktop_icons/salary_payout.svg"
-				elif w.name == "Tax & Compliance" and not icon_doc.logo_url:
-					icon_doc.logo_url = "/assets/hrms/icons/desktop_icons/tax-benefits.svg"
-
-				# Hide "South Africa Localization" - it's the main workspace, not a nested item
-				if w.name == "South Africa Localization":
-					icon_doc.hidden = 1
-					icon_doc.parent_icon = None
-				else:
-					# Ensure Payroll and Tax & Compliance are visible and nested under app icon
-					icon_doc.hidden = 0
-					if app_icon_name:
-						icon_doc.parent_icon = app_icon_name
-
-				icon_doc.save(ignore_permissions=True)
-				print(f"  ✓ Updated Desktop Icon '{w.name}' (icon: {workspace_doc.icon})")
-			except Exception as e:
-				print(f"  ⊙ Could not update Desktop Icon for '{w.name}': {e}")
+				icon_doc.insert(ignore_permissions=True)
+				all_icon_names = [icon_doc.name]
+				print(f"  ✓ Created Desktop Icon for '{w.name}'")
+			
+			# Force-fix ALL icons for this workspace (including per-user copies)
+			for icon_name in all_icon_names:
+				try:
+					icon_doc = frappe.get_doc("Desktop Icon", icon_name)
+					
+					# CRITICAL FIX: Always force correct routing for ZA workspaces
+					# This overrides any legacy link_type="Module" or link_to="SA VAT" etc.
+					if w.name in ("Payroll", "Tax & Compliance", "South Africa Localization"):
+						icon_doc.icon_type = "Link"
+						icon_doc.link_type = "Workspace Sidebar"
+						icon_doc.link_to = w.name
+					
+					icon_doc.app = "za_local"
+					
+					# Update icon glyph from workspace
+					if workspace_doc.icon and icon_doc.icon != workspace_doc.icon:
+						icon_doc.icon = workspace_doc.icon
+					
+					# Set logo_url for desktop icons to display images instead of letters
+					if w.name == "Payroll" and not icon_doc.logo_url:
+						icon_doc.logo_url = "/assets/hrms/icons/desktop_icons/salary_payout.svg"
+					elif w.name == "Tax & Compliance" and not icon_doc.logo_url:
+						icon_doc.logo_url = "/assets/hrms/icons/desktop_icons/tax-benefits.svg"
+					
+					# Hide "South Africa Localization" - it's the main workspace, not a nested item
+					if w.name == "South Africa Localization":
+						icon_doc.hidden = 1
+						icon_doc.parent_icon = None
+					else:
+						# Ensure Payroll and Tax & Compliance are visible and nested under app icon
+						icon_doc.hidden = 0
+						if primary_app_icon_name:
+							icon_doc.parent_icon = primary_app_icon_name
+					
+					icon_doc.save(ignore_permissions=True)
+					print(f"  ✓ Fixed Desktop Icon '{icon_name}' for '{w.name}' (link_type: {icon_doc.link_type}, link_to: {icon_doc.link_to})")
+				except Exception as e:
+					print(f"  ⊙ Could not update Desktop Icon '{icon_name}' for '{w.name}': {e}")
+					import traceback
+					traceback.print_exc()
 		
 		
 		# Clear cache so icons appear immediately
