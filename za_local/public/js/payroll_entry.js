@@ -23,11 +23,13 @@ frappe.ui.form.on("Payroll Entry", {
 							callback: function(r) {
 								if (r.message) {
 									// Also fetch bank account details and flags
-									// Use whitelisted method that checks permission on parent Payroll Entry
 									frappe.call({
-										method: "za_local.overrides.payroll_entry.get_payroll_employee_detail_flags",
+										method: "frappe.client.get_list",
 										args: {
-											payroll_entry_name: frm.doc.name
+											doctype: "Payroll Employee Detail",
+											filters: { parent: frm.doc.name },
+											fields: ["employee", "za_is_bank_entry_created", "za_is_company_contribution_created"],
+											limit_page_length: 0
 										},
 										callback: function(flags_r) {
 											let flag_map = {};
@@ -60,10 +62,12 @@ frappe.ui.form.on("Payroll Entry", {
 											}
 											
 											frappe.call({
-												method: "za_local.overrides.payroll_entry.get_bank_account_currencies",
+												method: "frappe.client.get_list",
 												args: {
-													bank_accounts: bank_accounts,
-													company: frm.doc.company,
+													doctype: "Bank Account",
+													filters: { name: ["in", bank_accounts] },
+													fields: ["name", "account", "account_currency"],
+													limit_page_length: 0
 												},
 												callback: function(bank_r) {
 													let bank_map = {};

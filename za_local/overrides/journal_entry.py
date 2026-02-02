@@ -160,9 +160,7 @@ def update_employee_journal_entry_flags(doc):
                         "employee": row.party
                     },
                     "za_is_bank_entry_created",
-                    0,
-                    update_modified=False,
-                    ignore_permissions=True,  # Permission already checked on parent Journal Entry
+                    0
                 )
             
             # Update company contribution flag
@@ -174,8 +172,6 @@ def update_employee_journal_entry_flags(doc):
                         "employee": row.party
                     },
                     "za_is_company_contribution_created",
-                    0,
-                    update_modified=False,
-                    ignore_permissions=True,  # Permission already checked on parent Journal Entry
+                    0
                 )
 

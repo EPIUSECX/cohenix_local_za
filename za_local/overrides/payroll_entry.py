@@ -453,8 +453,6 @@ class ZAPayrollEntry(PayrollEntry):
                 {"parent": self.name, "employee": ped.employee},
                 "za_is_company_contribution_created",
                 1,
-                update_modified=False,
-                ignore_permissions=True,  # Permission already checked on parent Payroll Entry
             )
 
         frappe.msgprint(_(f"Created Company Contribution Journal Entry: {je.name}"))
@@ -898,8 +896,6 @@ class ZAPayrollEntry(PayrollEntry):
                     {"parent": self.name, "employee": employee},
                     "za_is_bank_entry_created",
                     1,
-                    update_modified=False,
-                    ignore_permissions=True,  # Permission already checked on parent Payroll Entry
                 )
             
             created_journal_entries.append(bank_entry.name)
@@ -918,102 +914,6 @@ class ZAPayrollEntry(PayrollEntry):
             )
         
         return created_journal_entries
-
-
-@frappe.whitelist()
-def get_payroll_employee_detail_flags(payroll_entry_name):
-	"""
-	Get bank entry and company contribution flags for Payroll Employee Detail records.
-	
-	This method checks permission on the parent Payroll Entry document,
-	not the child table, which is the correct permission model.
-	
-	Args:
-		payroll_entry_name: Name of the Payroll Entry document
-		
-	Returns:
-		List of dicts with employee, za_is_bank_entry_created, za_is_company_contribution_created
-	"""
-	# Validate input
-	if not payroll_entry_name:
-		frappe.throw(_("Payroll Entry name is required"), frappe.ValidationError)
-	
-	# Verify document exists
-	if not frappe.db.exists("Payroll Entry", payroll_entry_name):
-		frappe.throw(
-			_("Payroll Entry {0} does not exist").format(frappe.bold(payroll_entry_name)),
-			frappe.DoesNotExistError
-		)
-	
-	# Check permission on parent Payroll Entry document
-	if not frappe.has_permission("Payroll Entry", "read", payroll_entry_name):
-		frappe.throw(
-			_("Insufficient Permission for Payroll Entry"),
-			frappe.PermissionError
-		)
-	
-	# Read child table records - permission already checked on parent
-	records = frappe.get_all(
-		"Payroll Employee Detail",
-		filters={"parent": payroll_entry_name},
-		fields=["employee", "za_is_bank_entry_created", "za_is_company_contribution_created"],
-		ignore_permissions=True  # Safe because we checked parent permission above
-	)
-	
-	return records or []  # Return empty list if no records found
-
-
-@frappe.whitelist()
-def get_bank_account_currencies(bank_accounts, company):
-	"""
-	Return bank account currencies for the given Bank Account names.
-	
-	Uses company default currency for all bank accounts. This ensures
-	accounting entries (Journal Entries) reflect correctly in the chart
-	of accounts and general ledger.
-	
-	Note: In Frappe v17, Bank Account doesn't have account_currency field.
-	We use company default currency which is the standard approach for
-	payroll bank entries.
-	"""
-	import json
-
-	# Normalise input from JS (array or JSON string)
-	if isinstance(bank_accounts, str):
-		try:
-			bank_accounts = json.loads(bank_accounts)
-		except Exception:
-			# Fallback: treat as single name
-			bank_accounts = [bank_accounts]
-
-	if not bank_accounts:
-		return []
-
-	# Get company default currency - this is what will be used in accounting entries
-	default_currency = frappe.get_cached_value("Company", company, "default_currency")
-	
-	if not default_currency:
-		frappe.throw(_("Company {0} does not have a default currency configured").format(company))
-
-	# Verify bank accounts exist (for validation)
-	existing_accounts = frappe.get_all(
-		"Bank Account",
-		filters={"name": ["in", bank_accounts]},
-		fields=["name"],
-		pluck="name"
-	)
-	
-	# Return records with company default currency for all bank accounts
-	# This ensures accounting entries use the correct currency for GL/Chart of Accounts
-	records = []
-	for bank_account in bank_accounts:
-		if bank_account in existing_accounts:
-			records.append({
-				"name": bank_account,
-				"account_currency": default_currency
-			})
-	
-	return records
 
 
 @frappe.whitelist()
