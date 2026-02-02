@@ -1,0 +1,52 @@
+{
+ "app": "za_local",
+ "creation": "2026-01-20 15:19:30.552631",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "header_icon": "map",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Home",
+   "link_to": "South Africa Localization",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "accounting",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Tax & Compliance",
+   "link_to": "Tax & Compliance",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "accounting",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Payroll",
+   "link_to": "Payroll",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-02-02 18:10:08.164562",
+ "modified_by": "Administrator",
+ "module": "South Africa",
+ "name": "South Africa Localization",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "South Africa Localization"
+}
