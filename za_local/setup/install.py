@@ -96,8 +96,9 @@ def after_migrate():
 	make_property_setters()
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
-	import_workspace()
-	refresh_desktop_icons()
+	# These are not Fixtures
+	#import_workspace()
+	#refresh_desktop_icons()
 	
 	frappe.db.commit()
 

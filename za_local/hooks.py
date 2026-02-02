@@ -64,18 +64,22 @@ fixtures = [
     },
     
     # SA Payroll Workspace
-    {"dt": "Workspace", "filters": [["name", "=", "SA Payroll"]]},
+    # This is not a Fixture
+    #{"dt": "Workspace", "filters": [["name", "=", "SA Payroll"]]},
     
     # Workspace Sidebars
-    {"dt": "Workspace Sidebar", "filters": [["app", "=", "za_local"]]},
+    # This is not a Fixture
+    #{"dt": "Workspace Sidebar", "filters": [["app", "=", "za_local"]]},
     
     # Desktop Icons (module icons for desk grid)
     # Includes the South Africa module icon with flag image
-    {"dt": "Desktop Icon", "filters": [["app", "=", "za_local"]]},
+    # This is not a fixture
+    #{"dt": "Desktop Icon", "filters": [["app", "=", "za_local"]]},
     
     # App doctype for v16 compatibility
     # Required for proper app deployment and management in Frappe v16+
-    {"dt": "App", "filters": [["name", "=", "za_local"]]},
+    # This is not a Fixture
+    #{"dt": "App", "filters": [["name", "=", "za_local"]]},
 ]
 
 # Includes in <head>

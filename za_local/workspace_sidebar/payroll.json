@@ -1,23 +1,11 @@
 {
  "app": "za_local",
- "creation": "2025-11-12 15:31:27.314457",
+ "creation": "2026-02-02 17:41:52.112901",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
  "header_icon": "accounting",
  "idx": 0,
  "items": [
-  {
-   "child": 0,
-   "collapsible": 1,
-   "icon": "home",
-   "indent": 0,
-   "keep_closed": 0,
-   "label": "Home",
-   "link_to": "Payroll",
-   "link_type": "Workspace",
-   "show_arrow": 0,
-   "type": "Link"
-  },
   {
    "child": 0,
    "collapsible": 1,
@@ -33,11 +21,22 @@
   {
    "child": 0,
    "collapsible": 1,
+   "icon": "",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Payroll Process",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Section Break"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
    "icon": "file-text",
    "indent": 0,
    "keep_closed": 0,
-   "label": "SETA",
-   "link_to": "SETA",
+   "label": "Salary Structure",
+   "link_to": "Salary Structure",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"
@@ -48,8 +47,8 @@
    "icon": "file-text",
    "indent": 0,
    "keep_closed": 0,
-   "label": "Business Trip Region",
-   "link_to": "Business Trip Region",
+   "label": "Salary Structure Assignment",
+   "link_to": "Salary Structure Assignment",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"
@@ -60,8 +59,32 @@
    "icon": "file-text",
    "indent": 0,
    "keep_closed": 0,
-   "label": "Bargaining Council",
-   "link_to": "Bargaining Council",
+   "label": "Payroll Entry",
+   "link_to": "Payroll Entry",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Salary Slip",
+   "link_to": "Salary Slip",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Additional Salary",
+   "link_to": "Additional Salary",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"
@@ -71,11 +94,106 @@
    "collapsible": 1,
    "icon": "",
    "indent": 0,
-   "keep_closed": 1,
-   "label": "Reports",
+   "keep_closed": 0,
+   "label": "Setup",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Salary Component",
+   "link_to": "Salary Component",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Tax Rebates and Medical Tax Credit",
+   "link_to": "Tax Rebates and Medical Tax Credit",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Employee",
+   "link_to": "Employee",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Income Tax Slab List",
+   "link_to": "Income Tax Slab",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Tax Filing & Reconciliation",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Section Break"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "EMP201 Submission",
+   "link_to": "EMP201 Submission",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "EMP501 Reconciliation",
+   "link_to": "EMP501 Reconciliation",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "IRP5 Certificate",
+   "link_to": "IRP5 Certificate",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
   },
   {
    "child": 0,
@@ -88,6 +206,17 @@
    "link_type": "Report",
    "show_arrow": 0,
    "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Reports",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Section Break"
   },
   {
    "child": 0,
@@ -126,7 +255,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-01-19 16:13:46.478209",
+ "modified": "2026-02-02 18:11:34.798774",
  "modified_by": "Administrator",
  "module": "South Africa",
  "name": "Payroll",
