@@ -180,6 +180,8 @@ def is_payroll_processed(employee, frequency_period):
 def get_additional_salaries(employee, from_date, to_date, component_type="earnings"):
     """
     Get additional salaries for an employee within a date range.
+    Filters by Additional Salary type (Earning vs Deduction) so each record
+    appears only in the correct section on the Salary Slip (earnings or deductions).
     
     Args:
         employee (str): Employee ID
@@ -200,6 +202,11 @@ def get_additional_salaries(employee, from_date, to_date, component_type="earnin
         filters["za_is_company_contribution"] = 1
     else:
         filters["za_is_company_contribution"] = 0
+        # Filter by type so the same Additional Salary does not appear in both earnings and deductions
+        if component_type == "earnings":
+            filters["type"] = "Earning"
+        elif component_type == "deductions":
+            filters["type"] = "Deduction"
     
     return frappe.get_all(
         "Additional Salary",
