@@ -21,6 +21,27 @@ from za_local.utils.hrms_detection import is_hrms_installed
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
 
+
+def apply_chart_patches_on_request():
+	"""
+	Called from before_request hook so the ZA chart is available in the setup wizard
+	and when creating a Company. Monkey patches only run at install/migrate (one process);
+	the wizard runs in other requests/workers, so we re-apply chart patches per request.
+	Patches are idempotent (no-op if already applied).
+	"""
+	try:
+		from za_local.accounts.setup_chart import (
+			extend_charts_for_country,
+			extend_chart_loader,
+			patch_financial_report_templates_sync,
+		)
+		extend_charts_for_country()
+		extend_chart_loader()
+		patch_financial_report_templates_sync()
+	except Exception:
+		pass
+
+
 def before_install():
 	"""
 	Run before app installation.

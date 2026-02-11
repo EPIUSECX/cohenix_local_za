@@ -6,6 +6,20 @@ The South African Chart of Accounts is a complete accounting structure that incl
 
 ---
 
+## How other localizations do it (recommended approach)
+
+**Selectable chart at install** is the standard pattern in ERPNext:
+
+- **India, UAE, Australia, France, etc.**: Each has a chart template (e.g. `in_standard_chart_of_accounts.json`, `ae_uae_chart_template_standard.json`) in ERPNext’s **verified** chart folder. When you choose that country in the setup wizard, `get_charts_for_country(country)` finds those files by country code and their **name** appears in the “Chart of Accounts” dropdown. The user selects that chart; on Company save, `create_charts(company, chart_template)` runs and **creates the full chart in one go**. No post‑hoc augmentation.
+
+- **ZA Local** does the same, but the chart lives in the app: we **inject** “South Africa - Standard Chart of Accounts” into the chart list when country is South Africa (`extend_charts_for_country`) and we **load** the tree from our JSON when that template is selected (`extend_chart_loader`). So the **recommended and most reliable** way to get the SA chart is:
+
+  **At install (Setup Wizard):** When you set country to **South Africa**, the “Chart of Accounts” dropdown is filled with charts for that country. **Select “South Africa - Standard Chart of Accounts”** (it is listed first). The company is then created with that template and ERPNext creates the full SA chart when the company is saved. No augmentation step is needed.
+
+- **Augmentation** (adding only SA tax accounts to an existing Standard chart) is a **fallback** for when the user already chose “Standard” or for late ZA installs. It is best-effort and can depend on chart structure; the selectable chart avoids that.
+
+---
+
 ## How It Works
 
 ### Setup Process
