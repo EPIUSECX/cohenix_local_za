@@ -410,7 +410,20 @@ def setup_za_localization(args):
 	load_regions = args.get("za_load_business_trip_regions", 1)
 	
 	# Get company name from args (still used for other setup pieces and ZA chart augmentation)
-	company = args.get("company_name") or frappe.defaults.get_user_default("Company")
+	# Wizard may pass company_name or company; fallback to default or first SA company
+	company = (
+		args.get("company_name")
+		or args.get("company")
+		or frappe.defaults.get_user_default("Company")
+	)
+	if not company:
+		companies = frappe.get_all(
+			"Company",
+			filters={"country": "South Africa"},
+			pluck="name",
+			limit=1,
+		)
+		company = companies[0] if companies else None
 	
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
 	

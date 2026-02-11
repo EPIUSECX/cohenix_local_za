@@ -60,75 +60,109 @@ def load_sa_chart_of_accounts(company):
 		
 	except Exception as e:
 		frappe.log_error(
-			f"Error loading Chart of Accounts for {company}: {str(e)}",
-			"ZA Local Chart of Accounts"
+			f"Error loading Chart of Accounts for {company}: {str(e)}\n{frappe.get_traceback()}",
+			"ZA Local Chart of Accounts",
 		)
-		frappe.throw(
-			_("Failed to load Chart of Accounts: {0}").format(str(e)),
-			title=_("Chart Loading Failed")
+		# Do not re-raise: allow setup wizard to complete; user can add SA accounts later if needed
+		return False
+
+
+def _get_root_account(company, root_type):
+	"""Find the existing root account by root_type (works with any chart naming)."""
+	name = frappe.db.get_value(
+		"Account",
+		{"company": company, "root_type": root_type, "parent_account": ("in", ("", None))},
+		"name",
+	)
+	return frappe.get_doc("Account", name) if name else None
+
+
+def _get_account_by_name_and_parent(company, account_name, parent_account_name):
+	"""Find an account by company, account_name, and parent (by name)."""
+	parent = frappe.db.get_value(
+		"Account",
+		{"company": company, "account_name": parent_account_name},
+		"name",
+	)
+	if not parent:
+		return None
+	name = frappe.db.get_value(
+		"Account",
+		{"company": company, "account_name": account_name, "parent_account": parent},
+		"name",
+	)
+	return frappe.get_doc("Account", name) if name else None
+
+
+def _get_or_create_tax_group_under(company, parent_account_doc, preferred_names, account_type="Tax"):
+	"""Find existing tax group under parent (e.g. Duties and Taxes / Tax Liabilities) or create one."""
+	for preferred_name in preferred_names:
+		existing = frappe.db.get_value(
+			"Account",
+			{
+				"company": company,
+				"account_name": preferred_name,
+				"parent_account": parent_account_doc.name,
+				"is_group": 1,
+			},
+			"name",
 		)
+		if existing:
+			return frappe.get_doc("Account", existing)
+	# Create first preferred name
+	return _get_or_create_account(
+		company, preferred_names[0], account_type,
+		parent=parent_account_doc.name, is_group=1
+	)
 
 
 def _add_sa_tax_accounts(company, chart_tree):
 	"""
 	Add only SA-specific tax accounts to an existing chart.
-	
-	Args:
-		company: Company name
-		chart_tree: Chart of Accounts tree structure from JSON
+	Works with any standard chart (e.g. Source of Funds (Liabilities) / Application of Funds (Assets)).
 	"""
-	# Extract tax accounts from the chart tree
+	# Extract tax accounts from our ZA template tree
 	tax_accounts = _extract_tax_accounts(chart_tree)
-	
-	# Get or create parent accounts
-	liabilities_root = _get_or_create_account(
-		company, "Liabilities", "Liability", is_group=1, root_type="Liability"
-	)
-	current_liabilities = _get_or_create_account(
-		company, "Current Liabilities", "Liability", 
-		parent=liabilities_root.name, is_group=1
-	)
-	
-	assets_root = _get_or_create_account(
-		company, "Assets", "Asset", is_group=1, root_type="Asset"
-	)
-	current_assets = _get_or_create_account(
-		company, "Current Assets", "Asset",
-		parent=assets_root.name, is_group=1
-	)
-	
-	# Create Tax Liabilities group if it doesn't exist (SA-specific naming)
-	# Check if it exists with either name (for compatibility with standard charts)
-	tax_liabilities_name = "Tax Liabilities"  # Use SA-specific naming per SA laws/legislation
-	existing_tax_group = frappe.db.get_value(
-		"Account",
-		{"company": company, "account_name": ["in", ["Tax Liabilities", "Duties and Taxes"]], "is_group": 1},
-		"name"
-	)
-	if existing_tax_group:
-		tax_liabilities = frappe.get_doc("Account", existing_tax_group)
-		# If it's named "Duties and Taxes", we'll use it but prefer "Tax Liabilities" for new companies
-	else:
-		tax_liabilities = _get_or_create_account(
-			company, tax_liabilities_name, "Tax",
-			parent=current_liabilities.name, is_group=1
+
+	# Find existing roots by root_type (don't assume "Liabilities" / "Assets" names)
+	liabilities_root = _get_root_account(company, "Liability")
+	assets_root = _get_root_account(company, "Asset")
+	if not liabilities_root or not assets_root:
+		frappe.log_error(
+			f"ZA chart: could not find root accounts for company {company} (Liability root={bool(liabilities_root)}, Asset root={bool(assets_root)})",
+			"ZA Local Chart of Accounts",
 		)
-	
-	# Create Tax Assets group if it doesn't exist
-	tax_assets = _get_or_create_account(
-		company, "Tax Assets", "Tax",
-		parent=current_assets.name, is_group=1
+		raise ValueError(_("Could not find Chart of Accounts roots for this company"))
+
+	# Find Current Liabilities / Current Assets (standard names used by most charts)
+	current_liabilities = _get_account_by_name_and_parent(
+		company, "Current Liabilities", liabilities_root.account_name
 	)
-	
-	# Add tax accounts from liabilities
+	current_assets = _get_account_by_name_and_parent(
+		company, "Current Assets", assets_root.account_name
+	)
+	if not current_liabilities or not current_assets:
+		frappe.log_error(
+			f"ZA chart: could not find Current Liabilities/Assets for company {company}",
+			"ZA Local Chart of Accounts",
+		)
+		raise ValueError(_("Could not find Current Liabilities or Current Assets in this chart"))
+
+	# Use existing Tax Liabilities / Duties and Taxes group or create Tax Liabilities
+	tax_liabilities = _get_or_create_tax_group_under(
+		company, current_liabilities, ["Tax Liabilities", "Duties and Taxes"]
+	)
+	tax_assets = _get_or_create_tax_group_under(
+		company, current_assets, ["Tax Assets"]
+	)
+
+	# Add SA tax ledgers under the groups
 	liability_tax_accounts = tax_accounts.get("liabilities", {})
 	for account_name, account_info in liability_tax_accounts.items():
 		_get_or_create_account(
 			company, account_name, "Tax",
 			parent=tax_liabilities.name, is_group=0
 		)
-	
-	# Add tax accounts from assets
 	asset_tax_accounts = tax_accounts.get("assets", {})
 	for account_name, account_info in asset_tax_accounts.items():
 		_get_or_create_account(
