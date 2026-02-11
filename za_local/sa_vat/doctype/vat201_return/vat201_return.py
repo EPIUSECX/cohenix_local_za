@@ -44,11 +44,6 @@ class VAT201Return(Document):
             vat_number = frappe.db.get_value("Company", self.company, "za_vat_number")
             if vat_number:
                 self.vat_registration_number = vat_number
-            else:
-                # Try to get from VAT settings
-                vat_settings = frappe.get_doc("South Africa VAT Settings")
-                if vat_settings.vat_registration_number:
-                    self.vat_registration_number = vat_settings.vat_registration_number
                     
     def calculate_totals(self):
         """Calculate all totals"""

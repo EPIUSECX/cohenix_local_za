@@ -373,6 +373,7 @@ def setup_za_localization(args):
 	import frappe
 	from frappe import _
 	from za_local.setup.install import load_data_from_json, insert_record
+	from za_local.accounts.setup_chart import load_sa_chart_of_accounts
 	from za_local.utils.hrms_detection import is_hrms_installed, require_hrms
 	from za_local.utils.csv_importer import import_csv_data
 	from pathlib import Path
@@ -408,7 +409,7 @@ def setup_za_localization(args):
 	load_medical = args.get("za_load_medical_credits", 1)
 	load_regions = args.get("za_load_business_trip_regions", 1)
 	
-	# Get company name from args (still used for other setup pieces)
+	# Get company name from args (still used for other setup pieces and ZA chart augmentation)
 	company = args.get("company_name") or frappe.defaults.get_user_default("Company")
 	
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
@@ -510,6 +511,21 @@ def setup_za_localization(args):
 			except Exception as e:
 				print(f"  ! Warning: Could not load Business Trip Regions: {e}")
 				frappe.log_error(f"Business Trip Regions loading failed: {str(e)}", "ZA Local Setup")
+		
+		# 9. Augment Chart of Accounts with ZA-specific tax accounts
+		# This runs after ERPNext has already created the base chart in the main wizard,
+		# and only adds SA tax assets/liabilities (does not replace the chart).
+		if company:
+			try:
+				print(f"Loading ZA Chart of Accounts extensions for company: {company} ...")
+				added = load_sa_chart_of_accounts(company)
+				if added:
+					print("  ✓ ZA tax accounts loaded into existing Chart of Accounts")
+				else:
+					print("  ⊙ ZA Chart of Accounts augmentation skipped (no existing accounts found)")
+			except Exception as e:
+				print(f"  ! Warning: Could not load ZA Chart of Accounts for {company}: {e}")
+				frappe.log_error(f"ZA Chart of Accounts loading failed: {str(e)}", "ZA Local Setup")
 		
 		# Don't use msgprint in setup wizard - it can cause issues
 		# frappe.msgprint(_("South African localization configured successfully!"))

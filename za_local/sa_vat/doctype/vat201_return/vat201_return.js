@@ -78,14 +78,6 @@ frappe.ui.form.on('VAT201 Return', {
             frappe.db.get_value('Company', frm.doc.company, 'za_vat_number', function(r) {
                 if (r && r.za_vat_number) {
                     frm.set_value('vat_registration_number', r.za_vat_number);
-                } else {
-                    // If company doesn't have VAT number, try to get from VAT settings
-                    frappe.db.get_single_value('South Africa VAT Settings', 'vat_registration_number')
-                        .then(vat_reg_number => {
-                            if (vat_reg_number) {
-                                frm.set_value('vat_registration_number', vat_reg_number);
-                            }
-                        });
                 }
             });
         }

@@ -4,11 +4,25 @@
 import frappe
 from frappe.model.document import Document
 
+
 class SouthAfricaVATSettings(Document):
     def validate(self):
+        self.ensure_company_default()
         self.validate_vat_rates()
         self.validate_vat_accounts()
-        self.validate_vat_registration_number()
+        self.validate_company_vat_number()
+
+    def ensure_company_default(self):
+        """Ensure company is set, and propagate to default_vat_report_company when appropriate."""
+        if not self.company:
+            # Default to the first company (alphabetical order) if none selected
+            companies = frappe.get_all("Company", pluck="name", order_by="name asc", limit=1)
+            if companies:
+                self.company = companies[0]
+
+        # If no explicit default_vat_report_company, fall back to selected company
+        if self.company and not self.default_vat_report_company:
+            self.default_vat_report_company = self.company
         
     def validate_vat_rates(self):
         """Validate VAT rates"""
@@ -105,17 +119,33 @@ class SouthAfricaVATSettings(Document):
             account = getattr(self, account_field)
             if account and not frappe.db.exists("Account", account):
                 frappe.throw(f"Account {account} does not exist")
-                
-    def validate_vat_registration_number(self):
-        """Validate VAT registration number format"""
-        if self.vat_registration_number:
-            # South African VAT numbers are 10 digits, usually starting with 4
-            import re
-            if not re.match(r'^[0-9]{10}$', self.vat_registration_number):
-                frappe.throw("VAT Registration Number must be 10 digits")
-                
-            if not self.vat_registration_number.startswith('4'):
-                frappe.msgprint("South African VAT Registration Numbers typically start with '4'", indicator='yellow')
+
+    def validate_company_vat_number(self):
+        """Validate VAT number on the default company (display-only here)."""
+        # Prefer the explicitly selected company for validation; fall back to default_vat_report_company
+        company = self.company or self.default_vat_report_company
+        if not company:
+            return
+
+        vat_number = frappe.db.get_value("Company", company, "za_vat_number")
+        if not vat_number:
+            frappe.msgprint(
+                "VAT Registration Number is not set on the selected Default VAT Report Company. "
+                "Set it on the Company record to ensure VAT201 returns are correct.",
+                indicator="yellow",
+            )
+            return
+
+        # South African VAT numbers are 10 digits, usually starting with 4
+        import re
+        if not re.match(r"^[0-9]{10}$", vat_number):
+            frappe.throw("Company VAT Registration Number must be 10 digits")
+
+        if not vat_number.startswith("4"):
+            frappe.msgprint(
+                "South African VAT Registration Numbers typically start with '4'",
+                indicator="yellow",
+            )
                 
     def on_update(self):
         """Update VAT settings in Accounts Settings"""

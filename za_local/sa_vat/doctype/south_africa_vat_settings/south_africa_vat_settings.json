@@ -5,6 +5,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "company",
   "vat_settings_section",
   "standard_vat_rate",
   "column_break_3",
@@ -37,6 +38,14 @@
   "default_vat_report_period"
  ],
  "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 0,
+   "description": "Company for which these VAT settings are being viewed."
+  },
   {
    "fieldname": "vat_settings_section",
    "fieldtype": "Section Break",
@@ -78,11 +87,12 @@
    "label": "VAT Registration"
   },
   {
-   "description": "VAT Registration Number (e.g., 4111111112)",
+   "description": "VAT Registration Number (e.g., 4111111112) set in Company",
    "fieldname": "vat_registration_number",
    "fieldtype": "Data",
    "label": "VAT Registration Number",
-   "reqd": 1
+   "read_only": 1,
+   "fetch_from": "company.za_vat_number"
   },
   {
    "description": "Type of VAT vendor",
