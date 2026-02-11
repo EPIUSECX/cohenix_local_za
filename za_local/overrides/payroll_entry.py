@@ -754,6 +754,7 @@ class ZAPayrollEntry(PayrollEntry):
             employees = account_data.get("employees", [])
             posting_date = account_data.get("posting_date")
             exchange_rate = flt(account_data.get("exchange_rate", 1))
+            # From dialog (company default in UI). Used only to choose base_net_pay vs net_pay; ledger currency is from Account (CoA).
             account_currency = account_data.get("currency", company_currency)
             
             if not employees:

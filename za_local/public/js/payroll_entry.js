@@ -61,19 +61,23 @@ frappe.ui.form.on("Payroll Entry", {
 												return;
 											}
 											
+											// Bank Account get_list: do not request account_currency (not permitted in this Frappe version).
+											// Use company default currency for dialog/exchange-rate UI only. Ledger currency comes from
+											// the Account doctype (Chart of Accounts) when the server builds the Journal Entry.
 											frappe.call({
 												method: "frappe.client.get_list",
 												args: {
 													doctype: "Bank Account",
 													filters: { name: ["in", bank_accounts] },
-													fields: ["name", "account", "account_currency"],
+													fields: ["name", "account"],
 													limit_page_length: 0
 												},
 												callback: function(bank_r) {
+													let company_currency = frappe.get_doc(":Company", frm.doc.company).default_currency;
 													let bank_map = {};
 													if (bank_r.message) {
 														bank_r.message.forEach(bank => {
-															bank_map[bank.name] = bank.account_currency || frappe.get_doc(":Company", frm.doc.company).default_currency;
+															bank_map[bank.name] = company_currency;
 														});
 													}
 													

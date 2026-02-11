@@ -372,7 +372,7 @@ def setup_za_localization(args):
 	"""
 	import frappe
 	from frappe import _
-	from za_local.setup.install import load_data_from_json, import_workspace, insert_record
+	from za_local.setup.install import load_data_from_json, insert_record
 	from za_local.utils.hrms_detection import is_hrms_installed, require_hrms
 	from za_local.utils.csv_importer import import_csv_data
 	from pathlib import Path
@@ -510,13 +510,6 @@ def setup_za_localization(args):
 			except Exception as e:
 				print(f"  ! Warning: Could not load Business Trip Regions: {e}")
 				frappe.log_error(f"Business Trip Regions loading failed: {str(e)}", "ZA Local Setup")
-		
-		# 9. Refresh South Africa workspaces to respect payroll selection
-		try:
-			import_workspace(enable_payroll=bool(enable_hrms_payroll))
-		except Exception as e:
-			print(f"  ! Warning: Could not import workspace: {e}")
-			frappe.log_error(f"Workspace import failed: {str(e)}", "ZA Local Setup")
 		
 		# Don't use msgprint in setup wizard - it can cause issues
 		# frappe.msgprint(_("South African localization configured successfully!"))
