@@ -6,6 +6,49 @@ from frappe.model.document import Document
 
 
 class SouthAfricaVATSettings(Document):
+    def load_from_db(self):
+        super().load_from_db()
+        self._set_vat_registration_number_from_company()
+        self._ensure_default_vat_rates_on_load()
+
+    def _set_vat_registration_number_from_company(self):
+        """Populate read-only VAT registration number from Company (default_vat_report_company or company)."""
+        company = self.default_vat_report_company or self.company
+        if company:
+            self.vat_registration_number = frappe.db.get_value("Company", company, "za_vat_number") or ""
+        else:
+            self.vat_registration_number = ""
+
+    def _ensure_default_vat_rates_on_load(self):
+        """Pre-populate VAT rates when table is empty so user can save (table is required). Runs on load only."""
+        if self.vat_rates:
+            return
+        standard = (getattr(self, "standard_vat_rate", None) or 15)
+        enable_zero = getattr(self, "enable_zero_rated_items", 1)
+        enable_exempt = getattr(self, "enable_exempt_items", 1)
+        self.append("vat_rates", {
+            "rate_name": "Standard Rate",
+            "rate": standard,
+            "is_standard_rate": 1,
+            "description": "Standard VAT rate for South Africa"
+        })
+        if enable_zero:
+            self.append("vat_rates", {
+                "rate_name": "Zero Rate",
+                "rate": 0,
+                "is_zero_rated": 1,
+                "is_exempt": 0,
+                "description": "Zero-rated items (0% VAT)"
+            })
+        if enable_exempt:
+            self.append("vat_rates", {
+                "rate_name": "Exempt",
+                "rate": 0,
+                "is_zero_rated": 0,
+                "is_exempt": 1,
+                "description": "VAT exempt items"
+            })
+
     def validate(self):
         self.ensure_company_default()
         self.validate_vat_rates()
@@ -230,7 +273,7 @@ class SouthAfricaVATSettings(Document):
             # Example: "South Africa VAT Standard Rate (15%)" or "South Africa VAT Zero Rate (0%)"
             label_parts = ["South Africa VAT", rate.rate_name]
             if rate.rate is not None:
-                label_parts.append(f"({frappe.utils.fmt_float(rate.rate, 2)}%)")
+                label_parts.append(f"({frappe.utils.flt(rate.rate, 2):.2f}%)")
             template_title = " ".join(label_parts)
 
             # Fetch or create the Item Tax Template for this rate/company
@@ -250,25 +293,21 @@ class SouthAfricaVATSettings(Document):
             # Reset taxes to keep the configuration in sync with VAT Settings
             item_tax_template.taxes = []
 
-            if rate.is_exempt:
-                # Exempt items: keep template with no tax rows so they remain untaxed
-                pass
-            else:
-                # Standard and zero-rated items: one row pointing to the output VAT account
-                if not self.output_vat_account:
-                    frappe.msgprint(
-                        "Output VAT Account is not set in South Africa VAT Settings. "
-                        f"Skipping Item Tax Template configuration for {template_title}.",
-                        indicator="yellow",
-                    )
-                    continue
-
-                item_tax_template.append(
-                    "taxes",
-                    {
-                        "tax_type": self.output_vat_account,
-                        "tax_rate": rate.rate,
-                    },
+            if not self.output_vat_account:
+                frappe.msgprint(
+                    "Output VAT Account is not set in South Africa VAT Settings. "
+                    f"Skipping Item Tax Template configuration for {template_title}.",
+                    indicator="yellow",
                 )
+                continue
+
+            # Item Tax Template requires at least one row in Tax Rates. Exempt = 0% row.
+            item_tax_template.append(
+                "taxes",
+                {
+                    "tax_type": self.output_vat_account,
+                    "tax_rate": rate.rate if rate.rate is not None else 0,
+                },
+            )
 
             item_tax_template.save()

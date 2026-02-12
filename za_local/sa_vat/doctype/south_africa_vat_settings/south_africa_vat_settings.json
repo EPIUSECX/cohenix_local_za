@@ -87,12 +87,11 @@
    "label": "VAT Registration"
   },
   {
-   "description": "VAT Registration Number (e.g., 4111111112) set in Company",
+   "description": "VAT Registration Number (e.g., 4111111112) set in Company. Shown from Default VAT Report Company when set.",
    "fieldname": "vat_registration_number",
    "fieldtype": "Data",
    "label": "VAT Registration Number",
-   "read_only": 1,
-   "fetch_from": "company.za_vat_number"
+   "read_only": 1
   },
   {
    "description": "Type of VAT vendor",

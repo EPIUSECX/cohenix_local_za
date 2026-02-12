@@ -159,13 +159,6 @@ def get_data():
 					"description": _("Industry-specific contribution requirements"),
 				},
 				
-				# Other Section
-				{
-					"type": "doctype",
-					"name": "NAEDO Deduction",
-					"description": _("National Automated Electronic Debit Order deductions"),
-				},
-				
 				# Reports Section
 				{
 					"type": "report",
