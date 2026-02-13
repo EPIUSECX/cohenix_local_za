@@ -21,27 +21,6 @@ from za_local.utils.hrms_detection import is_hrms_installed
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
 
-
-def apply_chart_patches_on_request():
-	"""
-	Called from before_request hook so the ZA chart is available in the setup wizard
-	and when creating a Company. Monkey patches only run at install/migrate (one process);
-	the wizard runs in other requests/workers, so we re-apply chart patches per request.
-	Patches are idempotent (no-op if already applied).
-	"""
-	try:
-		from za_local.accounts.setup_chart import (
-			extend_charts_for_country,
-			extend_chart_loader,
-			patch_financial_report_templates_sync,
-		)
-		extend_charts_for_country()
-		extend_chart_loader()
-		patch_financial_report_templates_sync()
-	except Exception:
-		pass
-
-
 def before_install():
 	"""
 	Run before app installation.
@@ -85,6 +64,7 @@ def after_install():
 	insert_custom_records()
 	cleanup_orphaned_workspace_records()
 	ensure_modules_visible()
+	set_accounts_settings_for_za_vat()
 	frappe.db.commit()
 	print("\n" + "="*80)
 	print("South African Localization installed successfully!")
@@ -117,8 +97,30 @@ def after_migrate():
 	apply_statutory_formulas()
 	cleanup_orphaned_workspace_records()
 	ensure_modules_visible()
-	
+	set_accounts_settings_for_za_vat()
 	frappe.db.commit()
+
+
+def set_accounts_settings_for_za_vat():
+	"""
+	Set Accounts Settings for ZA VAT so tax rows come from document templates only.
+	- add_taxes_from_taxes_and_charges_template = 1: Sales/Purchase Templates define tax rows (VAT Collected / VAT Paid).
+	- add_taxes_from_item_tax_template = 0: Item templates only affect rate per item, not which accounts appear.
+	This prevents VAT Collected (sales) from appearing on Purchase Invoices when items have a Sales-oriented template.
+	"""
+	try:
+		if not frappe.db.table_exists("Accounts Settings"):
+			return
+		settings = frappe.get_single("Accounts Settings")
+		settings.add_taxes_from_taxes_and_charges_template = 1
+		settings.add_taxes_from_item_tax_template = 0
+		settings.flags.ignore_permissions = True
+		settings.save()
+	except Exception as e:
+		frappe.log_error(
+			message=frappe.get_traceback(),
+			title="ZA Local: Set Accounts Settings for VAT",
+		)
 
 
 def cleanup_invalid_doctype_links():

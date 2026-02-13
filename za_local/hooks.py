@@ -71,7 +71,9 @@ doctype_js = {
     "COIDA Annual Return": "public/js/coida_annual_return.js",
     "Workplace Injury": "public/js/workplace_injury.js",
     "OID Claim": "public/js/oid_claim.js",
-    "EMP501 Reconciliation": "public/js/emp501_reconciliation.js"
+    "EMP501 Reconciliation": "public/js/emp501_reconciliation.js",
+    "Sales Invoice": "public/js/vat_tax_calculation.js",
+    "Purchase Invoice": "public/js/vat_tax_calculation.js",
 }
 
 # Merge HRMS-dependent JS files conditionally
@@ -204,10 +206,7 @@ scheduler_events = {
 
 # Request Events
 # ------------------
-# Apply chart-of-accounts patches on every request so the setup wizard and
-# Company form see the ZA chart option and get_chart() can load our tree when
-# the user selects it (install/migrate only run in one process; wizard runs in another).
-before_request = ["za_local.setup.install.apply_chart_patches_on_request"]
+# before_request / after_request not used
 # after_request = ["za_local.utils.after_request"]
 
 # Job Events

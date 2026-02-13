@@ -223,34 +223,43 @@ class VAT201Return(Document):
         self.other_goods_services_input = 0
         self.change_in_use_input = 0
         self.bad_debts_input = 0
-        
-        # Get all sales invoices with VAT for the period
+
+        # Get all sales invoices with VAT for the period (has some output VAT)
         sales_invoices = self.get_sales_invoices_with_vat(from_date, to_date, vat_settings)
-        
-        # Process sales invoices
+        # Get all sales invoices with no VAT (exempt supplies)
+        exempt_sales_invoices = self.get_sales_invoices_exempt(from_date, to_date, vat_settings)
+
+        # Exempt Item Tax Template names (from VAT Settings): used to separate exempt from zero-rated
+        exempt_item_templates = self._get_exempt_item_tax_templates(vat_settings)
+
+        # Process sales invoices with VAT: derive standard vs zero from tax amount to avoid double-count
+        standard_rate = flt(vat_settings.standard_vat_rate, 2)
         for invoice in sales_invoices:
-            # Get tax details
-            taxes = frappe.db.sql(f"""
-                SELECT 
-                    account_head, rate, tax_amount
-                FROM 
-                    `tabSales Taxes and Charges`
-                WHERE 
-                    parent = '{invoice.name}'
-                    AND account_head = '{vat_settings.output_vat_account}'
-            """, as_dict=1)
-            
-            for tax in taxes:
-                # Calculate net amount (before VAT)
-                net_amount = invoice.base_total - tax.tax_amount
-                
-                # Add to standard rated supplies if standard rate
-                if tax.rate == vat_settings.standard_vat_rate:
-                    self.standard_rated_supplies += net_amount
-                    self.standard_rated_output += tax.tax_amount
-                # Add to zero-rated supplies if zero-rated
-                elif tax.rate == 0:
-                    self.zero_rated_supplies += net_amount
+            taxes = frappe.db.sql("""
+                SELECT rate, base_net_amount, base_tax_amount
+                FROM `tabSales Taxes and Charges`
+                WHERE parent = %(parent)s AND account_head = %(account)s
+            """, {"parent": invoice.name, "account": vat_settings.output_vat_account}, as_dict=1)
+
+            standard_tax = sum(flt(t.base_tax_amount) for t in taxes if flt(t.rate) == standard_rate)
+            standard_net = (standard_tax / (standard_rate / 100.0)) if standard_rate else 0
+            zero_net = flt(invoice.base_net_total) - standard_net
+
+            # When there is no standard tax, invoice is either zero-rated or exempt (item-level template)
+            if standard_net > 0:
+                self.standard_rated_supplies += standard_net
+                self.zero_rated_supplies += zero_net
+            else:
+                if exempt_item_templates and self._invoice_uses_only_exempt_template(
+                    invoice.name, exempt_item_templates
+                ):
+                    self.exempt_supplies += flt(invoice.base_net_total)
+                else:
+                    self.zero_rated_supplies += flt(invoice.base_net_total)
+
+        # Process exempt sales (no output VAT)
+        for invoice in exempt_sales_invoices:
+            self.exempt_supplies += flt(invoice.base_net_total)
         
         # Get all purchase invoices with VAT for the period
         purchase_invoices = self.get_purchase_invoices_with_vat(from_date, to_date, vat_settings)
@@ -303,36 +312,90 @@ class VAT201Return(Document):
         
         # Return summary
         return {
-            "sales_invoices_count": len(sales_invoices),
+            "sales_invoices_count": len(sales_invoices) + len(exempt_sales_invoices),
             "purchase_invoices_count": len(purchase_invoices),
             "standard_rated_supplies": self.standard_rated_supplies,
             "zero_rated_supplies": self.zero_rated_supplies,
+            "exempt_supplies": self.exempt_supplies,
             "standard_rated_output": self.standard_rated_output,
             "capital_goods_input": self.capital_goods_input,
-            "other_goods_services_input": self.other_goods_services_input
+            "other_goods_services_input": self.other_goods_services_input,
         }
-    
-    def get_sales_invoices_with_vat(self, from_date, to_date, vat_settings):
-        """Get all sales invoices with VAT for the period"""
+
+    def _get_exempt_item_tax_templates(self, vat_settings):
+        """Return list of Item Tax Template names that are exempt (from VAT Settings vat_rates with is_exempt)."""
+        company = self.company or getattr(vat_settings, "default_vat_report_company", None)
+        if not company:
+            return []
+        names = []
+        for rate in getattr(vat_settings, "vat_rates", []) or []:
+            if not getattr(rate, "is_exempt", 0):
+                continue
+            title = "South Africa VAT {} ({:.2f}%)".format(
+                getattr(rate, "rate_name", "Exempt"), flt(rate.rate, 2)
+            )
+            name = frappe.db.get_value(
+                "Item Tax Template", {"title": title, "company": company}, "name"
+            )
+            if name:
+                names.append(name)
+        return names
+
+    def _invoice_uses_only_exempt_template(self, invoice_name, exempt_item_templates):
+        """True if every item on the invoice uses an exempt Item Tax Template (or has no template)."""
+        if not exempt_item_templates:
+            return False
+        rows = frappe.db.sql(
+            """
+            SELECT item_tax_template FROM `tabSales Invoice Item`
+            WHERE parent = %s AND (item_tax_template IS NOT NULL AND item_tax_template != '')
+            """,
+            invoice_name,
+            as_dict=1,
+        )
+        if not rows:
+            # No template set on any item: treat as zero-rated, not exempt
+            return False
+        return all(r.item_tax_template in exempt_item_templates for r in rows)
+
+    def get_sales_invoices_exempt(self, from_date, to_date, vat_settings):
+        """Get submitted sales in period with no output VAT at all (exempt supplies).
+        Excludes zero-rated: those have an output VAT row at 0%, so they are in get_sales_invoices_with_vat.
+        """
         conditions = ""
         if self.company:
-            conditions += f" AND company = '{self.company}'"
-            
+            conditions += f" AND si.company = '{self.company}'"
+        return frappe.db.sql(f"""
+            SELECT si.name, si.posting_date, si.base_net_total
+            FROM `tabSales Invoice` si
+            WHERE si.docstatus = 1
+            AND si.posting_date BETWEEN %(from_date)s AND %(to_date)s
+            {conditions}
+            AND (si.base_total_taxes_and_charges = 0 OR si.base_total_taxes_and_charges IS NULL)
+            AND NOT EXISTS (
+                SELECT 1 FROM `tabSales Taxes and Charges` st
+                WHERE st.parent = si.name AND st.account_head = %(account)s
+            )
+            ORDER BY si.posting_date
+        """, {"from_date": from_date, "to_date": to_date, "account": vat_settings.output_vat_account}, as_dict=1)
+
+    def get_sales_invoices_with_vat(self, from_date, to_date, vat_settings):
+        """Get all sales invoices that have the output VAT account on their tax table (standard and zero-rated).
+        Includes zero-rated so we can sum their base_net_amount into zero_rated_supplies from the 0%% row.
+        """
+        conditions = ""
+        if self.company:
+            conditions += f" AND si.company = '{self.company}'"
         invoices = frappe.db.sql(f"""
-            SELECT 
-                name, posting_date, customer, customer_name, 
-                base_net_total, base_total, base_total_taxes_and_charges
-            FROM 
-                `tabSales Invoice`
-            WHERE 
-                docstatus = 1 
-                AND posting_date BETWEEN '{from_date}' AND '{to_date}'
-                {conditions}
-                AND base_total_taxes_and_charges > 0
-            ORDER BY 
-                posting_date
-        """, as_dict=1)
-        
+            SELECT DISTINCT si.name, si.posting_date, si.customer, si.customer_name,
+                si.base_net_total, si.base_total, si.base_total_taxes_and_charges
+            FROM `tabSales Invoice` si
+            INNER JOIN `tabSales Taxes and Charges` st ON st.parent = si.name AND st.account_head = %(account)s
+            WHERE si.docstatus = 1
+            AND si.posting_date BETWEEN %(from_date)s AND %(to_date)s
+            {conditions}
+            ORDER BY si.posting_date
+        """, {"from_date": from_date, "to_date": to_date, "account": vat_settings.output_vat_account}, as_dict=1)
         return invoices
     
     def get_purchase_invoices_with_vat(self, from_date, to_date, vat_settings):

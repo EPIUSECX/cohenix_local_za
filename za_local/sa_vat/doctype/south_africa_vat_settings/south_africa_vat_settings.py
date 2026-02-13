@@ -222,37 +222,41 @@ class SouthAfricaVATSettings(Document):
         self.update_item_tax_templates()
         
     def create_or_update_tax_template(self, template_type, account):
-        """Create or update tax template for sales or purchase"""
-        template_name = f"South Africa VAT {self.standard_vat_rate}% - {template_type}"
+        """Create or update tax template for sales or purchase.
+        Look up by title and company so we find the doc even when autoname is title - company abbr."""
+        template_title = f"South Africa VAT {self.standard_vat_rate}% - {template_type}"
         doctype_name = f"{template_type} Taxes and Charges Template"
 
         # No need to check for default_vat_report_company here; handled in update_tax_templates
 
-        if frappe.db.exists(doctype_name, template_name):
-            tax_template = frappe.get_doc(doctype_name, template_name)
-            # If existing template is missing a company, set it
-            if not tax_template.company:
-                tax_template.company = self.default_vat_report_company
+        existing_name = frappe.db.get_value(
+            doctype_name,
+            {"title": template_title, "company": self.default_vat_report_company},
+            "name",
+        )
+        if existing_name:
+            tax_template = frappe.get_doc(doctype_name, existing_name)
         else:
             tax_template = frappe.new_doc(doctype_name)
-            tax_template.title = template_name
-            tax_template.name = template_name # Kartoza sets name explicitly
+            tax_template.title = template_title
             tax_template.company = self.default_vat_report_company
             tax_template.is_default = 1
-            
+
         # Clear existing taxes
         tax_template.taxes = []
-        
-        # Add taxes based on VAT rates
+        # Add one row per non-exempt rate (15% and 0%) for SA compliance and VAT 201 reporting.
+        # Zero-rated must appear so VAT 201 can report standard_rated_supplies vs zero_rated_supplies.
+        # Item Tax Template drives which row gets amount per item; za_local overrides
+        # (ZASalesInvoice/ZAPurchaseInvoice + client JS) ensure the 0% row only gets
+        # amount from zero-rated items (not duplicated from 15%).
         for rate in self.vat_rates:
-            if not rate.is_exempt:  # Skip exempt rates
+            if not rate.is_exempt:
                 tax_template.append("taxes", {
                     "charge_type": "On Net Total",
                     "account_head": account,
                     "description": rate.rate_name,
                     "rate": rate.rate
                 })
-                
         tax_template.save()
         
         return tax_template.name
