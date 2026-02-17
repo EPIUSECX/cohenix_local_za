@@ -45,77 +45,13 @@ def after_uninstall():
 def remove_custom_fields():
     """
     Remove all custom fields created by za_local app.
-    
-    Removes all fields defined in the custom_fields setup.
+    Names are taken from setup/custom_fields.py (CUSTOM_FIELD_FIXTURES_JSON) so they stay in sync.
     """
+    import json
     print("Removing custom fields...")
-    
-    # Import to get the field definitions
-    from za_local.setup.custom_fields import setup_custom_fields
-    
-    # Define all custom field names we created
-    custom_field_names = [
-        # HR Settings
-        "HR Settings-za_amount_per_kilometer",
-        
-        # Payroll Settings
-        "Payroll Settings-za_south_african_settings_section",
-        "Payroll Settings-za_calculate_annual_taxable_amount_based_on",
-        "Payroll Settings-za_payroll_column_break",
-        "Payroll Settings-za_disable_eti_calculation",
-        "Payroll Settings-za_statutory_components_section",
-        "Payroll Settings-za_paye_salary_component",
-        "Payroll Settings-za_uif_employee_salary_component",
-        "Payroll Settings-za_uif_employer_salary_component",
-        "Payroll Settings-za_statutory_column_break",
-        "Payroll Settings-za_sdl_salary_component",
-        "Payroll Settings-za_coida_salary_component",
-        
-        # Employee
-        "Employee-za_south_african_details_section",
-        "Employee-za_id_number",
-        "Employee-za_employee_type",
-        "Employee-za_special_economic_zone",
-        "Employee-za_payroll_column_break",
-        "Employee-za_hours_per_month",
-        "Employee-za_payroll_payable_bank_account",
-        "Employee-za_personal_information_section",
-        "Employee-za_nationality",
-        "Employee-za_working_hours_per_week",
-        "Employee-za_has_children",
-        "Employee-za_additional_column_break",
-        "Employee-za_has_other_employments",
-        "Employee-za_number_of_dependants",
-        "Employee-za_highest_qualification",
-        
-        # Company
-        "Company-za_south_african_registration_section",
-        "Company-za_vat_number",
-        "Company-za_coida_registration_number",
-        "Company-za_registration_column_break",
-        "Company-za_sdl_reference_number",
-        "Company-za_uif_reference_number",
-        
-        # Additional Salary
-        "Additional Salary-za_is_company_contribution",
-        
-        # Salary Structure Assignment
-        "Salary Structure Assignment-za_annual_bonus",
-        
-        # Expense Claim
-        "Expense Claim-business_trip",
-        
-        # IRP5 Certificate - No custom fields added
-        
-        # Payroll Employee Detail
-        "Payroll Employee Detail-za_is_bank_entry_created",
-        "Payroll Employee Detail-za_is_company_contribution_created",
-        
-        # Journal Entry Account
-        "Journal Entry Account-za_is_payroll_entry",
-        "Journal Entry Account-za_is_company_contribution",
-    ]
-    
+    from za_local.setup.custom_fields import CUSTOM_FIELD_FIXTURES_JSON
+    data = json.loads(CUSTOM_FIELD_FIXTURES_JSON)
+    custom_field_names = [d["name"] for d in data]
     count = 0
     for field_name in custom_field_names:
         if frappe.db.exists("Custom Field", field_name):

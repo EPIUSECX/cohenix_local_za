@@ -12,6 +12,7 @@ from frappe.custom.doctype.customize_form.customize_form import (
 	doctype_properties,
 )
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+from frappe.utils.fixtures import import_fixtures
 from za_local.setup.custom_fields import setup_custom_fields
 from za_local.setup.property_setters import get_property_setters
 from za_local.setup.monkey_patches import setup_all_monkey_patches
@@ -20,6 +21,17 @@ from za_local.utils.hrms_detection import is_hrms_installed
 
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
+
+
+def sync_za_local():
+	"""
+	Unified sync: other fixtures (property setter, print format, app) then setup/custom_fields.
+	Custom fields, cleanup, property setters, and DocType Links all live in custom_fields.py
+	and run in one order via setup_custom_fields().
+	"""
+	import_fixtures("za_local")
+	setup_custom_fields()
+
 
 def before_install():
 	"""
@@ -41,27 +53,20 @@ def before_install():
 def after_install():
 	"""
 	Run after app installation.
-	
-	Sets up:
-	- Custom fields for South African compliance (via fixtures, with programmatic fallback)
-	- Property setters for default values
-	- Default data (ETI slabs, tax rebates, etc.)
-	- Master data from CSV files
-	- DocType Links for bidirectional navigation
-	
+
+	Unified setup order (sync_za_local): fixtures → custom fields + property setters → custom records.
+	Then: make_property_setters, monkey patches, default data, master data, workspace/module visibility.
+
 	Note: All setup tasks are handled here, not in patches.txt.
 	Patches should only be used for one-time data migrations, not setup tasks.
 	"""
 	cleanup_invalid_doctype_links()
-	# Custom fields are deployed via fixtures (fixtures/custom_field.json)
-	# Fixtures are automatically imported by Frappe during installation
-	setup_custom_fields()  # Only handles cleanup of old fields
+	sync_za_local()  # fixtures → custom fields (cleanup + property setters) → custom records
 	make_property_setters()
 	setup_all_monkey_patches()
 	setup_default_data()
 	apply_statutory_formulas()
 	import_master_data()
-	insert_custom_records()
 	cleanup_orphaned_workspace_records()
 	ensure_modules_visible()
 	set_accounts_settings_for_za_vat()
@@ -81,17 +86,12 @@ def after_install():
 def after_migrate():
 	"""
 	Run after migrations.
-	
-	Ensures all setup is up to date after migrations:
-	- Custom fields (via fixtures, with programmatic fallback)
-	- Property setters
-	
-	Note: This ensures the app remains properly configured after Frappe/ERPNext updates.
+
+	Same sync order as install (sync_za_local): fixtures → custom fields + property setters → custom records.
+	Then: make_property_setters, monkey patches, statutory formulas, workspace/module visibility.
 	"""
 	cleanup_invalid_doctype_links()
-	# Custom fields are deployed via fixtures (fixtures/custom_field.json)
-	# Fixtures are automatically imported by Frappe during migration
-	setup_custom_fields()  # Only handles cleanup of old fields
+	sync_za_local()  # fixtures → custom fields (cleanup + property setters) → custom records
 	make_property_setters()
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
@@ -610,30 +610,6 @@ def import_master_data():
 	except Exception as e:
 		print(f"  Warning: Could not import master data: {e}")
 		print("  Master data can be imported manually later.")
-
-
-def insert_custom_records():
-	"""
-	Insert custom records like DocType Links for bidirectional connections.
-	
-	Creates links between za_local DocTypes and standard ERPNext DocTypes
-	so that related records show in the Connections tab.
-	"""
-	print("Inserting custom records...")
-	
-	for custom_record in frappe.get_hooks("za_local_custom_records"):
-		filters = custom_record.copy()
-		# Clean up filters. They need to be a plain dict without nested dicts or lists.
-		for key, value in custom_record.items():
-			if isinstance(value, (list, dict)):
-				del filters[key]
-
-		if not frappe.db.exists(filters):
-			frappe.get_doc(custom_record).insert(ignore_if_duplicate=True)
-	
-	print("✓ Custom records inserted successfully")
-
-
 
 
 def setup_default_retirement_funds():

@@ -11,7 +11,7 @@ app_logo_url = "/assets/za_local/images/sa_map_icon.png"
 # Import hook utility functions for conditional configuration
 # These are called at import time to generate configuration dynamically
 from za_local.utils.hooks_utils import get_hrms_doctype_js, get_override_doctype_class
-from za_local.setup.custom_records import get_za_local_custom_records
+from za_local.setup.custom_fields import get_za_local_custom_records
 
 
 # Add to Apps Screen
@@ -28,12 +28,7 @@ required_apps = ["frappe", "erpnext"]
 # Fixtures
 # ------------------
 fixtures = [
-    # Custom Fields for South African localization
-    # Includes za_ prefixed fields and other za_local custom fields
-    # Note: Fixtures are automatically imported from fixtures/ directory during installation
-    # This filter is used when exporting fixtures
-    {"dt": "Custom Field", "filters": [["name", "like", "%-za_%"]]},
-    
+    # Custom Fields: source of truth is setup/custom_fields.py (applied on install/migrate)
     # Property Setters
     {"dt": "Property Setter", "filters": [["module", "in", ["SA Payroll", "SA Tax", "SA VAT", "COIDA"]]]},
     
