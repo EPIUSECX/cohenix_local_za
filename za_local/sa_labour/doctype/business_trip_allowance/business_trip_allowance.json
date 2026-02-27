@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "creation": "2025-01-29 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "region",
+  "daily_rate",
+  "incidental_rate",
+  "column_break_5",
+  "total"
+ ],
+ "fields": [
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "region",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Region",
+   "options": "Business Trip Region",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "region.daily_allowance_rate",
+   "fieldname": "daily_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Daily Rate",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "region.incidental_allowance_rate",
+   "fieldname": "incidental_rate",
+   "fieldtype": "Currency",
+   "label": "Incidental Rate",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total",
+   "precision": "2",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-01-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Labour",
+ "name": "Business Trip Allowance",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
+

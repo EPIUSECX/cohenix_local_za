@@ -1,11 +1,11 @@
-frappe.provide("za_local.setup");
+frappe.provide("za_local.sa_setup");
 
 frappe.setup.on("before_load", function () {
 	// Register slide; visibility is controlled by its before_show hook (country == South Africa)
-	frappe.setup.add_slide(za_local.setup.za_localization_slide);
+	frappe.setup.add_slide(za_local.sa_setup.za_localization_slide);
 });
 
-za_local.setup.za_localization_slide = {
+za_local.sa_setup.za_localization_slide = {
 	name: "za_localization",
 	title: __("South African Localization"),
 	icon: "fa fa-flag",

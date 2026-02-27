@@ -1,5 +1,3 @@
-# Copyright (c) 2025, Aerele and contributors
-# For license information, please see license.txt
 """
 ZA VAT tax calculation: when the same account has multiple tax rows (e.g. 15% and 0%),
 each row only gets amount from items whose rate matches that row. This is required for

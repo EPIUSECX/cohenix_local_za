@@ -1,0 +1,48 @@
+{
+ "app": "za_local",
+ "charts": [],
+ "content": "[{\"id\":\"_gJbdDIBd9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h3\\\">South Africa - Localisation</span>\",\"col\":12}},{\"id\":\"C0d3x7tANR\",\"type\":\"paragraph\",\"data\":{\"text\":\"     All South African VAT, payroll, labour and COIDA tools in one place.<br>Use the sections below to jump to settings, submissions, and reports.\",\"col\":12}},{\"id\":\"F3d4OeOMSQ\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Settings</span><br>\",\"col\":12}},{\"id\":\"0R7DpgrgeM\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA Local Setup\",\"col\":3}},{\"id\":\"hSC__aKkpM\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA VAT Settings\",\"col\":3}}]",
+ "creation": "2026-02-25 15:51:34.424061",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "grid",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "SA Localisation",
+ "link_type": "DocType",
+ "links": [],
+ "modified": "2026-02-27 11:55:06.830689",
+ "modified_by": "Administrator",
+ "module": "SA Setup",
+ "name": "SA Localisation",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 23.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "SA Local Setup",
+   "link_to": "ZA Local Setup",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "SA VAT Settings",
+   "link_to": "South Africa VAT Settings",
+   "type": "DocType"
+  }
+ ],
+ "title": "SA Localisation",
+ "type": "Workspace"
+}

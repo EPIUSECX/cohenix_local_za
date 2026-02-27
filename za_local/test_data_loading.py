@@ -274,7 +274,7 @@ def test_actual_data_loading():
 	"""Test 7: Actually load data and verify in database"""
 	print("\nTEST 7: Testing actual data loading...")
 	
-	from za_local.setup.install import load_data_from_json
+	from za_local.sa_setup.install import load_data_from_json
 	from pathlib import Path
 	
 	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))

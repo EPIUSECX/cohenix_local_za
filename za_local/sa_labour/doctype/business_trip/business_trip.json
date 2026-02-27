@@ -1,0 +1,312 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-01-29 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "company",
+  "column_break_4",
+  "trip_purpose",
+  "from_date",
+  "to_date",
+  "status",
+  "allowances_section",
+  "allowances",
+  "column_break_11",
+  "total_allowance",
+  "total_incidental",
+  "journeys_section",
+  "journeys",
+  "column_break_16",
+  "total_mileage_claim",
+  "total_receipt_claims",
+  "accommodation_section",
+  "accommodations",
+  "column_break_21",
+  "total_accommodation",
+  "other_expenses_section",
+  "other_expenses",
+  "column_break_25",
+  "total_other_expenses",
+  "totals_section",
+  "grand_total",
+  "column_break_29",
+  "expense_claim",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "BTR-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trip_purpose",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Trip Purpose",
+   "reqd": 1
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nSubmitted\nApproved\nExpense Claim Created\nCancelled",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "allowances_section",
+   "fieldtype": "Section Break",
+   "label": "Daily Allowances"
+  },
+  {
+   "fieldname": "allowances",
+   "fieldtype": "Table",
+   "label": "Allowances",
+   "options": "Business Trip Allowance"
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_allowance",
+   "fieldtype": "Currency",
+   "label": "Total Daily Allowance",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_incidental",
+   "fieldtype": "Currency",
+   "label": "Total Incidental",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "journeys_section",
+   "fieldtype": "Section Break",
+   "label": "Journeys & Transport"
+  },
+  {
+   "fieldname": "journeys",
+   "fieldtype": "Table",
+   "label": "Journeys",
+   "options": "Business Trip Journey"
+  },
+  {
+   "fieldname": "column_break_16",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Total mileage claims for private vehicle use",
+   "fieldname": "total_mileage_claim",
+   "fieldtype": "Currency",
+   "label": "Total Mileage Claim",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "description": "Total receipts for flights, trains, rental cars",
+   "fieldname": "total_receipt_claims",
+   "fieldtype": "Currency",
+   "label": "Total Receipt Claims",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "accommodation_section",
+   "fieldtype": "Section Break",
+   "label": "Accommodation"
+  },
+  {
+   "fieldname": "accommodations",
+   "fieldtype": "Table",
+   "label": "Accommodations",
+   "options": "Business Trip Accommodation"
+  },
+  {
+   "fieldname": "column_break_21",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_accommodation",
+   "fieldtype": "Currency",
+   "label": "Total Accommodation",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "other_expenses_section",
+   "fieldtype": "Section Break",
+   "label": "Other Expenses"
+  },
+  {
+   "fieldname": "other_expenses",
+   "fieldtype": "Table",
+   "label": "Other Expenses",
+   "options": "Business Trip Other Expense"
+  },
+  {
+   "fieldname": "column_break_25",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_other_expenses",
+   "fieldtype": "Currency",
+   "label": "Total Other Expenses",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Summary"
+  },
+  {
+   "bold": 1,
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_29",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "expense_claim",
+   "fieldtype": "Link",
+   "label": "Expense Claim",
+   "options": "Expense Claim",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Business Trip",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-01-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Labour",
+ "name": "Business Trip",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Employee",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "trip_purpose",
+ "track_changes": 1
+}
+

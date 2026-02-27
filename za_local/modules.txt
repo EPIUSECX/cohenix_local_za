@@ -1,6 +1,5 @@
-SA Payroll
-SA Tax
+SA Setup
 SA VAT
-COIDA
-SA EE
-South Africa
+SA Payroll
+SA Labour
+SA COIDA

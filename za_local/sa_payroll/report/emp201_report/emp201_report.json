@@ -1,0 +1,153 @@
+{
+ "add_total_row": 1,
+ "columns": [
+  {
+   "fieldname": "name",
+   "fieldtype": "Link",
+   "label": "EMP201 Reference",
+   "options": "EMP201 Submission",
+   "width": 180
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "width": 120
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Data",
+   "label": "Month",
+   "width": 100
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "label": "Fiscal Year",
+   "options": "Fiscal Year",
+   "width": 100
+  },
+  {
+   "fieldname": "submission_period_start_date",
+   "fieldtype": "Date",
+   "label": "Period Start Date",
+   "width": 120
+  },
+  {
+   "fieldname": "submission_period_end_date",
+   "fieldtype": "Date",
+   "label": "Period End Date",
+   "width": 120
+  },
+  {
+   "fieldname": "gross_paye_before_eti",
+   "fieldtype": "Currency",
+   "label": "Gross PAYE",
+   "width": 120
+  },
+  {
+   "fieldname": "eti_utilized_current_month",
+   "fieldtype": "Currency",
+   "label": "ETI Utilized",
+   "width": 120
+  },
+  {
+   "fieldname": "net_paye_payable",
+   "fieldtype": "Currency",
+   "label": "Net PAYE Payable",
+   "width": 150
+  },
+  {
+   "fieldname": "uif_payable",
+   "fieldtype": "Currency",
+   "label": "UIF Payable",
+   "width": 120
+  },
+  {
+   "fieldname": "sdl_payable",
+   "fieldtype": "Currency",
+   "label": "SDL Payable",
+   "width": 120
+  },
+  {
+   "fieldname": "total_payable",
+   "fieldtype": "Currency",
+   "label": "Total Payable",
+   "width": 150
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status",
+   "width": 100
+  }
+ ],
+ "creation": "2024-05-06 16:30:00.000000",
+ "disable_prepared_report": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "mandatory": 1,
+   "options": "Company",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "label": "Fiscal Year",
+   "mandatory": 0,
+   "options": "Fiscal Year",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Select",
+   "label": "Month",
+   "mandatory": 0,
+   "options": "\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "modified": "2024-05-06 16:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "EMP201 Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "EMP201 Submission",
+ "report_name": "EMP201 Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Payroll Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "HR Manager"
+  }
+ ]
+}

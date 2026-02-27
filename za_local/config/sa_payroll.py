@@ -103,23 +103,6 @@ def get_data():
 					"description": _("Comprehensive fringe benefit management"),
 				},
 				
-				# Business Trip Section
-				{
-					"type": "doctype",
-					"name": "Business Trip Settings",
-					"description": _("Configure business trip settings and rates"),
-				},
-				{
-					"type": "doctype",
-					"name": "Business Trip Region",
-					"description": _("Configure business trip regions and rates"),
-				},
-				{
-					"type": "doctype",
-					"name": "Business Trip",
-					"description": _("Manage business trips with SARS-compliant allowances"),
-				},
-				
 				# Payments & Settlement Section
 				{
 					"type": "doctype",
@@ -137,26 +120,34 @@ def get_data():
 					"description": _("Leave encashment calculations for SA compliance"),
 				},
 				
-				# Sectoral Compliance Section
+				# SARS Submissions (Employer Tax)
 				{
 					"type": "doctype",
-					"name": "SETA",
-					"description": _("Skills Education Training Authority configuration"),
+					"name": "EMP201 Submission",
+					"description": _("Monthly SARS EMP201 Return for PAYE, UIF, SDL and ETI"),
+					"onboard": 1,
 				},
 				{
 					"type": "doctype",
-					"name": "Bargaining Council",
-					"description": _("Bargaining council agreements"),
+					"name": "EMP501 Reconciliation",
+					"description": _("Bi-annual Employer Reconciliation Declaration"),
+					"onboard": 1,
 				},
 				{
 					"type": "doctype",
-					"name": "Sectoral Minimum Wage",
-					"description": _("Sectoral minimum wage rates"),
+					"name": "IRP5 Certificate",
+					"description": _("Employee Tax Certificate"),
+					"onboard": 1,
 				},
 				{
 					"type": "doctype",
-					"name": "Industry Specific Contribution",
-					"description": _("Industry-specific contribution requirements"),
+					"name": "Employee ETI Log",
+					"description": _("Employment Tax Incentive (ETI) calculation log"),
+				},
+				{
+					"type": "doctype",
+					"name": "ETI Slab",
+					"description": _("ETI calculation slabs and formulas"),
 				},
 				
 				# Reports Section
@@ -177,6 +168,13 @@ def get_data():
 					"name": "Statutory Submissions Summary",
 					"description": _("Summary of all statutory submissions (EMP201, EMP501, etc.)"),
 					"is_query_report": True,
+				},
+				{
+					"type": "report",
+					"name": "EMP201 Report",
+					"doctype": "EMP201 Submission",
+					"is_query_report": True,
+					"description": _("Analysis report for EMP201 submissions"),
 				},
 			]
 		}

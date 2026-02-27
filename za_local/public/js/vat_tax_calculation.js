@@ -1,5 +1,3 @@
-// Copyright (c) 2025, Aerele and contributors
-// For license information, please see license.txt
 /**
  * ZA VAT: when the same account has multiple tax rows (15% and 0%),
  * each row must only get amount from items whose rate matches that row.

@@ -1,0 +1,334 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:EMP501-{YYYY}-{MM}-{#####}",
+ "creation": "2025-05-06 17:12:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "field_order": [
+  "company",
+  "tax_year",
+  "reconciliation_period",
+  "column_break_4",
+  "submission_date",
+  "status",
+  "section_break_7",
+  "from_date",
+  "to_date",
+  "column_break_10",
+  "paye_reference_number",
+  "sdl_reference_number",
+  "uif_reference_number",
+  "section_break_14",
+  "total_paye",
+  "total_sdl",
+  "total_uif",
+  "column_break_18",
+  "total_eti",
+  "total_tax_payable",
+  "section_break_21",
+  "emp201_submissions",
+  "section_break_23",
+  "irp5_certificates",
+  "section_break_25",
+  "amended",
+  "column_break_27",
+  "previous_submission",
+  "section_break_29",
+  "notes",
+  "section_break_31",
+  "sars_submission_status",
+  "sars_submission_date",
+  "column_break_34",
+  "sars_submission_reference",
+  "sars_response",
+  "section_break_37",
+  "e_filing_csv"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tax_year",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tax Year",
+   "options": "Fiscal Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reconciliation_period",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Reconciliation Period",
+   "options": "Interim\nFinal",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "submission_date",
+   "fieldtype": "Date",
+   "label": "Submission Date",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nPrepared\nSubmitted\nAccepted\nRejected\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Period Details"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "company.tax_id",
+   "fieldname": "paye_reference_number",
+   "fieldtype": "Data",
+   "label": "PAYE Reference Number",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "company.za_sdl_reference_number",
+   "fieldname": "sdl_reference_number",
+   "fieldtype": "Data",
+   "label": "SDL Reference Number",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "company.za_uif_reference_number",
+   "fieldname": "uif_reference_number",
+   "fieldtype": "Data",
+   "label": "UIF Reference Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_14",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_paye",
+   "fieldtype": "Currency",
+   "label": "Total PAYE",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_sdl",
+   "fieldtype": "Currency",
+   "label": "Total SDL",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_uif",
+   "fieldtype": "Currency",
+   "label": "Total UIF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_18",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_eti",
+   "fieldtype": "Currency",
+   "label": "Total ETI",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_tax_payable",
+   "fieldtype": "Currency",
+   "label": "Total Tax Payable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_21",
+   "fieldtype": "Section Break",
+   "label": "EMP201 Submissions"
+  },
+  {
+   "fieldname": "emp201_submissions",
+   "fieldtype": "Table",
+   "label": "EMP201 Submissions",
+   "options": "EMP501 EMP201 Reference"
+  },
+  {
+   "fieldname": "section_break_23",
+   "fieldtype": "Section Break",
+   "label": "IRP5 Certificates"
+  },
+  {
+   "fieldname": "irp5_certificates",
+   "fieldtype": "Table",
+   "label": "IRP5 Certificates",
+   "options": "EMP501 IRP5 Reference"
+  },
+  {
+   "fieldname": "section_break_25",
+   "fieldtype": "Section Break",
+   "label": "Amendment Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "amended",
+   "fieldtype": "Check",
+   "label": "Amended"
+  },
+  {
+   "fieldname": "column_break_27",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "amended",
+   "fieldname": "previous_submission",
+   "fieldtype": "Link",
+   "label": "Previous Submission",
+   "options": "EMP501 Reconciliation"
+  },
+  {
+   "fieldname": "section_break_29",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "section_break_31",
+   "fieldtype": "Section Break",
+   "label": "SARS Submission Details"
+  },
+  {
+   "fieldname": "sars_submission_status",
+   "fieldtype": "Select",
+   "label": "SARS Submission Status",
+   "options": "Not Submitted\nSubmitted\nAccepted\nRejected\nQueried"
+  },
+  {
+   "fieldname": "sars_submission_date",
+   "fieldtype": "Datetime",
+   "label": "SARS Submission Date"
+  },
+  {
+   "fieldname": "column_break_34",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sars_submission_reference",
+   "fieldtype": "Data",
+   "label": "SARS Submission Reference"
+  },
+  {
+   "fieldname": "sars_response",
+   "fieldtype": "Code",
+   "label": "SARS Response",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "section_break_37",
+   "fieldtype": "Section Break",
+   "label": "Export Files"
+  },
+  {
+   "fieldname": "e_filing_csv",
+   "fieldtype": "Attach",
+   "label": "e-Filing CSV Export",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-06 17:12:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "EMP501 Reconciliation",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "default_view": "List",
+ "force_re_route_to_default_view": 0,
+ "show_preview_popup": 0
+}

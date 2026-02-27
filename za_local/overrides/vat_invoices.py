@@ -1,5 +1,3 @@
-# Copyright (c) 2025, Aerele and contributors
-# For license information, please see license.txt
 """
 Override Sales Invoice and Purchase Invoice to use ZA VAT tax calculation.
 This ensures 15% and 0% tax rows (same account) get correct amounts per item

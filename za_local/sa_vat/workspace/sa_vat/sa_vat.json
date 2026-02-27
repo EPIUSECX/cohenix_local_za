@@ -1,0 +1,56 @@
+{
+ "app": "za_local",
+ "charts": [],
+ "content": "[{\"id\":\"1DCohfHMap\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b></b></span><span class=\\\"h4\\\">SA VAT</span>\",\"col\":12}},{\"id\":\"k-wvsh0CvG\",\"type\":\"paragraph\",\"data\":{\"text\":\"VAT settings and reports for South Africa.<br>Use the shortcuts below to configure VAT and access VAT201 reporting.\",\"col\":12}},{\"id\":\"pIDrEFRvDt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Settings\",\"col\":3}},{\"id\":\"krLCkq-NFK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports</b></span>\",\"col\":12}},{\"id\":\"yVI-4joOw2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT201 Return\",\"col\":3}},{\"id\":\"r1l0_o0oM-\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Audit Report\",\"col\":3}}]",
+ "creation": "2026-02-27 11:40:24.605799",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "grid",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "SA VAT",
+ "link_type": "DocType",
+ "links": [],
+ "modified": "2026-02-27 12:55:28.415728",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "SA VAT",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "SA Localisation",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 24.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "VAT Settings",
+   "link_to": "South Africa VAT Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "VAT201 Return",
+   "link_to": "VAT201 Return",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "VAT Audit Report",
+   "link_to": "VAT Audit Report",
+   "report_ref_doctype": "GL Entry",
+   "type": "Report"
+  }
+ ],
+ "title": "SA VAT",
+ "type": "Workspace"
+}

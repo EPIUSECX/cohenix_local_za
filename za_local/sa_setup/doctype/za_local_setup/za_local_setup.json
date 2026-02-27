@@ -1,0 +1,183 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ZA-SETUP-{company}-{###}",
+ "creation": "2025-01-29 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "setup_status",
+  "country",
+  "section_break_4",
+  "load_salary_components",
+  "load_earnings_components",
+  "column_break_7",
+  "load_tax_slabs",
+  "load_tax_rebates",
+  "load_medical_credits",
+  "section_break_10",
+  "load_business_trip_regions",
+  "load_seta_list",
+  "column_break_13",
+  "load_bargaining_councils",
+  "section_break_14",
+  "load_chart_of_accounts",
+  "section_break_15",
+  "setup_completed_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "setup_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Setup Status",
+   "options": "Pending\nIn Progress\nCompleted",
+   "reqd": 1
+  },
+  {
+   "default": "South Africa",
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Salary Components"
+  },
+  {
+   "default": "1",
+   "description": "Create statutory salary components (PAYE, UIF, SDL, COIDA)",
+   "fieldname": "load_salary_components",
+   "fieldtype": "Check",
+   "label": "Create Default Salary Components"
+  },
+  {
+   "default": "1",
+   "description": "Create common earnings components (Basic Salary, Housing, Transport, etc.)",
+   "fieldname": "load_earnings_components",
+   "fieldtype": "Check",
+   "label": "Create Earnings Components"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Load 2024-2025 SARS income tax brackets",
+   "fieldname": "load_tax_slabs",
+   "fieldtype": "Check",
+   "label": "Load 2024-2025 Tax Slabs"
+  },
+  {
+   "default": "1",
+   "description": "Load current tax rebates (Primary, Secondary, Tertiary)",
+   "fieldname": "load_tax_rebates",
+   "fieldtype": "Check",
+   "label": "Load Tax Rebates"
+  },
+  {
+   "default": "1",
+   "description": "Load medical tax credit rates",
+   "fieldname": "load_medical_credits",
+   "fieldtype": "Check",
+   "label": "Load Medical Tax Credits"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break",
+   "label": "Master Data"
+  },
+  {
+   "default": "1",
+   "description": "Load 16 predefined business trip regions with SARS-compliant rates",
+   "fieldname": "load_business_trip_regions",
+   "fieldtype": "Check",
+   "label": "Load Business Trip Regions"
+  },
+  {
+   "default": "0",
+   "description": "Load list of Sector Education and Training Authorities",
+   "fieldname": "load_seta_list",
+   "fieldtype": "Check",
+   "label": "Load SETA List"
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Load list of South African Bargaining Councils",
+   "fieldname": "load_bargaining_councils",
+   "fieldtype": "Check",
+   "label": "Load Bargaining Councils"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_14",
+   "fieldtype": "Section Break",
+   "label": "Chart of Accounts"
+  },
+  {
+   "default": "1",
+   "description": "Load South African Chart of Accounts with all required tax accounts (VAT, PAYE, UIF, SDL, COIDA)",
+   "fieldname": "load_chart_of_accounts",
+   "fieldtype": "Check",
+   "label": "Load Chart of Accounts"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_15",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "setup_completed_on",
+   "fieldtype": "Datetime",
+   "label": "Setup Completed On",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-01-29 00:00:00",
+ "modified_by": "Administrator",
+ "module": "SA Setup",
+ "name": "ZA Local Setup",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+
