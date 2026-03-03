@@ -59,13 +59,13 @@ def test_json_files_syntax():
 	"""Test 1: Validate JSON syntax of all data files"""
 	print("TEST 1: Validating JSON file syntax...")
 	
-	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
 	json_files = [
-		"payroll_period_2024.json",
+		"payroll_period_2025.json",
 		"salary_components.json",
 		"earnings_components.json",
-		"tax_slabs_2024.json",
-		"tax_rebates_2024.json",
+		"tax_slabs_2025.json",
+		"tax_rebates_2025.json",
 	]
 	
 	for filename in json_files:
@@ -84,8 +84,8 @@ def test_payroll_period_structure():
 	"""Test 2: Validate Payroll Period JSON structure"""
 	print("\nTEST 2: Validating Payroll Period structure...")
 	
-	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
-	filepath = data_dir / "payroll_period_2024.json"
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
+	filepath = data_dir / "payroll_period_2025.json"
 	
 	with open(filepath, "r") as f:
 		data = json.load(f)
@@ -108,8 +108,8 @@ def test_tax_rebates_structure():
 	"""Test 3: Validate Tax Rebates JSON structure"""
 	print("\nTEST 3: Validating Tax Rebates structure...")
 	
-	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
-	filepath = data_dir / "tax_rebates_2024.json"
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
+	filepath = data_dir / "tax_rebates_2025.json"
 	
 	with open(filepath, "r") as f:
 		data = json.load(f)
@@ -146,8 +146,8 @@ def test_income_tax_slab_structure():
 	"""Test 4: Validate Income Tax Slab JSON structure"""
 	print("\nTEST 4: Validating Income Tax Slab structure...")
 	
-	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
-	filepath = data_dir / "tax_slabs_2024.json"
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
+	filepath = data_dir / "tax_slabs_2025.json"
 	
 	with open(filepath, "r") as f:
 		data = json.load(f)
@@ -181,7 +181,7 @@ def test_salary_components_structure():
 	"""Test 5: Validate Salary Components JSON structure"""
 	print("\nTEST 5: Validating Salary Components structure...")
 	
-	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
 	
 	# Test statutory components
 	filepath = data_dir / "salary_components.json"
@@ -277,7 +277,7 @@ def test_actual_data_loading():
 	from za_local.sa_setup.install import load_data_from_json
 	from pathlib import Path
 	
-	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
+		data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
 	
 	# Start transaction (will rollback at end)
 	frappe.db.begin()
@@ -285,7 +285,7 @@ def test_actual_data_loading():
 	try:
 		# 1. Load Payroll Period
 		print("  Loading Payroll Period...")
-		load_data_from_json(data_dir / "payroll_period_2024.json")
+		load_data_from_json(data_dir / "payroll_period_2025.json")
 		
 		# Verify it exists
 		assert frappe.db.exists("Payroll Period", "2024-2025"), "Payroll Period not created"
@@ -295,7 +295,7 @@ def test_actual_data_loading():
 		
 		# 2. Load Tax Rebates
 		print("  Loading Tax Rebates...")
-		load_data_from_json(data_dir / "tax_rebates_2024.json")
+		load_data_from_json(data_dir / "tax_rebates_2025.json")
 		
 		# Verify Single DocType was updated
 		tax_doc = frappe.get_single("Tax Rebates and Medical Tax Credit")
@@ -305,7 +305,7 @@ def test_actual_data_loading():
 		
 		# 3. Load Income Tax Slab
 		print("  Loading Income Tax Slab...")
-		load_data_from_json(data_dir / "tax_slabs_2024.json")
+		load_data_from_json(data_dir / "tax_slabs_2025.json")
 		
 		assert frappe.db.exists("Income Tax Slab", "South Africa 2024-2025"), "Tax Slab not created"
 		slab = frappe.get_doc("Income Tax Slab", "South Africa 2024-2025")

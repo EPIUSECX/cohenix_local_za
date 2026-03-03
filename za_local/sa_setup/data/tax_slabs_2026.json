@@ -1,8 +1,8 @@
 [
   {
     "doctype": "Income Tax Slab",
-    "name": "South Africa 2024-2025",
-    "effective_from": "2024-03-01",
+    "name": "South Africa 2025-2026",
+    "effective_from": "2025-03-01",
     "currency": "ZAR",
     "allow_tax_exemption": 0,
     "disabled": 0,

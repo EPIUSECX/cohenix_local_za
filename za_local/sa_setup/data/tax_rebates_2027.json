@@ -1,0 +1,21 @@
+{
+  "doctype": "Tax Rebates and Medical Tax Credit",
+  "name": "Tax Rebates and Medical Tax Credit",
+  "tax_rebates_rate": [
+    {
+      "payroll_period": "2026-2027",
+      "primary": 17820,
+      "secondary": 9765,
+      "tertiary": 3249
+    }
+  ],
+  "medical_tax_credit": [
+    {
+      "payroll_period": "2026-2027",
+      "one_dependant": 376,
+      "two_dependant": 752,
+      "additional_dependant": 254
+    }
+  ]
+}
+

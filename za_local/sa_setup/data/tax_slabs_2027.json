@@ -1,8 +1,8 @@
 [
   {
     "doctype": "Income Tax Slab",
-    "name": "South Africa 2024-2025",
-    "effective_from": "2024-03-01",
+    "name": "South Africa 2026-2027",
+    "effective_from": "2026-03-01",
     "currency": "ZAR",
     "allow_tax_exemption": 0,
     "disabled": 0,
@@ -14,39 +14,40 @@
       },
       {
         "from_amount": 95751,
-        "to_amount": 237100.99,
+        "to_amount": 245100.99,
         "percent_deduction": 18
       },
       {
-        "from_amount": 237101,
-        "to_amount": 370500.99,
+        "from_amount": 245101,
+        "to_amount": 383100.99,
         "percent_deduction": 26
       },
       {
-        "from_amount": 370501,
-        "to_amount": 512800.99,
+        "from_amount": 383101,
+        "to_amount": 530200.99,
         "percent_deduction": 31
       },
       {
-        "from_amount": 512801,
-        "to_amount": 673000.99,
+        "from_amount": 530201,
+        "to_amount": 695800.99,
         "percent_deduction": 36
       },
       {
-        "from_amount": 673001,
-        "to_amount": 857900.99,
+        "from_amount": 695801,
+        "to_amount": 887000.99,
         "percent_deduction": 39
       },
       {
-        "from_amount": 857901,
-        "to_amount": 1817000.99,
+        "from_amount": 887001,
+        "to_amount": 1878600.99,
         "percent_deduction": 41
       },
       {
-        "from_amount": 1817001,
+        "from_amount": 1878601,
         "to_amount": 999999999,
         "percent_deduction": 45
       }
     ]
   }
 ]
+

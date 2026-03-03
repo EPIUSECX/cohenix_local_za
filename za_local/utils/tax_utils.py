@@ -114,9 +114,18 @@ def get_tax_rebate(salary_slip, date_of_birth):
     
     total_rebate = 0
     
-    # Get the first rebate rate (should match payroll period)
+    # Choose rebate row matching the current tax year payroll_period if available
+    rebate = None
     if rebate_settings.tax_rebates_rate:
-        rebate = rebate_settings.tax_rebates_rate[0]
+        start_date, end_date = get_tax_year_dates(getdate(salary_slip.end_date))
+        current_period = f"{start_date.year}-{end_date.year}"
+        for row in rebate_settings.tax_rebates_rate:
+            if row.get("payroll_period") == current_period:
+                rebate = row
+                break
+        # Fallback to first row if no exact match
+        if rebate is None:
+            rebate = rebate_settings.tax_rebates_rate[0]
         
         # Primary rebate applies to everyone
         total_rebate += flt(rebate.primary)
@@ -164,9 +173,18 @@ def get_medical_aid_credit(salary_slip, number_of_dependants):
     
     total_credit = 0
     
-    # Get the first matching credit rate (should be only one per payroll period)
+    # Get the matching credit rate for the current tax year payroll_period
+    credit = None
     if credit_settings.medical_tax_credit:
-        credit = credit_settings.medical_tax_credit[0]
+        start_date, end_date = get_tax_year_dates(getdate(salary_slip.end_date))
+        current_period = f"{start_date.year}-{end_date.year}"
+        for row in credit_settings.medical_tax_credit:
+            if row.get("payroll_period") == current_period:
+                credit = row
+                break
+        # Fallback to first row if no exact match
+        if credit is None:
+            credit = credit_settings.medical_tax_credit[0]
         
         if number_of_dependants == 0:
             # Main member only

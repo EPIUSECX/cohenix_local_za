@@ -120,7 +120,13 @@ def setup_company_statutory_details(company):
 
 
 def setup_sa_salary_components():
-    """Create standard SA salary components"""
+    """Create baseline SA salary components.
+    
+    UIF and SDL contribution components are provisioned via fixtures
+    (salary_components.json) as UIF Employee/Employer Contribution and
+    SDL Contribution; we no longer create separate 'UIF'/'SDL' deduction
+    components here to avoid duplicates.
+    """
     components = [
         {
             "salary_component": "Basic Salary",
@@ -135,20 +141,6 @@ def setup_sa_salary_components():
             "type": "Deduction",
             "is_tax_applicable": 0,
             "description": "Pay As You Earn (Income Tax)"
-        },
-        {
-            "salary_component": "UIF",
-            "salary_component_abbr": "UIF",
-            "type": "Deduction",
-            "is_tax_applicable": 0,
-            "description": "Unemployment Insurance Fund (1% of gross, capped)"
-        },
-        {
-            "salary_component": "SDL",
-            "salary_component_abbr": "SDL",
-            "type": "Deduction",
-            "is_tax_applicable": 0,
-            "description": "Skills Development Levy (1% of gross)"
         },
         {
             "salary_component": "ETI",
@@ -179,7 +171,7 @@ def setup_current_year_tax_slabs():
         fixture_path = os.path.join(
             os.path.dirname(__file__),
             "data",
-            "tax_slabs_2024.json"
+            "tax_slabs_2025.json"  # 2024-2025 (2025 tax year)
         )
         
         if os.path.exists(fixture_path):
@@ -425,7 +417,7 @@ def setup_za_localization(args):
 		)
 		company = companies[0] if companies else None
 	
-	data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
 	
 	try:
 		# Step 1: Setup SA print formats as default
@@ -453,8 +445,9 @@ def setup_za_localization(args):
 		if enable_hrms_payroll and (load_tax_rebates or load_medical):
 			print("Loading Payroll Periods...")
 			try:
-				load_data_from_json(data_dir / "payroll_period_2024.json")
-				load_data_from_json(data_dir / "payroll_period_2025.json")
+				load_data_from_json(data_dir / "payroll_period_2025.json")  # 2024-2025 (2025 tax year)
+				load_data_from_json(data_dir / "payroll_period_2026.json")  # 2025-2026 (2026 tax year)
+				load_data_from_json(data_dir / "payroll_period_2027.json")  # 2026-2027 (2027 tax year)
 			except Exception as e:
 				print(f"  ! Warning: Could not load Payroll Periods: {e}")
 				print("  Note: Tax Rebates will work but may need manual Payroll Period configuration")
@@ -463,8 +456,9 @@ def setup_za_localization(args):
 		if load_tax_rebates or load_medical:
 			print("Loading Tax Rebates and Medical Credits...")
 			try:
-				load_data_from_json(data_dir / "tax_rebates_2024.json")
-				load_data_from_json(data_dir / "tax_rebates_2025.json")
+				load_data_from_json(data_dir / "tax_rebates_2025.json")  # 2024-2025 (2025 tax year)
+				load_data_from_json(data_dir / "tax_rebates_2026.json")  # 2025-2026 (2026 tax year)
+				load_data_from_json(data_dir / "tax_rebates_2027.json")  # 2026-2027 (2027 tax year)
 			except Exception as e:
 				print(f"  ! Warning: Could not load Tax Rebates: {e}")
 				frappe.log_error(f"Tax Rebates loading failed: {str(e)}", "ZA Local Setup")
@@ -473,8 +467,9 @@ def setup_za_localization(args):
 		if load_tax_slabs:
 			print("Loading Income Tax Slab...")
 			try:
-				load_data_from_json(data_dir / "tax_slabs_2024.json")
-				load_data_from_json(data_dir / "tax_slabs_2025.json")
+				load_data_from_json(data_dir / "tax_slabs_2025.json")  # 2024-2025 (2025 tax year)
+				load_data_from_json(data_dir / "tax_slabs_2026.json")  # 2025-2026 (2026 tax year)
+				load_data_from_json(data_dir / "tax_slabs_2027.json")  # 2026-2027 (2027 tax year)
 			except Exception as e:
 				print(f"  ! Warning: Could not load Tax Slabs: {e}")
 				frappe.log_error(f"Tax Slabs loading failed: {str(e)}", "ZA Local Setup")

@@ -6,6 +6,7 @@ for the South African localization app.
 """
 
 import frappe
+import json
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.customize_form.customize_form import (
 	docfield_properties,
@@ -678,7 +679,7 @@ def run_za_local_setup(setup_doc):
 	frappe.db.commit()
 	
 	try:
-		data_dir = Path(frappe.get_app_path("za_local", "setup", "data"))
+		data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
 		
 		# Load salary components
 		if setup_doc.load_salary_components:
@@ -691,11 +692,11 @@ def run_za_local_setup(setup_doc):
 		
 		# Load tax configuration
 		if setup_doc.load_tax_slabs:
-			load_data_from_json(data_dir / "tax_slabs_2024.json")
+			load_data_from_json(data_dir / "tax_slabs_2025.json")  # 2024-2025 (2025 tax year)
 			print("✓ Loaded 2024-2025 tax slabs")
 		
 		if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
-			load_data_from_json(data_dir / "tax_rebates_2024.json")
+			load_data_from_json(data_dir / "tax_rebates_2025.json")  # 2024-2025 (2025 tax year)
 			print("✓ Loaded tax rebates and medical tax credits")
 		
 		# Load master data
@@ -730,6 +731,130 @@ def run_za_local_setup(setup_doc):
 		frappe.db.commit()
 		frappe.log_error(f"Setup failed: {str(e)}", "ZA Local Setup")
 		frappe.throw(f"Setup failed: {str(e)}")
+
+
+@frappe.whitelist()
+def refresh_sa_tax_tables():
+	"""
+	Idempotently reload South African payroll periods, tax slabs and rebates
+	from fixtures for all configured tax years (2025, 2026, 2027) without
+	recreating the site.
+	Can be run via bench:
+	  bench --site <site> execute za_local.sa_setup.install.refresh_sa_tax_tables
+	"""
+	from pathlib import Path
+	import json
+
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
+	fixture_files = [
+		# Payroll Periods
+		"payroll_period_2025.json",  # 2024-2025 (2025 tax year)
+		"payroll_period_2026.json",  # 2025-2026 (2026 tax year)
+		"payroll_period_2027.json",  # 2026-2027 (2027 tax year)
+		# Income Tax Slabs
+		"tax_slabs_2025.json",       # 2024-2025 (2025 tax year)
+		"tax_slabs_2026.json",       # 2025-2026 (2026 tax year)
+		"tax_slabs_2027.json",       # 2026-2027 (2027 tax year)
+		# Tax Rebates & Medical Credits
+		"tax_rebates_2025.json",     # 2024-2025 (2025 tax year)
+		"tax_rebates_2026.json",     # 2025-2026 (2026 tax year)
+		"tax_rebates_2027.json",     # 2026-2027 (2027 tax year)
+	]
+
+	print("\nRefreshing South African payroll periods and tax tables from fixtures...")
+	for filename in fixture_files:
+		file_path = data_dir / filename
+		if not file_path.exists():
+			print(f"  ⊙ Skipping {filename} (file not found)")
+			continue
+		try:
+			# Single DocType (Tax Rebates and Medical Tax Credit) needs merge behaviour, not delete/recreate
+			if filename.startswith("tax_rebates_"):
+				_merge_tax_rebates_from_file(file_path)
+				print(f"  ✓ Merged rebates from {filename}")
+			else:
+				# Best-effort pre-delete so fixture values overwrite existing ones for non-Single doctypes
+				try:
+					with open(file_path, "r") as f:
+						raw = json.load(f)
+
+					records: list[dict] = []
+					if isinstance(raw, list):
+						records = raw
+					elif isinstance(raw, dict) and raw.get("doctype"):
+						records = [raw]
+					elif isinstance(raw, dict):
+						for dt, rows in raw.items():
+							for row in rows or []:
+								row = dict(row)
+								row.setdefault("doctype", dt)
+								records.append(row)
+
+					for record in records:
+						doctype = record.get("doctype")
+						name = record.get("name")
+						if doctype in ("Payroll Period", "Income Tax Slab") and name and frappe.db.exists(doctype, name):
+							frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
+							print(f"  ⊙ Deleted existing {doctype}: {name}")
+				except Exception:
+					# Don't fail refresh if pre-delete inspection fails
+					pass
+
+				load_data_from_json(file_path)
+				print(f"  ✓ Loaded {filename}")
+		except Exception as e:
+			print(f"  ! Error loading {filename}: {e}")
+
+	print("✓ SA payroll periods and tax tables refresh complete\n")
+
+
+def _merge_tax_rebates_from_file(file_path: Path) -> None:
+	"""Merge a tax_rebates_*.json fixture into the Single DocType without discarding other years."""
+	try:
+		with open(file_path, "r") as f:
+			data = json.load(f)
+	except Exception as e:
+		print(f"  ! Could not read {file_path.name}: {e}")
+		return
+
+	if not isinstance(data, dict) or data.get("doctype") != "Tax Rebates and Medical Tax Credit":
+		# Not in expected single-doc format
+		return
+
+	payroll_periods_rebates = data.get("tax_rebates_rate") or []
+	payroll_periods_medical = data.get("medical_tax_credit") or []
+
+	if not payroll_periods_rebates and not payroll_periods_medical:
+		return
+
+	doc = frappe.get_single("Tax Rebates and Medical Tax Credit")
+
+	# Helper to upsert rows by payroll_period
+	def upsert_child(child_table_name: str, new_rows: list[dict]):
+		if not new_rows:
+			return
+		child_rows = list(doc.get(child_table_name) or [])
+		index = {row.get("payroll_period"): row for row in child_rows}
+
+		for nr in new_rows:
+			pp = nr.get("payroll_period")
+			if not pp:
+				continue
+			if pp in index:
+				row = index[pp]
+				for field, value in nr.items():
+					if field != "name":
+						row.set(field, value)
+			else:
+				child_rows.append(nr)
+
+		doc.set(child_table_name, child_rows)
+
+	upsert_child("tax_rebates_rate", payroll_periods_rebates)
+	upsert_child("medical_tax_credit", payroll_periods_medical)
+
+	doc.flags.ignore_permissions = True
+	doc.save()
 
 
 def load_data_from_json(file_path):
