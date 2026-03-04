@@ -77,10 +77,10 @@
   },
   {
    "default": "1",
-   "description": "Load 2024-2025 SARS income tax brackets",
+   "description": "Load SARS income tax brackets",
    "fieldname": "load_tax_slabs",
    "fieldtype": "Check",
-   "label": "Load 2024-2025 Tax Slabs"
+   "label": "Load Tax Slabs"
   },
   {
    "default": "1",

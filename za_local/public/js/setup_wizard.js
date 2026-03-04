@@ -23,7 +23,7 @@ za_local.sa_setup.za_localization_slide = {
 			label: __("Enable ZA HR/Payroll Localisation (requires HRMS)"),
 			fieldtype: "Check",
 			default: 0,
-			description: __("Enable payroll processing, leave management, and employee features. Requires Frappe HRMS app to be installed. If unchecked, only tax/VAT/COIDA features will be available.")
+			description: __("Enable ZA payroll processing, leave management, and employee features. Requires the Frappe HRMS app to be installed. If unchecked, only VAT and COIDA localisation features will be available.")
 		},
 		{ fieldtype: "Section Break", label: __("Salary Components") },
 		{
@@ -43,7 +43,7 @@ za_local.sa_setup.za_localization_slide = {
 		{ fieldtype: "Section Break", label: __("Tax Configuration") },
 		{
 			fieldname: "za_load_tax_slabs",
-			label: __("Load 2024-2025 Tax Slabs"),
+			label: __("Load Tax Slabs"),
 			fieldtype: "Check",
 			default: 1,
 			description: __("7 SARS income tax brackets (18% - 45%)")
@@ -67,7 +67,7 @@ za_local.sa_setup.za_localization_slide = {
 			label: __("Load South African Holiday List"),
 			fieldtype: "Check",
 			default: 1,
-			description: __("2024 and 2025 public holidays")
+			description: __("South African public holidays")
 		},
 		{ fieldtype: "Section Break", label: __("Master Data") },
 		{
