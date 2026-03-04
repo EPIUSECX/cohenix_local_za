@@ -957,6 +957,14 @@ def insert_record(record):
 				
 				created_name = name or doc.name
 				print(f"  ✓ Created {doctype}: {created_name}")
+
+				# Auto-submit submittable doctypes (e.g. Income Tax Slab) so they are ready to use
+				try:
+					if meta.is_submittable and hasattr(doc, "submit") and doc.docstatus == 0:
+						doc.submit()
+						print(f"    → Submitted {doctype}: {created_name}")
+				except Exception as submit_err:
+					print(f"    ! Warning: Could not submit {doctype} {created_name}: {submit_err}")
 				
 				# For Holiday List, verify holidays were saved
 				if doctype == "Holiday List":

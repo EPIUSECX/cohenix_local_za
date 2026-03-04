@@ -502,9 +502,10 @@ def setup_za_localization(args):
 					print("  ! Warning: Holiday List DocType not found (HRMS may not be installed)")
 					print("  ⊙ Skipping holiday list loading")
 				else:
-					# Load holiday lists for 2024 and 2025 to match tax slabs periods
-					load_data_from_json(data_dir / "holiday_list_2024.json")
+					# Load holiday lists (current fixtures)
 					load_data_from_json(data_dir / "holiday_list_2025.json")
+					load_data_from_json(data_dir / "holiday_list_2026.json")
+					load_data_from_json(data_dir / "holiday_list_2027.json")
 					print("  ✓ Holiday lists loaded successfully")
 			except Exception as e:
 				print(f"  ! Error loading holiday lists: {e}")
