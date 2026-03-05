@@ -35,17 +35,6 @@ def load_sa_chart_of_accounts(company):
 		)
 		return False
 	
-	# Get chart file path
-	chart_path = Path(frappe.get_app_path("za_local", "accounts", "chart_of_accounts",
-										  "za_south_africa_chart_template.json"))
-	
-	if not chart_path.exists():
-		frappe.log_error(
-			f"Chart of Accounts file not found: {chart_path}",
-			"ZA Local Chart of Accounts",
-		)
-		return False
-	
 	try:
 		# Company should already have a base chart created by ERPNext's setup wizard.
 		# We only *augment* that chart with SA-specific tax accounts.
@@ -61,11 +50,11 @@ def load_sa_chart_of_accounts(company):
 			)
 			return False
 		
-		# Load chart data from ZA template and add SA-specific tax accounts
-		with open(chart_path, "r") as f:
-			chart_data = json.load(f)
-		
-		_add_sa_tax_accounts(company, chart_data.get("tree"))
+		# Add SA-specific tax accounts into the existing chart.
+		# We derive the insertion points (Current Assets / Current Liabilities
+		# and Tax Assets / Tax Liabilities) from the live chart so this works
+		# with any standard template (Standard, Standard with Numbers, etc.).
+		_add_sa_tax_accounts(company)
 		return True
 		
 	except Exception as e:
@@ -147,14 +136,16 @@ def _get_or_create_tax_group_under(company, parent_account_doc, preferred_names,
 	)
 
 
-def _add_sa_tax_accounts(company, chart_tree):
+def _add_sa_tax_accounts(company):
 	"""
 	Add only SA-specific tax accounts to an existing chart.
-	Works with any standard chart (e.g. Source of Funds (Liabilities) / Application of Funds (Assets)).
-	"""
-	# Extract tax accounts from our ZA template tree
-	tax_accounts = _extract_tax_accounts(chart_tree)
 
+	This function does **not** replace the chart. It assumes a standard ERPNext
+	chart (e.g. Application of Funds / Source of Funds) already exists for the
+	company and injects ZA tax ledgers in the expected groups:
+	- Current Assets > Tax Assets
+	- Current Liabilities > Tax Liabilities or Duties and Taxes
+	"""
 	# Find existing roots by root_type (don't assume "Liabilities" / "Assets" names)
 	liabilities_root = _get_root_account(company, "Liability")
 	assets_root = _get_root_account(company, "Asset")
@@ -192,18 +183,37 @@ def _add_sa_tax_accounts(company, chart_tree):
 		company, current_assets, ["Tax Assets"]
 	)
 
-	# Add SA tax ledgers under the groups
-	liability_tax_accounts = tax_accounts.get("liabilities", {})
-	for account_name, account_info in liability_tax_accounts.items():
+	# Add SA tax ledgers under the groups.
+	# We keep the set small and explicit so behaviour is predictable and
+	# independent of the JSON template structure.
+	liability_tax_accounts = [
+		"VAT Collected - Sales",
+		"VAT Payable - SARS",
+		"PAYE Payable - SARS",
+		"UIF Employee Contribution",
+		"UIF Employer Contribution",
+		"SDL Payable - SARS",
+		"COIDA Payable",
+	]
+	for account_name in liability_tax_accounts:
 		_get_or_create_account(
-			company, account_name, "Tax",
-			parent=tax_liabilities.name, is_group=0
+			company,
+			account_name,
+			"Tax",
+			parent=tax_liabilities.name,
+			is_group=0,
 		)
-	asset_tax_accounts = tax_accounts.get("assets", {})
-	for account_name, account_info in asset_tax_accounts.items():
+
+	asset_tax_accounts = [
+		"VAT Paid - Purchases",
+	]
+	for account_name in asset_tax_accounts:
 		_get_or_create_account(
-			company, account_name, "Tax",
-			parent=tax_assets.name, is_group=0
+			company,
+			account_name,
+			"Tax",
+			parent=tax_assets.name,
+			is_group=0,
 		)
 
 
@@ -539,4 +549,18 @@ def patch_financial_report_templates_sync():
 			frappe.log_error("Failed to patch sync_financial_report_templates", "ZA Local Setup")
 		except Exception:
 			pass
+
+
+def apply_chart_patches_on_request():
+	"""
+	Ensure ZA chart extensions are active in the current request process.
+
+	This is called via a before_request hook so that, in the HTTP request
+	where the setup wizard creates the Company (and any other requests that
+	need chart discovery), ERPNext's chart loader and financial-report sync
+	understand the ZA chart template name.
+	"""
+	extend_charts_for_country()
+	extend_chart_loader()
+	patch_financial_report_templates_sync()
 

@@ -202,8 +202,9 @@ scheduler_events = {
 
 # Request Events
 # ------------------
-# before_request / after_request not used
-# after_request = ["za_local.utils.after_request"]
+# Apply ZA chart patches in the current web / API worker so that the
+# setup wizard and any CoA-related flows understand the ZA template.
+before_request = ["za_local.accounts.setup_chart.apply_chart_patches_on_request"]
 
 # Job Events
 # ------------------
