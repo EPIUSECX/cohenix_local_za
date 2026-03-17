@@ -71,6 +71,8 @@ def after_install():
 	cleanup_orphaned_workspace_records()
 	ensure_modules_visible()
 	set_accounts_settings_for_za_vat()
+	sync_sa_workspaces()
+	ensure_sa_localisation_desktop_icon()
 	frappe.db.commit()
 	print("\n" + "="*80)
 	print("South African Localization installed successfully!")
@@ -99,6 +101,8 @@ def after_migrate():
 	cleanup_orphaned_workspace_records()
 	ensure_modules_visible()
 	set_accounts_settings_for_za_vat()
+	sync_sa_workspaces()
+	ensure_sa_localisation_desktop_icon()
 	frappe.db.commit()
 
 
@@ -161,55 +165,119 @@ def cleanup_invalid_doctype_links():
 
 def cleanup_orphaned_workspace_records():
 	"""
-	Remove orphaned workspace and desktop icon records from za_local.
-	
-	Since we removed workspace management, we need to clean up any
-	existing workspace and desktop icon records that were created by
-	the old workspace management code.
+	Historical no-op: we intentionally keep za_local workspaces and desktop
+	icons so that SA Localisation and related workspaces remain available.
+	Left in place so older migrations that still call this function continue
+	to succeed without modifying workspace data.
 	"""
-	print("\nCleaning up orphaned workspace records...")
-	
-	# Remove all za_local workspaces (we no longer use custom workspaces)
-	workspaces = frappe.get_all(
-		"Workspace",
-		filters={"app": "za_local"},
-		fields=["name"]
-	)
-	for ws in workspaces:
+	print("\nSkipping cleanup of za_local workspaces and desktop icons (kept by design).\n")
+
+
+def sync_sa_workspaces():
+	"""
+	Ensure ZA Local workspaces defined in the app (e.g. SA Localisation, SA VAT)
+	are present in the Workspace table.
+
+	Frappe v16 does not expose a generic sync_workspaces helper, so we load the
+	app's workspace JSON files directly and upsert the corresponding Workspace
+	records in the current site.
+	"""
+	from pathlib import Path
+
+	def _upsert_workspace(json_path: Path):
+		if not json_path.exists():
+			return
+
 		try:
-			frappe.delete_doc("Workspace", ws.name, force=True, ignore_permissions=True)
-			print(f"  ✓ Removed workspace: {ws.name}")
+			with open(json_path, "r") as f:
+				data = json.load(f)
 		except Exception as e:
-			print(f"  ! Could not remove workspace '{ws.name}': {e}")
-	
-	# Remove all za_local desktop icons (we no longer use custom desktop icons)
-	desktop_icons = frappe.get_all(
+			print(f"  ! Could not read workspace definition {json_path}: {e}")
+			return
+
+		if not isinstance(data, dict) or data.get("doctype") != "Workspace":
+			return
+
+		# Use the file's name/title as the workspace key
+		ws_name = data.get("name") or data.get("title")
+		if not ws_name:
+			return
+
+		immutable_keys = {"name", "doctype", "creation", "modified", "owner", "modified_by", "docstatus", "idx"}
+
+		if frappe.db.exists("Workspace", ws_name):
+			try:
+				doc = frappe.get_doc("Workspace", ws_name)
+				for key, value in data.items():
+					if key in immutable_keys:
+						continue
+					doc.set(key, value)
+				doc.flags.ignore_permissions = True
+				doc.save()
+				print(f"  ✓ Updated Workspace from file: {ws_name}")
+			except Exception as e:
+				print(f"  ! Could not update Workspace {ws_name}: {e}")
+		else:
+			try:
+				doc = frappe.get_doc(data)
+				doc.insert(ignore_permissions=True)
+				print(f"  ✓ Created Workspace from file: {ws_name}")
+			except Exception as e:
+				print(f"  ! Could not create Workspace {ws_name}: {e}")
+
+	try:
+		base = Path(frappe.get_app_path("za_local"))
+		_upsert_workspace(base / "sa_setup" / "workspace" / "sa_localisation" / "sa_localisation.json")
+		_upsert_workspace(base / "sa_vat" / "workspace" / "sa_vat" / "sa_vat.json")
+		frappe.db.commit()
+	except Exception as e:
+		# Do not fail install/migrate if workspace sync has issues
+		print(f"  ! Could not sync za_local workspaces: {e}")
+
+
+def ensure_sa_localisation_desktop_icon():
+	"""
+	Ensure there is a Desktop Icon that routes to the SA Localisation workspace.
+	Idempotent and scoped strictly to the za_local app so it does not touch
+	core Frappe / ERPNext / HRMS icons.
+	"""
+	if not frappe.db.table_exists("Desktop Icon"):
+		return
+
+	# If the workspace doesn't exist yet, we leave icon creation to the UI;
+	# this avoids validation errors during migrate/install. sync_sa_workspaces()
+	# should normally have created the workspace by now.
+	if not frappe.db.table_exists("Workspace") or not frappe.db.exists("Workspace", "SA Localisation"):
+		print("  ⊙ Skipping SA Localisation desktop icon (workspace not found yet)")
+		return
+
+	# Respect icons created/managed via the UI:
+	# - Never insert a new record if one with this label already exists.
+	# - Only ensure the app field is set to za_local; leave routing (link_type/link_to)
+	#   exactly as the user configured it.
+	icons = frappe.get_all(
 		"Desktop Icon",
-		filters={"app": "za_local"},
-		fields=["name", "label"]
+		filters={"label": "SA Localisation"},
+		fields=["name", "label", "app"],
 	)
-	for icon in desktop_icons:
+
+	if not icons:
+		# No icon yet; we leave creation entirely to the UI to avoid clashes
+		# with site-specific layouts or older Frappe versions.
+		print("  ⊙ No SA Localisation desktop icon found; leaving creation to the UI")
+		return
+
+	for icon in icons:
 		try:
-			frappe.delete_doc("Desktop Icon", icon.name, force=True, ignore_permissions=True)
-			print(f"  ✓ Removed desktop icon: {icon.label}")
+			doc = frappe.get_doc("Desktop Icon", icon.name)
+			if doc.app != "za_local":
+				doc.app = "za_local"
+				doc.save(ignore_permissions=True)
+				print(f"  ✓ Updated SA Localisation desktop icon app to 'za_local' ({icon.name})")
 		except Exception as e:
-			print(f"  ! Could not remove desktop icon '{icon.label}': {e}")
-	
-	# Remove all za_local workspace sidebars
-	sidebars = frappe.get_all(
-		"Workspace Sidebar",
-		filters={"app": "za_local"},
-		fields=["name"]
-	)
-	for sidebar in sidebars:
-		try:
-			frappe.delete_doc("Workspace Sidebar", sidebar.name, force=True, ignore_permissions=True)
-			print(f"  ✓ Removed workspace sidebar: {sidebar.name}")
-		except Exception as e:
-			print(f"  ! Could not remove workspace sidebar '{sidebar.name}': {e}")
-	
+			print(f"  ! Could not update SA Localisation desktop icon {icon.name}: {e}")
+
 	frappe.db.commit()
-	print("  ✓ Orphaned workspace records cleaned up\n")
 
 
 def before_migrate():

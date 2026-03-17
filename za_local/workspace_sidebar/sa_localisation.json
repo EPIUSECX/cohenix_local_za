@@ -1,0 +1,89 @@
+{
+ "app": "za_local",
+ "creation": "2026-03-10 14:54:24.327455",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "header_icon": "cat",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "list",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "SA VAT",
+   "link_to": "SA VAT",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "\ud83c\uddff\ud83c\udde6",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "SA Localisation",
+   "link_to": "SA Localisation",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "list",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "SA Labour",
+   "link_to": "SA Labour",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "list",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "SA COIDA",
+   "link_to": "SA COIDA",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "list",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "SA Payroll",
+   "link_to": "SA Payroll",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "icon": "accessibility",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "tester2",
+   "link_to": "Income Tax Slab",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-03-17 13:20:41.101962",
+ "modified_by": "Administrator",
+ "module": "SA Setup",
+ "name": "SA Localisation",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "SA Localisation"
+}

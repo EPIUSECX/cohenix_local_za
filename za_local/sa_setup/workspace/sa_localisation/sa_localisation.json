@@ -1,7 +1,7 @@
 {
  "app": "za_local",
  "charts": [],
- "content": "[{\"id\":\"_gJbdDIBd9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h3\\\">South Africa - Localisation</span>\",\"col\":12}},{\"id\":\"C0d3x7tANR\",\"type\":\"paragraph\",\"data\":{\"text\":\"     All South African VAT, payroll, labour and COIDA tools in one place.<br>Use the sections below to jump to settings, submissions, and reports.\",\"col\":12}},{\"id\":\"F3d4OeOMSQ\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Settings</span><br>\",\"col\":12}},{\"id\":\"0R7DpgrgeM\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA Local Setup\",\"col\":3}},{\"id\":\"hSC__aKkpM\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA VAT Settings\",\"col\":3}}]",
+ "content": "[{\"id\":\"header_sa_local\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h3\\\" style=\\\"text-align:left; display:block;\\\"><b>South Africa - Localisation</b></span>\",\"col\":12}},{\"id\":\"intro_sa_local\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span style=\\\"text-align:left; display:block; max-width:720px;\\\">All South African VAT, payroll, labour and COIDA tools in one place.<br>Use the section cards below to jump to setup, submissions, and reports.</span>\",\"col\":12}},{\"id\":\"section_setup\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 1.5rem; display:block; text-align:left;\\\"><b>Setup Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_sa_local_setup\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA Local Setup\",\"col\":3}},{\"id\":\"shortcut_sa_vat_settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA VAT Settings\",\"col\":3}},{\"id\":\"section_payroll\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 2rem; display:block; text-align:left;\\\"><b>Payroll &amp; Tax Submission Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_emp201\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EMP201 Submissions\",\"col\":3}},{\"id\":\"shortcut_emp501\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EMP501 Reconciliation\",\"col\":3}},{\"id\":\"shortcut_tax_rebates\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tax Rebates and Medical Tax Credit\",\"col\":3}},{\"id\":\"shortcut_eti_slabs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"ETI Slabs\",\"col\":3}},{\"id\":\"shortcut_retirement_funds\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Retirement Funds\",\"col\":3}},{\"id\":\"section_labour\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 2rem; display:block; text-align:left;\\\"><b>Labour &amp; Employment Equity Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_business_trip_settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Business Trip Settings\",\"col\":3}},{\"id\":\"shortcut_wsp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Workplace Skills Plan\",\"col\":3}},{\"id\":\"shortcut_atr\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Annual Training Report\",\"col\":3}},{\"id\":\"shortcut_ee_workforce\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EE Workforce Profile\",\"col\":3}},{\"id\":\"shortcut_eea4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EEA4 Employment Equity Plan\",\"col\":3}},{\"id\":\"shortcut_eea2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EEA2 Income Differentials\",\"col\":3}},{\"id\":\"section_coida\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 2rem; display:block; text-align:left;\\\"><b>COIDA Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_coida_settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"COIDA Settings\",\"col\":3}},{\"id\":\"shortcut_coida_annual\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"COIDA Annual Return\",\"col\":3}},{\"id\":\"shortcut_workplace_injury\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Workplace Injury\",\"col\":3}},{\"id\":\"shortcut_oid_claim\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OID Claim\",\"col\":3}}]",
  "creation": "2026-02-25 15:51:34.424061",
  "custom_blocks": [],
  "docstatus": 0,
@@ -9,13 +9,13 @@
  "for_user": "",
  "hide_custom": 0,
  "icon": "grid",
- "idx": 0,
+ "idx": 1,
  "indicator_color": "green",
  "is_hidden": 0,
  "label": "SA Localisation",
  "link_type": "DocType",
  "links": [],
- "modified": "2026-02-27 11:55:06.830689",
+ "modified": "2026-03-17 12:15:31.862795",
  "modified_by": "Administrator",
  "module": "SA Setup",
  "name": "SA Localisation",
@@ -23,7 +23,12 @@
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,
- "quick_lists": [],
+ "quick_lists": [
+  {
+   "document_type": "Payroll Correction",
+   "label": "Payroll Correction"
+  }
+ ],
  "roles": [],
  "sequence_id": 23.0,
  "shortcuts": [
@@ -40,6 +45,114 @@
    "doc_view": "List",
    "label": "SA VAT Settings",
    "link_to": "South Africa VAT Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "EMP201 Submissions",
+   "link_to": "EMP201 Submission",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "EMP501 Reconciliation",
+   "link_to": "EMP501 Reconciliation",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Tax Rebates and Medical Tax Credit",
+   "link_to": "Tax Rebates and Medical Tax Credit",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "ETI Slabs",
+   "link_to": "ETI Slab",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Retirement Funds",
+   "link_to": "Retirement Fund",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Business Trip Settings",
+   "link_to": "Business Trip Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Workplace Skills Plan",
+   "link_to": "Workplace Skills Plan",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Annual Training Report",
+   "link_to": "Annual Training Report",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "EE Workforce Profile",
+   "link_to": "Ee Workforce Profile",
+   "report_ref_doctype": "Employee",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "EEA4 Employment Equity Plan",
+   "link_to": "Eea4 Employment Equity Plan",
+   "report_ref_doctype": "Employee",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "EEA2 Income Differentials",
+   "link_to": "Eea2 Income Differentials",
+   "report_ref_doctype": "Employee",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "COIDA Settings",
+   "link_to": "COIDA Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "COIDA Annual Return",
+   "link_to": "COIDA Annual Return",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Workplace Injury",
+   "link_to": "Workplace Injury",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "OID Claim",
+   "link_to": "OID Claim",
    "type": "DocType"
   }
  ],
