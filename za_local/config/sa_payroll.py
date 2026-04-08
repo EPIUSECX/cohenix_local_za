@@ -124,7 +124,7 @@ def get_data():
 				{
 					"type": "doctype",
 					"name": "EMP201 Submission",
-					"description": _("Monthly SARS EMP201 Return for PAYE, UIF, SDL and ETI"),
+					"description": _("Monthly SARS EMP201 Return for PAYE, UIF, and SDL"),
 					"onboard": 1,
 				},
 				{
@@ -139,17 +139,6 @@ def get_data():
 					"description": _("Employee Tax Certificate"),
 					"onboard": 1,
 				},
-				{
-					"type": "doctype",
-					"name": "Employee ETI Log",
-					"description": _("Employment Tax Incentive (ETI) calculation log"),
-				},
-				{
-					"type": "doctype",
-					"name": "ETI Slab",
-					"description": _("ETI calculation slabs and formulas"),
-				},
-				
 				# Reports Section
 				{
 					"type": "report",

@@ -1,24 +1,15 @@
 {
  "app": "za_local",
  "charts": [],
- "content": "[{\"id\":\"header_sa_local\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h3\\\" style=\\\"text-align:left; display:block;\\\"><b>South Africa - Localisation</b></span>\",\"col\":12}},{\"id\":\"intro_sa_local\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span style=\\\"text-align:left; display:block; max-width:720px;\\\">All South African VAT, payroll, labour and COIDA tools in one place.<br>Use the section cards below to jump to setup, submissions, and reports.</span>\",\"col\":12}},{\"id\":\"section_setup\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 1.5rem; display:block; text-align:left;\\\"><b>Setup Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_sa_local_setup\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA Local Setup\",\"col\":3}},{\"id\":\"shortcut_sa_vat_settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SA VAT Settings\",\"col\":3}},{\"id\":\"section_payroll\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 2rem; display:block; text-align:left;\\\"><b>Payroll &amp; Tax Submission Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_emp201\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EMP201 Submissions\",\"col\":3}},{\"id\":\"shortcut_emp501\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EMP501 Reconciliation\",\"col\":3}},{\"id\":\"shortcut_tax_rebates\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tax Rebates and Medical Tax Credit\",\"col\":3}},{\"id\":\"shortcut_eti_slabs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"ETI Slabs\",\"col\":3}},{\"id\":\"shortcut_retirement_funds\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Retirement Funds\",\"col\":3}},{\"id\":\"section_labour\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 2rem; display:block; text-align:left;\\\"><b>Labour &amp; Employment Equity Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_business_trip_settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Business Trip Settings\",\"col\":3}},{\"id\":\"shortcut_wsp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Workplace Skills Plan\",\"col\":3}},{\"id\":\"shortcut_atr\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Annual Training Report\",\"col\":3}},{\"id\":\"shortcut_ee_workforce\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EE Workforce Profile\",\"col\":3}},{\"id\":\"shortcut_eea4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EEA4 Employment Equity Plan\",\"col\":3}},{\"id\":\"shortcut_eea2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"EEA2 Income Differentials\",\"col\":3}},{\"id\":\"section_coida\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"margin-top: 2rem; display:block; text-align:left;\\\"><b>COIDA Links</b></span>\",\"col\":12}},{\"id\":\"shortcut_coida_settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"COIDA Settings\",\"col\":3}},{\"id\":\"shortcut_coida_annual\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"COIDA Annual Return\",\"col\":3}},{\"id\":\"shortcut_workplace_injury\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Workplace Injury\",\"col\":3}},{\"id\":\"shortcut_oid_claim\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OID Claim\",\"col\":3}}]",
- "creation": "2026-02-25 15:51:34.424061",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
  "for_user": "",
  "hide_custom": 0,
- "icon": "grid",
  "idx": 1,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "SA Localisation",
  "link_type": "DocType",
- "links": [],
- "modified": "2026-03-17 12:15:31.862795",
- "modified_by": "Administrator",
- "module": "SA Setup",
- "name": "SA Localisation",
  "number_cards": [],
  "owner": "Administrator",
  "parent_page": "",
@@ -30,132 +21,189 @@
   }
  ],
  "roles": [],
- "sequence_id": 23.0,
  "shortcuts": [
   {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "SA Local Setup",
-   "link_to": "ZA Local Setup",
-   "stats_filter": "[]",
-   "type": "DocType"
+   "label": "SA Payroll",
+   "type": "URL",
+   "url": "/desk/sa-payroll"
   },
   {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "SA VAT Settings",
-   "link_to": "South Africa VAT Settings",
-   "type": "DocType"
+   "label": "SA VAT",
+   "type": "URL",
+   "url": "/desk/sa-vat"
   },
   {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "EMP201 Submissions",
-   "link_to": "EMP201 Submission",
-   "type": "DocType"
+   "label": "SA Labour",
+   "type": "URL",
+   "url": "/desk/sa-labour"
   },
   {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "EMP501 Reconciliation",
-   "link_to": "EMP501 Reconciliation",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Tax Rebates and Medical Tax Credit",
-   "link_to": "Tax Rebates and Medical Tax Credit",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "ETI Slabs",
-   "link_to": "ETI Slab",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Retirement Funds",
-   "link_to": "Retirement Fund",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Business Trip Settings",
-   "link_to": "Business Trip Settings",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Workplace Skills Plan",
-   "link_to": "Workplace Skills Plan",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Annual Training Report",
-   "link_to": "Annual Training Report",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "EE Workforce Profile",
-   "link_to": "Ee Workforce Profile",
-   "report_ref_doctype": "Employee",
-   "type": "Report"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "EEA4 Employment Equity Plan",
-   "link_to": "Eea4 Employment Equity Plan",
-   "report_ref_doctype": "Employee",
-   "type": "Report"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "EEA2 Income Differentials",
-   "link_to": "Eea2 Income Differentials",
-   "report_ref_doctype": "Employee",
-   "type": "Report"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "COIDA Settings",
-   "link_to": "COIDA Settings",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "COIDA Annual Return",
-   "link_to": "COIDA Annual Return",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Workplace Injury",
-   "link_to": "Workplace Injury",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "OID Claim",
-   "link_to": "OID Claim",
-   "type": "DocType"
+   "label": "SA COIDA",
+   "type": "URL",
+   "url": "/desk/sa-coida"
   }
  ],
- "title": "SA Localisation",
- "type": "Workspace"
+ "type": "Workspace",
+ "creation": "2026-02-25 15:51:34.424061",
+ "icon": "setting",
+ "label": "Setup & Overview",
+ "module": "SA Localisation",
+ "name": "SA Overview",
+ "title": "SA Overview",
+ "sequence_id": 23.0,
+ "modified": "2026-04-02 12:00:00.000000",
+ "modified_by": "Administrator",
+ "content": "[{\"id\": \"sa-ov-sp\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sa-ov-head\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>Setup &amp; Overview</b></span>\", \"col\": 12}}, {\"id\": \"sa-ov-intro\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">Start here to <b>configure</b> South African localisation—company defaults, VAT, payroll masters, COIDA, and tax templates. Use the <b>shortcuts</b> below or the workspace menu (top left) for <b>day-to-day work</b>: submissions, returns, payroll runs, and incidents.</span>\", \"col\": 12}}, {\"id\": \"sa-ov-h-ws\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>South African workspaces</b></span>\", \"col\": 12}}, {\"id\": \"sa-ov-p-ws\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">Each workspace groups transactions, reports, and statutory tools for that area.<br><br><b>SA Payroll</b> — EMP201/501, PAYE, UIF, SDL, statutory masters, rebates, salary processing, bank remittances, and payroll/accounting reports.<br><br><b>SA VAT</b> — South Africa VAT settings, VAT201 and related returns, and guidance on item and document tax templates.<br><br><b>SA Labour</b> — Skills development, workplace skills plans, annual training, business trips, SETA, and Employment Equity reporting.<br><br><b>SA COIDA</b> — COIDA settings, annual returns, workplace injuries, and OID claims.</span>\", \"col\": 12}}, {\"id\": \"sa-ov-h-setup\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Configuration &amp; setup</b></span>\", \"col\": 12}}, {\"id\": \"sa-ov-p-setup\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">Open these documents once (or when policy changes), then work primarily in the workspaces above.</span>\", \"col\": 12}}, {\"id\": \"sa-ov-c1\", \"type\": \"card\", \"data\": {\"card_name\": \"ZA setup\", \"col\": 3}}, {\"id\": \"sa-ov-c2\", \"type\": \"card\", \"data\": {\"card_name\": \"Payroll configuration\", \"col\": 3}}, {\"id\": \"sa-ov-c3\", \"type\": \"card\", \"data\": {\"card_name\": \"Labour setup\", \"col\": 3}}, {\"id\": \"sa-ov-c4\", \"type\": \"card\", \"data\": {\"card_name\": \"COIDA setup\", \"col\": 3}}, {\"id\": \"sa-ov-c5\", \"type\": \"card\", \"data\": {\"card_name\": \"Tax templates (ERPNext)\", \"col\": 12}}]",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "ZA setup",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "ZA Local Setup",
+   "link_count": 0,
+   "link_to": "ZA Local Setup",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SA VAT Settings",
+   "link_count": 0,
+   "link_to": "South Africa VAT Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll configuration",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Settings",
+   "link_count": 0,
+   "link_to": "Payroll Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax Rebates and Medical Tax Credit",
+   "link_count": 0,
+   "link_to": "Tax Rebates and Medical Tax Credit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retirement Fund",
+   "link_count": 0,
+   "link_to": "Retirement Fund",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Labour setup",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Business Trip Settings",
+   "link_count": 0,
+   "link_to": "Business Trip Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Workplace Skills Plan",
+   "link_count": 0,
+   "link_to": "Workplace Skills Plan",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "COIDA setup",
+   "link_count": 1,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "COIDA Settings",
+   "link_count": 0,
+   "link_to": "COIDA Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax templates (ERPNext)",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Item Tax Template",
+   "link_count": 0,
+   "link_to": "Item Tax Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Taxes and Charges Template",
+   "link_count": 0,
+   "link_to": "Sales Taxes and Charges Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Purchase Taxes and Charges Template",
+   "link_count": 0,
+   "link_to": "Purchase Taxes and Charges Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ]
 }

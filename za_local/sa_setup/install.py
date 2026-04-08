@@ -5,6 +5,7 @@ This module handles installation, uninstallation, and migration setup
 for the South African localization app.
 """
 
+import copy
 import frappe
 import json
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
@@ -69,10 +70,14 @@ def after_install():
 	apply_statutory_formulas()
 	import_master_data()
 	cleanup_orphaned_workspace_records()
+	ensure_sa_localisation_module_def()
 	ensure_modules_visible()
 	set_accounts_settings_for_za_vat()
+	migrate_workspace_sa_localisation_to_sa_overview()
 	sync_sa_workspaces()
-	ensure_sa_localisation_desktop_icon()
+	rebuild_za_local_workspace_sidebars()
+	sync_za_local_workspace_sidebar_modules()
+	sync_za_local_desktop_icons()
 	frappe.db.commit()
 	print("\n" + "="*80)
 	print("South African Localization installed successfully!")
@@ -99,10 +104,14 @@ def after_migrate():
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
 	cleanup_orphaned_workspace_records()
+	ensure_sa_localisation_module_def()
 	ensure_modules_visible()
 	set_accounts_settings_for_za_vat()
+	migrate_workspace_sa_localisation_to_sa_overview()
 	sync_sa_workspaces()
-	ensure_sa_localisation_desktop_icon()
+	rebuild_za_local_workspace_sidebars()
+	sync_za_local_workspace_sidebar_modules()
+	sync_za_local_desktop_icons()
 	frappe.db.commit()
 
 
@@ -173,6 +182,140 @@ def cleanup_orphaned_workspace_records():
 	print("\nSkipping cleanup of za_local workspaces and desktop icons (kept by design).\n")
 
 
+def ensure_sa_localisation_module_def():
+	"""
+	Desk-only module from modules.txt: Frappe may not create Module Def until
+	content sync runs; Workspace validation requires the module to exist.
+	"""
+	if not frappe.db.table_exists("Module Def"):
+		return
+	if frappe.db.exists("Module Def", "SA Localisation"):
+		return
+	try:
+		m = frappe.new_doc("Module Def")
+		m.module_name = "SA Localisation"
+		m.app_name = "za_local"
+		m.custom = 0
+		m.flags.ignore_permissions = True
+		m.insert(ignore_permissions=True)
+		frappe.clear_cache()
+		print("  ✓ Created Module Def 'SA Localisation'")
+	except Exception as e:
+		print(f"  ! Could not create Module Def SA Localisation: {e}")
+
+
+def migrate_workspace_sa_localisation_to_sa_overview():
+	"""
+	Desktop Icon autoname is `label`: App tile uses label 'SA Localisation' (app_title)
+	and cannot share the same name as the Link icon for the hub workspace.
+	Rename hub workspace and related desk rows to 'SA Overview'.
+	"""
+	if not frappe.db.table_exists("Workspace"):
+		return
+	if not frappe.db.exists("Workspace", "SA Localisation"):
+		return
+	if frappe.db.exists("Workspace", "SA Overview"):
+		print(
+			"  ⊙ SA Overview workspace already exists; skipping SA Localisation → SA Overview rename"
+		)
+		return
+	try:
+		from frappe.model.rename_doc import rename_doc
+
+		rename_doc("Workspace", "SA Localisation", "SA Overview", force=True, ignore_permissions=True)
+
+		frappe.db.sql(
+			"UPDATE `tabDesktop Icon` SET link_to=%s WHERE link_to=%s",
+			("SA Overview", "SA Localisation"),
+		)
+
+		if frappe.db.table_exists("Workspace Sidebar Item"):
+			frappe.db.sql(
+				"""UPDATE `tabWorkspace Sidebar Item` SET link_to=%s
+				WHERE link_type='Workspace' AND link_to=%s""",
+				("SA Overview", "SA Localisation"),
+			)
+
+		if frappe.db.exists("Workspace Sidebar", "SA Localisation"):
+			rename_doc(
+				"Workspace Sidebar",
+				"SA Localisation",
+				"SA Overview",
+				force=True,
+				ignore_permissions=True,
+			)
+
+		for icon_name in frappe.get_all(
+			"Desktop Icon",
+			filters={"label": "SA Localisation", "icon_type": "Link"},
+			pluck="name",
+		):
+			rename_doc("Desktop Icon", icon_name, "SA Overview", force=True, ignore_permissions=True)
+
+		print("  ✓ Renamed hub workspace SA Localisation → SA Overview (desktop icon PK fix)")
+	except Exception as e:
+		print(f"  ! Could not rename hub workspace to SA Overview: {e}")
+
+
+def _strip_workspace_content_chart_blocks(data: dict, allowed_chart_names: set | None) -> None:
+	"""
+	Remove chart blocks from Workspace.content JSON.
+	If allowed_chart_names is None, drop every chart block.
+	If a set (possibly empty), keep only blocks whose chart_name is in the set.
+	"""
+	raw = data.get("content")
+	if not raw:
+		return
+	try:
+		blocks = json.loads(raw)
+	except Exception:
+		return
+	if not isinstance(blocks, list):
+		return
+	out = []
+	for block in blocks:
+		if block.get("type") != "chart":
+			out.append(block)
+			continue
+		name = (block.get("data") or {}).get("chart_name")
+		if allowed_chart_names is None:
+			continue
+		if name in allowed_chart_names:
+			out.append(block)
+	data["content"] = json.dumps(out)
+
+
+def _sanitize_workspace_dashboard_charts(data: dict) -> None:
+	"""
+	In-place: drop Workspace.charts rows when the Dashboard Chart doc is missing.
+	Also remove matching chart widgets from content so validate/save does not fail.
+
+	Sites without HRMS often lack chart \"Outgoing Salary\"; without this, sync_sa_workspaces
+	can fail to create or update SA Payroll and the workspace disappears from the desk.
+	"""
+	charts = data.get("charts")
+	if not charts:
+		return
+
+	if not frappe.db.table_exists("Dashboard Chart"):
+		data["charts"] = []
+		_strip_workspace_content_chart_blocks(data, None)
+		return
+
+	kept = []
+	for row in charts:
+		cn = row.get("chart_name")
+		if cn and frappe.db.exists("Dashboard Chart", cn):
+			kept.append(row)
+
+	if len(kept) == len(charts):
+		return
+
+	data["charts"] = kept
+	allowed = {row.get("chart_name") for row in kept if row.get("chart_name")}
+	_strip_workspace_content_chart_blocks(data, allowed)
+
+
 def sync_sa_workspaces():
 	"""
 	Ensure ZA Local workspaces defined in the app (e.g. SA Localisation, SA VAT)
@@ -203,6 +346,9 @@ def sync_sa_workspaces():
 		if not ws_name:
 			return
 
+		data = copy.deepcopy(data)
+		_sanitize_workspace_dashboard_charts(data)
+
 		immutable_keys = {"name", "doctype", "creation", "modified", "owner", "modified_by", "docstatus", "idx"}
 
 		if frappe.db.exists("Workspace", ws_name):
@@ -227,57 +373,577 @@ def sync_sa_workspaces():
 
 	try:
 		base = Path(frappe.get_app_path("za_local"))
-		_upsert_workspace(base / "sa_setup" / "workspace" / "sa_localisation" / "sa_localisation.json")
-		_upsert_workspace(base / "sa_vat" / "workspace" / "sa_vat" / "sa_vat.json")
+		for rel in (
+			base / "sa_setup" / "workspace" / "sa_localisation" / "sa_localisation.json",
+			base / "sa_vat" / "workspace" / "sa_vat" / "sa_vat.json",
+			base / "sa_payroll" / "workspace" / "sa_payroll" / "sa_payroll.json",
+			base / "sa_labour" / "workspace" / "sa_labour" / "sa_labour.json",
+			base / "sa_coida" / "workspace" / "sa_coida" / "sa_coida.json",
+		):
+			_upsert_workspace(rel)
 		frappe.db.commit()
 	except Exception as e:
 		# Do not fail install/migrate if workspace sync has issues
 		print(f"  ! Could not sync za_local workspaces: {e}")
 
 
-def ensure_sa_localisation_desktop_icon():
+# Lucide icon names for Workspace Sidebar rows (match Frappe HR Payroll sidebar style).
+_SIDEBAR_DOCTYPE_ICONS = {
+	"Payroll Entry": "banknote-arrow-up",
+	"Salary Structure Assignment": "loan",
+	"Salary Slip": "accounting",
+	"Additional Salary": "piggy-bank",
+	"Salary Withholding": "banknote-x",
+	"Payroll Settings": "settings",
+	"Payroll Period": "calendar",
+	"Income Tax Slab": "percent",
+	"Salary Component": "package",
+	"Salary Structure": "layers",
+	"Journal Entry": "book-open",
+	"Payment Entry": "wallet",
+	"ZA Local Setup": "settings",
+	"EMP201 Submission": "file-spreadsheet",
+	"EMP501 Reconciliation": "clipboard-list",
+	"Tax Rebates and Medical Tax Credit": "percent",
+	"Retirement Fund": "landmark",
+	"Employee Benefit Application": "heart-handshake",
+	"Employee Incentive": "sparkles",
+	"Retention Bonus": "award",
+	"Bulk Salary Structure Assignment": "users-round",
+	"Account": "book-open",
+	"Cost Center": "target",
+	"Accounts Settings": "settings",
+	"Accounting Dimension": "boxes",
+	"Currency": "coins",
+}
+
+_SIDEBAR_REPORT_ICONS = {
+	"Salary Register": "notepad-text",
+	"Bank Remittance": "landmark",
+	"Income Tax Computation": "percent",
+	"Payroll Register": "notepad-text",
+	"EMP201 Report": "file-spreadsheet",
+	"Statutory Submissions Summary": "clipboard-list",
+	"Department Cost Analysis": "chart-column",
+	"Salary Payments Based On Payment Mode": "wallet",
+	"Salary Payments via ECS": "landmark",
+	"Provident Fund Deductions": "piggy-bank",
+	"Professional Tax Deductions": "percent",
+	"Income Tax Deductions": "percent",
+	"General Ledger": "book-open",
+	"Accounts Payable": "circle-arrow-down",
+	"Accounts Receivable": "circle-arrow-up",
+}
+
+
+def _sidebar_section_icon(card_label: str) -> str:
+	if not card_label:
+		return "folder"
+	t = card_label.lower()
+	if "report" in t:
+		return "notepad-text"
+	if "master" in t or "setup" in t:
+		return "database"
+	if "transaction" in t:
+		return "circle-dollar-sign"
+	if "accounting" in t:
+		return "book-open"
+	if "statutory" in t or "south africa" in t:
+		return "flag"
+	if "coida" in t:
+		return "hard-hat"
+	if "configuration" in t:
+		return "settings"
+	if "organisation" in t or "organization" in t or "company" in t:
+		return "building-2"
+	if "labour" in t or "labor" in t or "employee" in t:
+		return "users"
+	if "equity" in t:
+		return "clipboard-list"
+	if "return" in t or "incident" in t:
+		return "life-buoy"
+	if "tax" in t or "vat" in t:
+		return "percent"
+	if "overview" in t or "hub" in t:
+		return "layout-grid"
+	if t == "payroll":
+		return "circle-dollar-sign"
+	if "incentive" in t:
+		return "piggy-bank"
+	return "folder"
+
+
+def _sidebar_icon_for_target(link_type: str, link_to: str) -> str:
+	if link_type == "DocType":
+		return _SIDEBAR_DOCTYPE_ICONS.get(link_to, "circle-dot")
+	if link_type == "Report":
+		return _SIDEBAR_REPORT_ICONS.get(link_to, "file-text")
+	if link_type == "Workspace":
+		return "home"
+	if link_type == "Dashboard":
+		return "layout-dashboard"
+	if link_type == "URL":
+		return "layout-grid"
+	return "file-text"
+
+
+def _sidebar_icon_for_url_shortcut(label: str) -> str:
+	m = {
+		"SA Payroll": "accounting",
+		"SA VAT": "sell",
+		"SA Labour": "hr",
+		"SA COIDA": "hard-hat",
+	}
+	return m.get(label, "layout-grid")
+
+
+# Pinned to sidenav bottom (do not use broad "* Settings" — e.g. Accounts Settings stays in Accounting).
+_SETTINGS_SIDEBAR_FOOTER_DOCTYPES = frozenset(
+	{
+		"ZA Local Setup",
+		"Payroll Settings",
+		"South Africa VAT Settings",
+		"COIDA Settings",
+		"Business Trip Settings",
+	}
+)
+
+
+def _is_sidebar_settings_footer_link(
+	link_type: str, link_to: str, workspace_name: str | None = None
+) -> bool:
+	# SA Overview hub intentionally lists setup DocTypes in cards (not a pinned footer).
+	if workspace_name == "SA Overview":
+		return False
+	if link_type != "DocType" or not link_to:
+		return False
+	return link_to in _SETTINGS_SIDEBAR_FOOTER_DOCTYPES
+
+
+def _strip_nested_workspace_sidebar_icons(parent_name: str):
+	"""Force empty icon on nested sidebar links (child=1). Fixes stale DB rows after partial saves."""
+	if not parent_name or not frappe.db.table_exists("Workspace Sidebar Item"):
+		return
+	frappe.db.sql(
+		"""
+		UPDATE `tabWorkspace Sidebar Item`
+		SET icon = ''
+		WHERE parent = %s AND parenttype = 'Workspace Sidebar'
+		  AND type = 'Link' AND IFNULL(`child`, 0) = 1
+		""",
+		parent_name,
+	)
+
+
+def rebuild_za_local_workspace_sidebars():
 	"""
-	Ensure there is a Desktop Icon that routes to the SA Localisation workspace.
-	Idempotent and scoped strictly to the za_local app so it does not touch
-	core Frappe / ERPNext / HRMS icons.
+	Rebuild Workspace Sidebar items from each Workspace's shortcuts + link cards.
+	Run after workspace JSON sync so sidenav matches workspace definition (like HR Payroll).
+	"""
+	if not frappe.db.table_exists("Workspace Sidebar"):
+		return
+
+	for workspace_name in (
+		"SA Overview",
+		"SA VAT",
+		"SA Payroll",
+		"SA Labour",
+		"SA COIDA",
+	):
+		if not frappe.db.exists("Workspace", workspace_name):
+			continue
+		try:
+			_rebuild_single_za_local_workspace_sidebar(workspace_name)
+		except Exception as e:
+			print(f"  ! Could not rebuild Workspace Sidebar '{workspace_name}': {e}")
+
+
+def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
+	"""
+	Build Workspace Sidebar rows like Frappe HR Payroll: top-level Home (and optional
+	Dashboard) + shortcut links with Lucide icons; Card Break → Section Break with
+	indent/collapsible/keep_closed; links under each card as child rows (child=1, icon '')
+	so the sidebar nests and does not fall back to the default 'list' icon.
+	"""
+	ws = frappe.get_doc("Workspace", workspace_name)
+	rows = []
+	idx = 0
+
+	def add_row(data: dict):
+		nonlocal idx
+		r = dict(data)
+		r["idx"] = idx
+		idx += 1
+		rows.append(r)
+
+	shortcut_keys = set()
+	for s in ws.shortcuts or []:
+		st = getattr(s, "type", None)
+		if st == "URL":
+			shortcut_keys.add(("URL", getattr(s, "url", None) or ""))
+		else:
+			shortcut_keys.add((st, getattr(s, "link_to", None)))
+
+	settings_footer = []
+	settings_footer_keys = set()
+
+	def queue_settings_footer(label: str, link_type: str, link_to: str):
+		key = (link_type, link_to)
+		if key in settings_footer_keys:
+			return
+		settings_footer_keys.add(key)
+		settings_footer.append(
+			{"label": label, "link_type": link_type, "link_to": link_to}
+		)
+
+	# Home must remain the first sidebar row (idx 0) after rebuild.
+	add_row(
+		{
+			"type": "Link",
+			"label": "Home",
+			"link_type": "Workspace",
+			"link_to": workspace_name,
+			"icon": "home",
+			"child": 0,
+			"collapsible": 1,
+			"indent": 0,
+			"keep_closed": 0,
+			"show_arrow": 0,
+		}
+	)
+
+	# Dashboard link row only when a Dashboard *document* exists with this name.
+	# Workspace names (e.g. SA Payroll) are not valid link_to for link_type Dashboard;
+	# charts still render on the workspace home without this sidebar entry.
+	if ws.get("charts") and frappe.db.exists("Dashboard", workspace_name):
+		add_row(
+			{
+				"type": "Link",
+				"label": "Dashboard",
+				"link_type": "Dashboard",
+				"link_to": workspace_name,
+				"icon": "layout-dashboard",
+				"child": 0,
+				"collapsible": 1,
+				"indent": 0,
+				"keep_closed": 0,
+				"show_arrow": 0,
+			}
+		)
+
+	for s in ws.shortcuts or []:
+		st = getattr(s, "type", None)
+		if _is_sidebar_settings_footer_link(st, getattr(s, "link_to", None), workspace_name):
+			queue_settings_footer(s.label, st, s.link_to)
+			continue
+		row = {
+			"type": "Link",
+			"label": s.label,
+			"link_type": st,
+			"icon": (
+				_sidebar_icon_for_url_shortcut(s.label)
+				if st == "URL"
+				else _sidebar_icon_for_target(st, getattr(s, "link_to", None) or "")
+			),
+			"child": 0,
+			"collapsible": 1,
+			"indent": 0,
+			"keep_closed": 0,
+			"show_arrow": 0,
+		}
+		if st == "URL":
+			row["url"] = getattr(s, "url", None) or ""
+			row["link_to"] = ""
+		else:
+			row["link_to"] = s.link_to
+		add_row(row)
+
+	current_card_label = None
+	pending_card_links = []
+
+	def flush_card():
+		nonlocal current_card_label, pending_card_links
+		if not current_card_label or not pending_card_links:
+			current_card_label = None
+			pending_card_links = []
+			return
+		add_row(
+			{
+				"type": "Section Break",
+				"label": current_card_label,
+				"link_type": "DocType",
+				"icon": _sidebar_section_icon(current_card_label),
+				"child": 0,
+				"collapsible": 1,
+				"indent": 1,
+				"keep_closed": 1,
+				"show_arrow": 0,
+			}
+		)
+		for L in pending_card_links:
+			# Match Frappe HR Payroll sidebar: section row has icon; nested links are text-only
+			# (icon "" — Frappe skips the default list glyph for child rows under indent sections).
+			add_row(
+				{
+					"type": "Link",
+					"label": L.label,
+					"link_type": L.link_type,
+					"link_to": L.link_to,
+					"icon": "",
+					"child": 1,
+					"collapsible": 1,
+					"indent": 0,
+					"keep_closed": 0,
+					"show_arrow": 0,
+				}
+			)
+		current_card_label = None
+		pending_card_links = []
+
+	for link in ws.get("links") or []:
+		if getattr(link, "hidden", 0):
+			continue
+		lt = getattr(link, "type", None)
+		if lt == "Card Break":
+			flush_card()
+			current_card_label = link.label
+		elif lt == "Link" and current_card_label is not None:
+			if _is_sidebar_settings_footer_link(link.link_type, link.link_to, workspace_name):
+				queue_settings_footer(link.label, link.link_type, link.link_to)
+				continue
+			key = (link.link_type, link.link_to)
+			if key in shortcut_keys:
+				continue
+			pending_card_links.append(link)
+		elif lt == "Link":
+			if _is_sidebar_settings_footer_link(link.link_type, link.link_to, workspace_name):
+				queue_settings_footer(link.label, link.link_type, link.link_to)
+			else:
+				# Link before any Card Break: top-level with icon (rare)
+				add_row(
+					{
+						"type": "Link",
+						"label": link.label,
+						"link_type": link.link_type,
+						"link_to": link.link_to,
+						"icon": _sidebar_icon_for_target(link.link_type, link.link_to),
+						"child": 0,
+						"collapsible": 1,
+						"indent": 0,
+						"keep_closed": 0,
+						"show_arrow": 0,
+					}
+				)
+
+	flush_card()
+
+	for item in settings_footer:
+		add_row(
+			{
+				"type": "Link",
+				"label": item["label"],
+				"link_type": item["link_type"],
+				"link_to": item["link_to"],
+				"icon": "settings",
+				"child": 0,
+				"collapsible": 1,
+				"indent": 0,
+				"keep_closed": 0,
+				"show_arrow": 0,
+			}
+		)
+
+	# Frappe HR Payroll: section headers keep icons; nested dropdown rows never do.
+	for r in rows:
+		if r.get("type") == "Link" and frappe.utils.cint(r.get("child")):
+			r["icon"] = ""
+
+	for i, r in enumerate(rows):
+		r["idx"] = i
+
+	if frappe.db.exists("Workspace Sidebar", workspace_name):
+		# Hard-delete child rows first. `sidebar.items = []` alone can leave merged/stale rows
+		# (SA Payroll had many links; icons on "nested" rows were almost always stale DB, not COIDA).
+		frappe.db.delete(
+			"Workspace Sidebar Item",
+			{"parent": workspace_name, "parenttype": "Workspace Sidebar"},
+		)
+		sidebar = frappe.get_doc("Workspace Sidebar", workspace_name)
+	else:
+		sidebar = frappe.new_doc("Workspace Sidebar")
+		sidebar.title = workspace_name
+
+	sidebar.header_icon = ws.icon
+	sidebar.module = "SA Localisation"
+	for r in rows:
+		sidebar.append("items", r)
+
+	sidebar.flags.ignore_permissions = True
+	if sidebar.is_new():
+		sidebar.insert(ignore_permissions=True)
+		print(f"  ✓ Created Workspace Sidebar '{workspace_name}' ({len(rows)} items)")
+	else:
+		sidebar.save(ignore_permissions=True)
+		print(f"  ✓ Rebuilt Workspace Sidebar '{workspace_name}' ({len(rows)} items)")
+
+	_strip_nested_workspace_sidebar_icons(sidebar.name)
+
+
+def sync_za_local_workspace_sidebar_modules():
+	"""Group all SA area sidebars under module SA Localisation (HR-style switcher)."""
+	if not frappe.db.table_exists("Workspace Sidebar"):
+		return
+	for title in (
+		"SA Overview",
+		"SA VAT",
+		"SA Payroll",
+		"SA Labour",
+		"SA COIDA",
+	):
+		if frappe.db.exists("Workspace Sidebar", title):
+			try:
+				frappe.db.set_value(
+					"Workspace Sidebar",
+					title,
+					"module",
+					"SA Localisation",
+					update_modified=False,
+				)
+			except Exception as e:
+				print(f"  ! Could not set Workspace Sidebar module for {title}: {e}")
+
+
+def sync_za_local_desktop_icons():
+	"""
+	One App tile on the desk (map logo) like Frappe HR; workspace links nest under it (parent_icon).
+	Nested icons must NOT use hidden=1 — Frappe's desk prepare() drops hidden icons from the graph,
+	so the App would have no child_icons and would navigate via link instead of opening the workspace modal.
+	Uses add_to_apps_screen + app_title from hooks.
 	"""
 	if not frappe.db.table_exists("Desktop Icon"):
 		return
 
-	# If the workspace doesn't exist yet, we leave icon creation to the UI;
-	# this avoids validation errors during migrate/install. sync_sa_workspaces()
-	# should normally have created the workspace by now.
-	if not frappe.db.table_exists("Workspace") or not frappe.db.exists("Workspace", "SA Localisation"):
-		print("  ⊙ Skipping SA Localisation desktop icon (workspace not found yet)")
+	app_name = "za_local"
+	try:
+		app_title = frappe.get_hooks("app_title", app_name=app_name)[0]
+	except (IndexError, TypeError):
+		print("  ⊙ Skipping za_local desktop sync (no app_title hook)")
 		return
 
-	# Respect icons created/managed via the UI:
-	# - Never insert a new record if one with this label already exists.
-	# - Only ensure the app field is set to za_local; leave routing (link_type/link_to)
-	#   exactly as the user configured it.
-	icons = frappe.get_all(
-		"Desktop Icon",
-		filters={"label": "SA Localisation"},
-		fields=["name", "label", "app"],
-	)
-
-	if not icons:
-		# No icon yet; we leave creation entirely to the UI to avoid clashes
-		# with site-specific layouts or older Frappe versions.
-		print("  ⊙ No SA Localisation desktop icon found; leaving creation to the UI")
+	details = frappe.get_hooks("add_to_apps_screen", app_name=app_name)
+	if not details:
+		print("  ⊙ Skipping za_local desktop sync (no add_to_apps_screen)")
 		return
 
-	for icon in icons:
+	route = details[0].get("route", "/desk/sa-overview")
+	logo = details[0].get("logo", "/assets/za_local/images/sa_map_icon.png")
+
+	# Desktop Icon PK = label; App tile label must not clash with a Link row of the same label.
+	for row in frappe.get_all(
+		"Desktop Icon", filters={"label": app_title}, fields=["name", "icon_type"]
+	):
+		if row.icon_type == "App":
+			continue
 		try:
-			doc = frappe.get_doc("Desktop Icon", icon.name)
-			if doc.app != "za_local":
-				doc.app = "za_local"
-				doc.save(ignore_permissions=True)
-				print(f"  ✓ Updated SA Localisation desktop icon app to 'za_local' ({icon.name})")
+			frappe.delete_doc("Desktop Icon", row.name, force=True, ignore_permissions=True)
+			print(
+				f"  ✓ Removed conflicting Desktop Icon '{row.name}' ({row.icon_type}) "
+				f"so App tile '{app_title}' can use that label"
+			)
 		except Exception as e:
-			print(f"  ! Could not update SA Localisation desktop icon {icon.name}: {e}")
+			print(f"  ! Could not remove conflicting desktop icon {row.name}: {e}")
 
-	frappe.db.commit()
+	app_icon_name = frappe.db.get_value(
+		"Desktop Icon",
+		{"icon_type": "App", "app": app_name},
+		"name",
+	)
+	if not app_icon_name:
+		app_icon_name = frappe.db.get_value(
+			"Desktop Icon",
+			{"icon_type": "App", "label": "South Africa"},
+			"name",
+		)
+
+	try:
+		if app_icon_name:
+			di = frappe.get_doc("Desktop Icon", app_icon_name)
+		else:
+			di = frappe.new_doc("Desktop Icon")
+			di.icon_type = "App"
+			di.app = app_name
+
+		di.label = app_title
+		di.link_type = "External"
+		di.link = route
+		di.logo_url = logo
+		di.standard = 1
+		di.flags.ignore_permissions = True
+		if di.is_new():
+			di.insert(ignore_permissions=True)
+			print(f"  ✓ Created App desktop icon '{app_title}'")
+		else:
+			di.save(ignore_permissions=True)
+			print(f"  ✓ Updated App desktop icon '{app_title}'")
+	except Exception as e:
+		print(f"  ! Could not upsert App desktop icon: {e}")
+		return
+
+	ws_labels = [
+		"SA Overview",
+		"SA VAT",
+		"SA Payroll",
+		"SA Labour",
+		"SA COIDA",
+	]
+	for label in ws_labels:
+		if not frappe.db.exists("Workspace", label):
+			continue
+		icons = frappe.get_all(
+			"Desktop Icon",
+			filters={"label": label, "icon_type": "Link"},
+			fields=["name"],
+		)
+		if not icons:
+			try:
+				ws_icon = frappe.db.get_value("Workspace", label, "icon")
+				link = frappe.new_doc("Desktop Icon")
+				link.label = label
+				link.icon_type = "Link"
+				link.link_type = "Workspace Sidebar"
+				link.link_to = label
+				link.icon = ws_icon
+				link.app = app_name
+				link.parent_icon = app_title
+				link.hidden = 0
+				link.standard = 1
+				link.flags.ignore_permissions = True
+				link.insert(ignore_permissions=True)
+				print(f"  ✓ Created nested desktop link icon for workspace '{label}'")
+			except Exception as e:
+				print(f"  ! Could not create desktop link icon for {label}: {e}")
+			continue
+
+		for row in icons:
+			try:
+				icon = frappe.get_doc("Desktop Icon", row.name)
+				icon.app = app_name
+				icon.parent_icon = app_title
+				icon.hidden = 0
+				ws_icon = frappe.db.get_value("Workspace", label, "icon")
+				if ws_icon:
+					icon.icon = ws_icon
+				icon.flags.ignore_permissions = True
+				icon.save(ignore_permissions=True)
+			except Exception as e:
+				print(f"  ! Could not update desktop icon {label}: {e}")
+
+	try:
+		frappe.cache.delete_key("desktop_icons")
+		frappe.cache.delete_key("bootinfo")
+	except Exception:
+		pass
+	print("  ✓ SA Localisation desk: App tile + nested workspace icons (modal picker)")
 
 
 def before_migrate():
@@ -315,8 +981,9 @@ def ensure_modules_visible():
 	"""
 	print("\nEnsuring za_local modules are visible...")
 	
-	# List of za_local modules from modules.txt (order: Setup, VAT, Payroll, Labour, COIDA)
+	# List of za_local modules from modules.txt
 	za_local_modules = [
+		"SA Localisation",
 		"SA Setup",
 		"SA VAT",
 		"SA Payroll",

@@ -1,0 +1,22 @@
+{
+ "app": "za_local",
+ "bg_color": "gray",
+ "creation": "2026-03-26 10:36:17.158161",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "setting",
+ "icon_type": "Link",
+ "idx": 0,
+ "label": "SA Overview",
+ "link_to": "SA Overview",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-04-08 10:31:54.281782",
+ "modified_by": "Administrator",
+ "name": "SA Overview",
+ "owner": "Administrator",
+ "parent_icon": "SA Localisation",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

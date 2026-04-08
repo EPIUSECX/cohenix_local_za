@@ -1,5 +1,19 @@
 /* South African Localization Styles */
 
+/*
+ * Desk workspace sidebar: collapsible section children live under .section-item > .nested-container.
+ * Hide their left icons (Frappe HR Payroll). JS (sidebar_nested_no_icon.js) also clears icon at render.
+ */
+.body-sidebar .section-item .nested-container .sidebar-item-icon,
+.body-sidebar .nested-container .sidebar-item-icon {
+	display: none !important;
+	width: 0 !important;
+	min-width: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	overflow: hidden !important;
+}
+
 /* Hide Flexible Benefits section in Salary Structure and Salary Structure Assignment - not used in SA payroll */
 .form-section[data-fieldname="employee_benefits"],
 .form-section[data-fieldname="employee_benefits_section"],

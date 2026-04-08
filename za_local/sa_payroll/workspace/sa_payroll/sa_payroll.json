@@ -1,14 +1,19 @@
 {
  "app": "za_local",
- "charts": [],
- "content": "[{\"type\":\"header\",\"data\":{\"text\":\"SA Payroll\"}}]",
+ "charts": [
+  {
+   "chart_name": "Outgoing Salary",
+   "label": "Outgoing Salary"
+  }
+ ],
+ "content": "[{\"id\": \"sa-pay-ch\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Outgoing Salary\", \"col\": 12}}, {\"id\": \"sa-pay-sp\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sa-pay-h\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"sa-pay-p\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">South Africa: EMP201/501, rebates, and statutory reports together with standard payroll operations.</span>\", \"col\": 12}}, {\"id\": \"sa-pay-c1\", \"type\": \"card\", \"data\": {\"card_name\": \"Statutory\", \"col\": 4}}, {\"id\": \"sa-pay-c2\", \"type\": \"card\", \"data\": {\"card_name\": \"Masters\", \"col\": 4}}, {\"id\": \"sa-pay-c3\", \"type\": \"card\", \"data\": {\"card_name\": \"Payroll\", \"col\": 4}}, {\"id\": \"sa-pay-c4\", \"type\": \"card\", \"data\": {\"card_name\": \"Incentives\", \"col\": 4}}, {\"id\": \"sa-pay-c5\", \"type\": \"card\", \"data\": {\"card_name\": \"Accounting\", \"col\": 4}}, {\"id\": \"sa-pay-c6\", \"type\": \"card\", \"data\": {\"card_name\": \"Accounting Reports\", \"col\": 4}}, {\"id\": \"sa-pay-c7\", \"type\": \"card\", \"data\": {\"card_name\": \"Payroll Reports\", \"col\": 4}}, {\"id\": \"sa-pay-c8\", \"type\": \"card\", \"data\": {\"card_name\": \"Deduction Reports\", \"col\": 4}}]",
  "creation": "2026-03-12 12:47:22.452546",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
  "for_user": "",
  "hide_custom": 0,
- "icon": "grid",
+ "icon": "accounting",
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
@@ -18,39 +23,490 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "test",
+   "label": "Statutory",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "ZA Local Setup",
+   "link_count": 0,
+   "link_to": "ZA Local Setup",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "EMP201 Submission",
+   "link_count": 0,
+   "link_to": "EMP201 Submission",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "EMP501 Reconciliation",
+   "link_count": 0,
+   "link_to": "EMP501 Reconciliation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax Rebates and Medical Tax Credit",
+   "link_count": 0,
+   "link_to": "Tax Rebates and Medical Tax Credit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retirement Fund",
+   "link_count": 0,
+   "link_to": "Retirement Fund",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Masters",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Component",
+   "link_count": 0,
+   "link_to": "Salary Component",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Structure",
+   "link_count": 0,
+   "link_to": "Salary Structure",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Income Tax Slab",
+   "link_count": 0,
+   "link_to": "Income Tax Slab",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Period",
+   "link_count": 0,
+   "link_to": "Payroll Period",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Settings",
+   "link_count": 0,
+   "link_to": "Payroll Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Incentives",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Additional Salary",
+   "link_count": 0,
+   "link_to": "Additional Salary",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Incentive",
+   "link_count": 0,
+   "link_to": "Employee Incentive",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retention Bonus",
+   "link_count": 0,
+   "link_to": "Retention Bonus",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Reports",
+   "link_count": 9,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Salary Register",
+   "link_count": 0,
+   "link_to": "Salary Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Bank Remittance",
+   "link_count": 0,
+   "link_to": "Bank Remittance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Salary Payments Based On Payment Mode",
+   "link_count": 0,
+   "link_to": "Salary Payments Based On Payment Mode",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Salary Payments via ECS",
+   "link_count": 0,
+   "link_to": "Salary Payments via ECS",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Income Tax Computation",
+   "link_count": 0,
+   "link_to": "Income Tax Computation",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "EMP201 Report",
+   "link_count": 0,
+   "link_to": "EMP201 Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Statutory Submissions Summary",
+   "link_count": 0,
+   "link_to": "Statutory Submissions Summary",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Payroll Register",
+   "link_count": 0,
+   "link_to": "Payroll Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Department Cost Analysis",
+   "link_count": 0,
+   "link_to": "Department Cost Analysis",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Deduction Reports",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Provident Fund Deductions",
+   "link_count": 0,
+   "link_to": "Provident Fund Deductions",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Professional Tax Deductions",
+   "link_count": 0,
+   "link_to": "Professional Tax Deductions",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Income Tax Deductions",
+   "link_count": 0,
+   "link_to": "Income Tax Deductions",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Accounting",
+   "link_count": 7,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Chart of Accounts",
+   "link_count": 0,
+   "link_to": "Account",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Chart of Cost Centers",
+   "link_count": 0,
+   "link_to": "Cost Center",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payment Entry",
+   "link_count": 0,
+   "link_to": "Payment Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Journal Entry",
+   "link_count": 0,
+   "link_to": "Journal Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Accounts Settings",
+   "link_count": 0,
+   "link_to": "Accounts Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Accounting Dimension",
+   "link_count": 0,
+   "link_to": "Accounting Dimension",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Currency",
+   "link_count": 0,
+   "link_to": "Currency",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Accounting Reports",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "General Ledger",
+   "link_count": 0,
+   "link_to": "General Ledger",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Accounts Payable",
+   "link_count": 0,
+   "link_to": "Accounts Payable",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Accounts Receivable",
+   "link_count": 0,
+   "link_to": "Accounts Receivable",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Structure Assignment",
+   "link_count": 0,
+   "link_to": "Salary Structure Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bulk Salary Structure Assignment",
+   "link_count": 0,
+   "link_to": "Bulk Salary Structure Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Slip",
    "link_count": 0,
    "link_to": "Salary Slip",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Entry",
+   "link_count": 0,
+   "link_to": "Payroll Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Withholding",
+   "link_count": 0,
+   "link_to": "Salary Withholding",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Benefit Application",
+   "link_count": 0,
+   "link_to": "Employee Benefit Application",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-03-17 12:14:03.361236",
+ "modified": "2026-04-01 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "SA Payroll",
  "number_cards": [],
  "owner": "Administrator",
- "parent_page": "SA Localisation",
+ "parent_page": "SA Overview",
  "public": 1,
  "quick_lists": [],
  "roles": [],
  "sequence_id": 25.0,
- "shortcuts": [
-  {
-   "doc_view": "",
-   "label": "Payroll Entry",
-   "link_to": "Payroll Entry",
-   "type": "DocType"
-  },
-  {
-   "doc_view": "",
-   "label": "Salary Slip",
-   "link_to": "Salary Slip",
-   "type": "DocType"
-  }
- ],
+ "shortcuts": [],
  "title": "SA Payroll",
  "type": "Workspace"
 }

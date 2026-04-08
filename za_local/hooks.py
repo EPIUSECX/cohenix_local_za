@@ -1,12 +1,12 @@
 
 app_name = "za_local"
-app_title = "South Africa"
+app_title = "SA Localisation"
 app_publisher = "Cohenix"
 app_description = "Comprehensive South African localization for ERPNext covering payroll, tax, VAT, and COIDA compliance"
 app_email = "info@cohenix.com"
 app_license = "mit"
 app_logo_url = "/assets/za_local/images/sa_map_icon.png"
-
+app_home = "/desk/sa-overview"
 
 # Import hook utility functions for conditional configuration
 # These are called at import time to generate configuration dynamically
@@ -14,10 +14,16 @@ from za_local.utils.hooks_utils import get_hrms_doctype_js, get_override_doctype
 from za_local.sa_setup.custom_fields import get_za_local_custom_records
 
 
-# Add to Apps Screen
+# Add to Apps Screen (Frappe v16 desk: one App tile with map logo; workspace icons nest under it)
 # ------------------
-# Standard Frappe localization - app appears in module navigation automatically
-# No custom workspace routing needed
+add_to_apps_screen = [
+	{
+		"name": "za_local",
+		"title": "SA Localisation",
+		"logo": "/assets/za_local/images/sa_map_icon.png",
+		"route": "/desk/sa-overview",
+	}
+]
 
 # Apps
 # ------------------
@@ -30,7 +36,7 @@ required_apps = ["frappe", "erpnext"]
 fixtures = [
     # Custom Fields: source of truth is setup/custom_fields.py (applied on install/migrate)
     # Property Setters
-    {"dt": "Property Setter", "filters": [["module", "in", ["SA Payroll", "SA VAT", "SA Labour", "SA COIDA", "SA Setup"]]]},
+    {"dt": "Property Setter", "filters": [["module", "in", ["SA Localisation", "SA Payroll", "SA VAT", "SA Labour", "SA COIDA", "SA Setup"]]]},
     
     # SA-compliant Print Formats
     {
