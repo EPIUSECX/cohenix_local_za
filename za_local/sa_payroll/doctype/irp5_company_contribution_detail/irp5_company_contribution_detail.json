@@ -1,0 +1,46 @@
+{
+ "actions": [],
+ "creation": "2025-06-26 15:57:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "contribution_code",
+  "description",
+  "amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "contribution_code",
+   "fieldtype": "Data",
+   "label": "Contribution Code",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "in_list_view": 1,
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-26 15:57:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "IRP5 Company Contribution Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

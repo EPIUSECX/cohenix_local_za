@@ -1,0 +1,241 @@
+{
+ "actions": [],
+ "autoname": "field:certificate_number",
+ "creation": "2025-05-07 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "certificate_number",
+  "tax_year",
+  "reconciliation_period",
+  "from_date",
+  "to_date",
+  "column_break_5",
+  "company",
+  "generation_mode",
+  "department",
+  "employee",
+  "employee_name",
+  "status",
+  "emp501_reconciliation",
+  "section_break_10",
+  "income_details_section",
+  "income_details",
+  "section_break_13",
+  "deduction_details_section",
+  "deduction_details",
+  "company_contribution_details_section",
+  "company_contribution_details",
+  "section_break_16",
+  "tax_calculations_section",
+  "paye",
+  "column_break_18",
+  "uif",
+  "sdl",
+  "eti",
+  "total_tax_payable"
+ ],
+ "fields": [
+  {
+   "fieldname": "certificate_number",
+   "fieldtype": "Data",
+   "label": "Certificate Number",
+   "reqd": 1,
+   "unique": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_year",
+   "fieldtype": "Link",
+   "label": "Tax Year",
+   "options": "Fiscal Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reconciliation_period",
+   "fieldtype": "Select",
+   "label": "Reconciliation Period",
+   "options": "Interim\nFinal",
+   "reqd": 1
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "generation_mode",
+   "fieldtype": "Select",
+   "label": "Generation Mode",
+   "options": "Individual\nBulk",
+   "default": "Individual",
+   "description": "Select 'Bulk' to generate certificates for multiple employees at once"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "depends_on": "eval:doc.generation_mode === 'Bulk'",
+   "description": "Optional: Filter employees by department (Bulk mode only)"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nPrepared\nSubmitted\nAccepted\nRejected",
+   "default": "Draft"
+  },
+  {
+   "fieldname": "emp501_reconciliation",
+   "fieldtype": "Link",
+   "label": "EMP501 Reconciliation",
+   "options": "EMP501 Reconciliation",
+   "read_only": 1,
+   "description": "Linked EMP501 Reconciliation if generated from EMP501"
+  },
+  {
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break",
+   "label": "Income Details"
+  },
+  {
+   "fieldname": "income_details_section",
+   "fieldtype": "Section Break",
+   "label": "Income Details"
+  },
+  {
+   "fieldname": "income_details",
+   "fieldtype": "Table",
+   "label": "Income Details",
+   "options": "IRP5 Income Detail"
+  },
+  {
+   "fieldname": "section_break_13",
+   "fieldtype": "Section Break",
+   "label": "Deduction Details"
+  },
+  {
+   "fieldname": "deduction_details_section",
+   "fieldtype": "Section Break",
+   "label": "Deduction Details"
+  },
+  {
+   "fieldname": "deduction_details",
+   "fieldtype": "Table",
+   "label": "Deduction Details",
+   "options": "IRP5 Deduction Detail"
+  },
+  {
+   "fieldname": "company_contribution_details_section",
+   "fieldtype": "Section Break",
+   "label": "Company Contribution Details"
+  },
+  {
+   "fieldname": "company_contribution_details",
+   "fieldtype": "Table",
+   "label": "Company Contribution Details",
+   "options": "IRP5 Company Contribution Detail"
+  },
+  {
+   "fieldname": "section_break_16",
+   "fieldtype": "Section Break",
+   "label": "Tax Calculations"
+  },
+  {
+   "fieldname": "paye",
+   "fieldtype": "Currency",
+   "label": "PAYE"
+  },
+  {
+   "fieldname": "column_break_18",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "uif",
+   "fieldtype": "Currency",
+   "label": "UIF"
+  },
+  {
+   "fieldname": "sdl",
+   "fieldtype": "Currency",
+   "label": "SDL"
+  },
+  {
+   "fieldname": "eti",
+   "fieldtype": "Currency",
+   "label": "ETI"
+  },
+  {
+   "fieldname": "total_tax_payable",
+   "fieldtype": "Currency",
+   "label": "Total Tax Payable",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "istable": 0,
+ "links": [
+  {
+   "link_doctype": "EMP501 Reconciliation",
+   "link_fieldname": "emp501_reconciliation"
+  }
+ ],
+ "modified": "2025-05-07 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Payroll",
+ "name": "IRP5 Certificate",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,22 @@
+{
+ "app": "za_local",
+ "bg_color": "gray",
+ "creation": "2026-04-08 14:50:44.439745",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "sell",
+ "icon_type": "Link",
+ "idx": 0,
+ "label": "SA VAT",
+ "link_to": "SA VAT",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-04-22 17:54:04.484566",
+ "modified_by": "Administrator",
+ "name": "SA VAT",
+ "owner": "Administrator",
+ "parent_icon": "SA Localisation",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-01-29 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "mileage_section",
+  "mileage_allowance_rate",
+  "column_break_2",
+  "mileage_expense_claim_type",
+  "allowance_section",
+  "meal_expense_claim_type",
+  "column_break_6",
+  "incidental_expense_claim_type",
+  "workflow_section",
+  "require_manager_approval",
+  "column_break_10",
+  "auto_create_expense_claim_on_submit"
+ ],
+ "fields": [
+  {
+   "fieldname": "mileage_section",
+   "fieldtype": "Section Break",
+   "label": "Mileage Allowance"
+  },
+  {
+   "description": "Standard mileage rate per kilometer (SARS rate: R4.25/km for 2024)",
+   "fieldname": "mileage_allowance_rate",
+   "fieldtype": "Currency",
+   "label": "Mileage Allowance Rate (per km)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Expense Claim Type for mileage allowance claims",
+   "fieldname": "mileage_expense_claim_type",
+   "fieldtype": "Link",
+   "label": "Mileage Expense Claim Type",
+   "options": "Expense Claim Type"
+  },
+  {
+   "fieldname": "allowance_section",
+   "fieldtype": "Section Break",
+   "label": "Daily Allowances"
+  },
+  {
+   "description": "Expense Claim Type for meal allowances",
+   "fieldname": "meal_expense_claim_type",
+   "fieldtype": "Link",
+   "label": "Meal Expense Claim Type",
+   "options": "Expense Claim Type"
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Expense Claim Type for incidental expenses",
+   "fieldname": "incidental_expense_claim_type",
+   "fieldtype": "Link",
+   "label": "Incidental Expense Claim Type",
+   "options": "Expense Claim Type"
+  },
+  {
+   "fieldname": "workflow_section",
+   "fieldtype": "Section Break",
+   "label": "Workflow Settings"
+  },
+  {
+   "default": "1",
+   "description": "Require manager approval before creating expense claim",
+   "fieldname": "require_manager_approval",
+   "fieldtype": "Check",
+   "label": "Require Manager Approval"
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Automatically create Expense Claim when Business Trip is submitted",
+   "fieldname": "auto_create_expense_claim_on_submit",
+   "fieldtype": "Check",
+   "label": "Auto Create Expense Claim on Submit"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-01-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Labour",
+ "name": "Business Trip Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+

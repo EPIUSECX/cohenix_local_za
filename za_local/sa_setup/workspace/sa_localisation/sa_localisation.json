@@ -1,0 +1,209 @@
+{
+ "app": "za_local",
+ "charts": [],
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "idx": 1,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "link_type": "DocType",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [
+  {
+   "document_type": "Payroll Correction",
+   "label": "Payroll Correction"
+  }
+ ],
+ "roles": [],
+ "shortcuts": [
+  {
+   "label": "SA Payroll",
+   "type": "URL",
+   "url": "/desk/sa-payroll"
+  },
+  {
+   "label": "SA VAT",
+   "type": "URL",
+   "url": "/desk/sa-vat"
+  },
+  {
+   "label": "SA Labour",
+   "type": "URL",
+   "url": "/desk/sa-labour"
+  },
+  {
+   "label": "SA COIDA",
+   "type": "URL",
+   "url": "/desk/sa-coida"
+  }
+ ],
+ "type": "Workspace",
+ "creation": "2026-02-25 15:51:34.424061",
+ "icon": "setting",
+ "label": "Setup & Overview",
+ "module": "SA Localisation",
+ "name": "SA Overview",
+ "title": "SA Overview",
+ "sequence_id": 23.0,
+ "modified": "2026-04-02 12:00:00.000000",
+ "modified_by": "Administrator",
+ "content": "[{\"id\": \"sa-ov-sp\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sa-ov-head\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h3\\\"><b>Setup &amp; Overview</b></span>\", \"col\": 12}}, {\"id\": \"sa-ov-intro\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">Start here to <b>configure</b> South African localisation—company defaults, VAT, payroll masters, COIDA, and tax templates. Use the <b>shortcuts</b> below or the workspace menu (top left) for <b>day-to-day work</b>: submissions, returns, payroll runs, and incidents.</span>\", \"col\": 12}}, {\"id\": \"sa-ov-h-ws\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>South African workspaces</b></span>\", \"col\": 12}}, {\"id\": \"sa-ov-p-ws\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">Each workspace groups transactions, reports, and statutory tools for that area.<br><br><b>SA Payroll</b> — EMP201/501, PAYE, UIF, SDL, statutory masters, rebates, salary processing, bank remittances, and payroll/accounting reports.<br><br><b>SA VAT</b> — South Africa VAT settings, VAT201 and related returns, and guidance on item and document tax templates.<br><br><b>SA Labour</b> — Skills development, workplace skills plans, annual training, business trips, SETA, and Employment Equity reporting.<br><br><b>SA COIDA</b> — COIDA settings, annual returns, workplace injuries, and OID claims.</span>\", \"col\": 12}}, {\"id\": \"sa-ov-h-setup\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Configuration &amp; setup</b></span>\", \"col\": 12}}, {\"id\": \"sa-ov-p-setup\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">Open these documents once (or when policy changes), then work primarily in the workspaces above.</span>\", \"col\": 12}}, {\"id\": \"sa-ov-c1\", \"type\": \"card\", \"data\": {\"card_name\": \"ZA setup\", \"col\": 3}}, {\"id\": \"sa-ov-c2\", \"type\": \"card\", \"data\": {\"card_name\": \"Payroll configuration\", \"col\": 3}}, {\"id\": \"sa-ov-c3\", \"type\": \"card\", \"data\": {\"card_name\": \"Labour setup\", \"col\": 3}}, {\"id\": \"sa-ov-c4\", \"type\": \"card\", \"data\": {\"card_name\": \"COIDA setup\", \"col\": 3}}, {\"id\": \"sa-ov-c5\", \"type\": \"card\", \"data\": {\"card_name\": \"Tax templates (ERPNext)\", \"col\": 12}}]",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "ZA setup",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "ZA Local Setup",
+   "link_count": 0,
+   "link_to": "ZA Local Setup",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SA VAT Settings",
+   "link_count": 0,
+   "link_to": "South Africa VAT Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll configuration",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payroll Settings",
+   "link_count": 0,
+   "link_to": "Payroll Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax Rebates and Medical Tax Credit",
+   "link_count": 0,
+   "link_to": "Tax Rebates and Medical Tax Credit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retirement Fund",
+   "link_count": 0,
+   "link_to": "Retirement Fund",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Labour setup",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Business Trip Settings",
+   "link_count": 0,
+   "link_to": "Business Trip Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Workplace Skills Plan",
+   "link_count": 0,
+   "link_to": "Workplace Skills Plan",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "COIDA setup",
+   "link_count": 1,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "COIDA Settings",
+   "link_count": 0,
+   "link_to": "COIDA Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax templates (ERPNext)",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Item Tax Template",
+   "link_count": 0,
+   "link_to": "Item Tax Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Taxes and Charges Template",
+   "link_count": 0,
+   "link_to": "Sales Taxes and Charges Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Purchase Taxes and Charges Template",
+   "link_count": 0,
+   "link_to": "Purchase Taxes and Charges Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ]
+}

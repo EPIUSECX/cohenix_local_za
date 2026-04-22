@@ -83,7 +83,7 @@
 - Final settlement calculations
 - EFT file generation (4 banks)
 - SARS XML exports (e-Filing)
-- NAEDO debit orders
+<!-- NAEDO functionality removed; section intentionally blank (was: NAEDO debit orders) -->
 - Sectoral minimum wages
 - Bargaining council compliance
 
@@ -3553,30 +3553,7 @@ Effective From: 2024-01-01
 - Upload CSV from za_local
 - Payment via EFT
 
-### NAEDO Debit Orders
-
-**NAEDO = National Authenticated Early Debit Order**
-
-Used for:
-- Garnishee orders (court-ordered deductions)
-- Child maintenance
-- Debt repayments
-- Loan repayments
-
-**Navigate to:** South Africa > Payroll > NAEDO Deduction > New
-
-#### Required Information
-- **Employee**: Select employee
-- **Order Type**: Garnishee/Maintenance/Debt
-- **Order Number**: Court order number
-- **Beneficiary Name**: Recipient
-- **Bank Details**: Beneficiary account
-- **Deduction Amount**: Monthly amount
-- **Start Date**: When deductions begin
-- **End Date**: When deductions end (if known)
-- **Priority**: 1 (highest) to 10 (lowest)
-
-#### Deduction Priority (BCEA)
+<!-- NAEDO Debit Orders functionality and documentation removed; feature no longer supported -->
 
 **Legal order of deductions:**
 1. Tax (PAYE)
@@ -3592,12 +3569,7 @@ Used for:
 
 #### Process in Payroll
 
-On payroll processing:
-1. System fetches active NAEDO deductions
-2. Applies deductions in priority order
-3. Respects 25% limit (except maintenance)
-4. Creates EFT payment entries
-5. Generates NAEDO file for bank
+<!-- NAEDO processing steps removed; feature no longer available -->
 
 ### Success Indicators
 
@@ -3605,7 +3577,7 @@ On payroll processing:
 - ✅ Sectoral minimum wages set
 - ✅ Industry-specific contributions in salary structure
 - ✅ Monthly returns submitted by deadline
-- ✅ NAEDO deductions correctly prioritized
+<!-- NAEDO-specific success indicator removed -->
 - ✅ Maximum deduction limits respected
 - ✅ All statutory payments made on time
 

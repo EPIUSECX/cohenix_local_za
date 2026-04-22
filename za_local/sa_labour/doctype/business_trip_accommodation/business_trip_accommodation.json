@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "creation": "2025-01-29 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "hotel_name",
+  "city",
+  "column_break_4",
+  "amount",
+  "receipt_attached"
+ ],
+ "fields": [
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hotel_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Hotel Name"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "City"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "receipt_attached",
+   "fieldtype": "Check",
+   "label": "Receipt Attached"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-01-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Labour",
+ "name": "Business Trip Accommodation",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
+

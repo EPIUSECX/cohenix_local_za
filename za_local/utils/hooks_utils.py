@@ -30,11 +30,12 @@ def get_hrms_doctype_js():
 def get_override_doctype_class():
 	"""
 	Get override doctype classes conditionally based on HRMS availability.
-	
-	Returns:
-		dict: Dictionary mapping doctype names to override class paths
+	ZA VAT invoice overrides are always applied so 15% and 0% tax rows calculate correctly.
 	"""
-	overrides = {}
+	overrides = {
+		"Sales Invoice": "za_local.overrides.vat_invoices.ZASalesInvoice",
+		"Purchase Invoice": "za_local.overrides.vat_invoices.ZAPurchaseInvoice",
+	}
 	if is_hrms_installed():
 		overrides.update({
 			"Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",

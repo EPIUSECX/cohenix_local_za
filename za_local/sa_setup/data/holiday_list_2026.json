@@ -1,0 +1,72 @@
+[
+  {
+    "doctype": "Holiday List",
+    "holiday_list_name": "South Africa 2026",
+    "from_date": "2026-01-01",
+    "to_date": "2026-12-31",
+    "total_holidays": 12,
+    "holidays": [
+      {
+        "holiday_date": "2026-01-01",
+        "description": "New Year's Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-03-21",
+        "description": "Human Rights Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-04-17",
+        "description": "Good Friday",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-04-20",
+        "description": "Family Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-04-27",
+        "description": "Freedom Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-05-01",
+        "description": "Workers' Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-06-16",
+        "description": "Youth Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-08-10",
+        "description": "National Women's Day (observed)",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-09-24",
+        "description": "Heritage Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-12-16",
+        "description": "Day of Reconciliation",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-12-25",
+        "description": "Christmas Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-12-28",
+        "description": "Day of Goodwill (observed)",
+        "weekly_off": 0
+      }
+    ]
+  }
+]
+

@@ -23,18 +23,17 @@ def load_sa_chart_of_accounts(company):
 		company: Company name for which to load the chart
 	"""
 	if not company:
-		frappe.throw(_("Company is required to load Chart of Accounts"))
-	
-	# Check if company exists
+		frappe.log_error(
+			"Company is required to load Chart of Accounts",
+			"ZA Local Chart of Accounts",
+		)
+		return False
 	if not frappe.db.exists("Company", company):
-		frappe.throw(_("Company '{0}' does not exist").format(company))
-	
-	# Get chart file path
-	chart_path = Path(frappe.get_app_path("za_local", "accounts", "chart_of_accounts",
-										  "za_south_africa_chart_template.json"))
-	
-	if not chart_path.exists():
-		frappe.throw(_("Chart of Accounts file not found: {0}").format(chart_path))
+		frappe.log_error(
+			f"Company '{company}' does not exist",
+			"ZA Local Chart of Accounts",
+		)
+		return False
 	
 	try:
 		# Company should already have a base chart created by ERPNext's setup wizard.
@@ -51,89 +50,170 @@ def load_sa_chart_of_accounts(company):
 			)
 			return False
 		
-		# Load chart data from ZA template and add SA-specific tax accounts
-		with open(chart_path, "r") as f:
-			chart_data = json.load(f)
-		
-		_add_sa_tax_accounts(company, chart_data.get("tree"))
+		# Add SA-specific tax accounts into the existing chart.
+		# We derive the insertion points (Current Assets / Current Liabilities
+		# and Tax Assets / Tax Liabilities) from the live chart so this works
+		# with any standard template (Standard, Standard with Numbers, etc.).
+		_add_sa_tax_accounts(company)
 		return True
 		
 	except Exception as e:
 		frappe.log_error(
-			f"Error loading Chart of Accounts for {company}: {str(e)}",
-			"ZA Local Chart of Accounts"
+			f"Error loading Chart of Accounts for {company}: {str(e)}\n{frappe.get_traceback()}",
+			"ZA Local Chart of Accounts",
 		)
-		frappe.throw(
-			_("Failed to load Chart of Accounts: {0}").format(str(e)),
-			title=_("Chart Loading Failed")
-		)
+		# Do not re-raise: allow setup wizard to complete; user can add SA accounts later if needed
+		return False
 
 
-def _add_sa_tax_accounts(company, chart_tree):
+def _get_root_account(company, root_type):
+	"""Find the existing root account by root_type (works with any chart naming)."""
+	name = frappe.db.get_value(
+		"Account",
+		{"company": company, "root_type": root_type, "parent_account": ("in", ("", None))},
+		"name",
+	)
+	return frappe.get_doc("Account", name) if name else None
+
+
+def _get_account_by_name_and_parent(company, account_name, parent_account_name):
+	"""Find an account by company, account_name, and parent (by name)."""
+	parent = frappe.db.get_value(
+		"Account",
+		{"company": company, "account_name": parent_account_name},
+		"name",
+	)
+	if not parent:
+		return None
+	name = frappe.db.get_value(
+		"Account",
+		{"company": company, "account_name": account_name, "parent_account": parent},
+		"name",
+	)
+	return frappe.get_doc("Account", name) if name else None
+
+
+def _get_child_account_under(company, parent_doc, preferred_names):
+	"""
+	Find a direct child account of parent_doc whose account_name is in preferred_names
+	or starts with the first preferred name (handles translated/suffixed names).
+	"""
+	children = frappe.get_all(
+		"Account",
+		filters={"company": company, "parent_account": parent_doc.name},
+		fields=["name", "account_name"],
+	)
+	if not children:
+		return None
+	preferred = list(preferred_names)
+	for c in children:
+		if c.account_name in preferred:
+			return frappe.get_doc("Account", c.name)
+		if preferred and c.account_name and c.account_name.startswith(preferred[0]):
+			return frappe.get_doc("Account", c.name)
+	return None
+
+
+def _get_or_create_tax_group_under(company, parent_account_doc, preferred_names, account_type="Tax"):
+	"""Find existing tax group under parent (e.g. Duties and Taxes / Tax Liabilities) or create one."""
+	for preferred_name in preferred_names:
+		existing = frappe.db.get_value(
+			"Account",
+			{
+				"company": company,
+				"account_name": preferred_name,
+				"parent_account": parent_account_doc.name,
+				"is_group": 1,
+			},
+			"name",
+		)
+		if existing:
+			return frappe.get_doc("Account", existing)
+	# Create first preferred name
+	return _get_or_create_account(
+		company, preferred_names[0], account_type,
+		parent=parent_account_doc.name, is_group=1
+	)
+
+
+def _add_sa_tax_accounts(company):
 	"""
 	Add only SA-specific tax accounts to an existing chart.
-	
-	Args:
-		company: Company name
-		chart_tree: Chart of Accounts tree structure from JSON
+
+	This function does **not** replace the chart. It assumes a standard ERPNext
+	chart (e.g. Application of Funds / Source of Funds) already exists for the
+	company and injects ZA tax ledgers in the expected groups:
+	- Current Assets > Tax Assets
+	- Current Liabilities > Tax Liabilities or Duties and Taxes
 	"""
-	# Extract tax accounts from the chart tree
-	tax_accounts = _extract_tax_accounts(chart_tree)
-	
-	# Get or create parent accounts
-	liabilities_root = _get_or_create_account(
-		company, "Liabilities", "Liability", is_group=1, root_type="Liability"
-	)
-	current_liabilities = _get_or_create_account(
-		company, "Current Liabilities", "Liability", 
-		parent=liabilities_root.name, is_group=1
-	)
-	
-	assets_root = _get_or_create_account(
-		company, "Assets", "Asset", is_group=1, root_type="Asset"
-	)
-	current_assets = _get_or_create_account(
-		company, "Current Assets", "Asset",
-		parent=assets_root.name, is_group=1
-	)
-	
-	# Create Tax Liabilities group if it doesn't exist (SA-specific naming)
-	# Check if it exists with either name (for compatibility with standard charts)
-	tax_liabilities_name = "Tax Liabilities"  # Use SA-specific naming per SA laws/legislation
-	existing_tax_group = frappe.db.get_value(
-		"Account",
-		{"company": company, "account_name": ["in", ["Tax Liabilities", "Duties and Taxes"]], "is_group": 1},
-		"name"
-	)
-	if existing_tax_group:
-		tax_liabilities = frappe.get_doc("Account", existing_tax_group)
-		# If it's named "Duties and Taxes", we'll use it but prefer "Tax Liabilities" for new companies
-	else:
-		tax_liabilities = _get_or_create_account(
-			company, tax_liabilities_name, "Tax",
-			parent=current_liabilities.name, is_group=1
+	# Find existing roots by root_type (don't assume "Liabilities" / "Assets" names)
+	liabilities_root = _get_root_account(company, "Liability")
+	assets_root = _get_root_account(company, "Asset")
+	if not liabilities_root or not assets_root:
+		raise ValueError(
+			f"Could not find Chart of Accounts roots for company {company} "
+			f"(Liability root={bool(liabilities_root)}, Asset root={bool(assets_root)})"
 		)
-	
-	# Create Tax Assets group if it doesn't exist
-	tax_assets = _get_or_create_account(
-		company, "Tax Assets", "Tax",
-		parent=current_assets.name, is_group=1
+
+	# Find Current Liabilities / Current Assets: try by parent doc first (resilient to naming), then by name+parent
+	current_liabilities = _get_child_account_under(
+		company, liabilities_root, ["Current Liabilities"]
 	)
-	
-	# Add tax accounts from liabilities
-	liability_tax_accounts = tax_accounts.get("liabilities", {})
-	for account_name, account_info in liability_tax_accounts.items():
-		_get_or_create_account(
-			company, account_name, "Tax",
-			parent=tax_liabilities.name, is_group=0
+	if not current_liabilities:
+		current_liabilities = _get_account_by_name_and_parent(
+			company, "Current Liabilities", liabilities_root.account_name
 		)
-	
-	# Add tax accounts from assets
-	asset_tax_accounts = tax_accounts.get("assets", {})
-	for account_name, account_info in asset_tax_accounts.items():
+	current_assets = _get_child_account_under(
+		company, assets_root, ["Current Assets"]
+	)
+	if not current_assets:
+		current_assets = _get_account_by_name_and_parent(
+			company, "Current Assets", assets_root.account_name
+		)
+	if not current_liabilities or not current_assets:
+		raise ValueError(
+			f"Could not find Current Liabilities or Current Assets for company {company}"
+		)
+
+	# Use existing Tax Liabilities / Duties and Taxes group or create Tax Liabilities
+	tax_liabilities = _get_or_create_tax_group_under(
+		company, current_liabilities, ["Tax Liabilities", "Duties and Taxes"]
+	)
+	tax_assets = _get_or_create_tax_group_under(
+		company, current_assets, ["Tax Assets"]
+	)
+
+	# Add SA tax ledgers under the groups.
+	# We keep the set small and explicit so behaviour is predictable and
+	# independent of the JSON template structure.
+	liability_tax_accounts = [
+		"VAT Collected - Sales",
+		"VAT Payable - SARS",
+		"PAYE Payable - SARS",
+		"UIF Employee Contribution",
+		"UIF Employer Contribution",
+		"SDL Payable - SARS",
+		"COIDA Payable",
+	]
+	for account_name in liability_tax_accounts:
 		_get_or_create_account(
-			company, account_name, "Tax",
-			parent=tax_assets.name, is_group=0
+			company,
+			account_name,
+			"Tax",
+			parent=tax_liabilities.name,
+			is_group=0,
+		)
+
+	asset_tax_accounts = [
+		"VAT Paid - Purchases",
+	]
+	for account_name in asset_tax_accounts:
+		_get_or_create_account(
+			company,
+			account_name,
+			"Tax",
+			parent=tax_assets.name,
+			is_group=0,
 		)
 
 
@@ -280,16 +360,24 @@ def get_charts_for_country_with_za(country, with_standard: bool = False):
 	Whitelisted wrapper used by ERPNext setup wizard to fetch charts.
 
 	This function is registered via `override_whitelisted_methods` in hooks.py
-	as an override for:
-	erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts.get_charts_for_country
+	as an override for get_charts_for_country. It calls ERPNext's implementation
+	then injects the South Africa chart option when country is South Africa.
 
-	It simply delegates to ERPNext's (monkey-patched) implementation so that:
-	- The existing setup wizard JS continues to work unchanged
-	- Our ZA chart extension is applied transparently
+	Injection is done here (not in the monkey patch) so it works on every
+	request; the monkey patch only runs at install/migrate and is not active
+	when the setup wizard runs in a fresh process.
 	"""
 	from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
 
-	return coa_module.get_charts_for_country(country, with_standard)
+	charts = coa_module.get_charts_for_country(country, with_standard)
+	if country == "South Africa" and isinstance(charts, list):
+		try:
+			chart_name = get_chart_template_name()
+			if chart_name and chart_name not in charts:
+				charts.insert(0, chart_name)
+		except Exception:
+			pass
+	return charts
 
 
 def extend_charts_for_country():
@@ -461,4 +549,18 @@ def patch_financial_report_templates_sync():
 			frappe.log_error("Failed to patch sync_financial_report_templates", "ZA Local Setup")
 		except Exception:
 			pass
+
+
+def apply_chart_patches_on_request():
+	"""
+	Ensure ZA chart extensions are active in the current request process.
+
+	This is called via a before_request hook so that, in the HTTP request
+	where the setup wizard creates the Company (and any other requests that
+	need chart discovery), ERPNext's chart loader and financial-report sync
+	understand the ZA chart template name.
+	"""
+	extend_charts_for_country()
+	extend_chart_loader()
+	patch_financial_report_templates_sync()
 
