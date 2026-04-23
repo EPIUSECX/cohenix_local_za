@@ -114,7 +114,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "company.tax_id",
+   "fetch_from": "company.za_paye_reference_number",
    "fieldname": "paye_reference_number",
    "fieldtype": "Data",
    "label": "PAYE Reference Number",

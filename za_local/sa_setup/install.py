@@ -21,6 +21,73 @@ from za_local.utils.hrms_detection import is_hrms_installed
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
 
+DEFAULT_SARS_PAYROLL_CODES = [
+	{"code": "3601", "description": "Income - Gross Remuneration", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 10},
+	{"code": "3605", "description": "Income - Annual Payment", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 20},
+	{"code": "3607", "description": "Income - Overtime", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 30},
+	{"code": "3701", "description": "Income - Travel Allowance", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 40},
+	{"code": "3702", "description": "Income - Other Allowances", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 50},
+	{"code": "3704", "description": "Income - Subsistence Allowance", "category": "Income", "tax_treatment": "Non-Taxable", "print_sequence": 60},
+	{"code": "3713", "description": "Income - Uniform Allowance", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 70},
+	{"code": "3802", "description": "Income - Use of Motor Vehicle", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 80},
+	{"code": "4001", "description": "Deduction - Pension / Provident Fund", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 100},
+	{"code": "4005", "description": "Deduction - Medical Scheme Fees", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 110},
+	{"code": "4006", "description": "Deduction - Retirement Annuity Fund", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 120},
+	{"code": "4007", "description": "Deduction - Group Life Insurance", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 130},
+	{"code": "4008", "description": "Deduction - Disability Insurance", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 140},
+	{"code": "4010", "description": "Deduction - Loan Repayment", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 150},
+	{"code": "4102", "description": "Deduction - PAYE", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 160},
+	{"code": "4116", "description": "Tax Credit - Medical Scheme Fees Tax Credit", "category": "Tax Credit", "tax_treatment": "Reference", "print_sequence": 170},
+	{"code": "4120", "description": "Tax Credit - Additional Medical Expenses Tax Credit", "category": "Tax Credit", "tax_treatment": "Reference", "print_sequence": 180},
+	{"code": "4141", "description": "Deduction / Contribution - UIF", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 190},
+	{"code": "4142", "description": "Employer Contribution - SDL", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 200},
+	{"code": "4472", "description": "Employer Contribution - Pension Fund", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 210},
+	{"code": "4474", "description": "Employer Contribution - Medical Scheme", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 220},
+	{"code": "4475", "description": "Employer Contribution - Group Life Insurance", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 230},
+	{"code": "4476", "description": "Employer Contribution - Disability Insurance", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 240},
+	{"code": "4477", "description": "Employer Contribution - Funeral Benefit", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 250},
+	{"code": "4497", "description": "Employer Contribution - Other Employer Contributions", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 260},
+]
+
+DEFAULT_SALARY_COMPONENT_SARS_CODES = {
+	"Basic Salary": "3601",
+	"Basic": "3601",
+	"Gross Salary": "3601",
+	"Bonus": "3605",
+	"Annual Bonus": "3605",
+	"Performance Bonus": "3605",
+	"Commission": "3605",
+	"13th Cheque": "3605",
+	"Overtime": "3607",
+	"Travel Allowance": "3701",
+	"Transport Allowance": "3701",
+	"Housing Allowance": "3702",
+	"Accommodation Allowance": "3702",
+	"Cell Phone Allowance": "3702",
+	"Subsistence Allowance": "3704",
+	"Uniform Allowance": "3713",
+	"Company Car Benefit": "3802",
+	"Use of Motor Vehicle": "3802",
+	"PAYE": "4102",
+	"Income Tax": "4102",
+	"UIF Employee Contribution": "4141",
+	"UIF Employer Contribution": "4141",
+	"UIF": "4141",
+	"SDL Contribution": "4142",
+	"SDL": "4142",
+	"Skills Development Levy": "4142",
+	"Pension Fund": "4001",
+	"Provident Fund": "4001",
+	"Retirement Fund": "4001",
+	"Retirement Annuity Fund": "4006",
+	"Medical Aid": "4005",
+	"Medical Scheme": "4005",
+	"Medical Insurance": "4005",
+	"Group Life Insurance": "4007",
+	"Disability Insurance": "4008",
+	"Loan Repayment": "4010",
+}
+
 
 def sync_za_local():
 	"""
@@ -68,6 +135,8 @@ def after_install():
 	setup_default_data()
 	apply_statutory_formulas()
 	import_master_data()
+	seed_sars_payroll_codes()
+	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()
 	ensure_sa_localisation_module_def()
 	ensure_modules_visible()
@@ -100,6 +169,8 @@ def after_migrate():
 	make_property_setters()
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
+	seed_sars_payroll_codes()
+	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()
 	ensure_sa_localisation_module_def()
 	ensure_modules_visible()
@@ -1149,6 +1220,130 @@ def setup_default_data():
 
 	print("✓ Default data setup complete")
 	print("  Note: Configure ETI Slabs, Tax Rebates, and other settings manually")
+
+
+def seed_sars_payroll_codes():
+	"""Ensure the SARS Payroll Code master data exists and link known default salary components."""
+	if not frappe.db.exists("DocType", "SARS Payroll Code"):
+		return
+
+	for row in DEFAULT_SARS_PAYROLL_CODES:
+		if frappe.db.exists("SARS Payroll Code", row["code"]):
+			doc = frappe.get_doc("SARS Payroll Code", row["code"])
+			doc.update(row)
+			doc.flags.ignore_permissions = True
+			doc.save()
+		else:
+			doc = frappe.get_doc({"doctype": "SARS Payroll Code", **row, "active": 1})
+			doc.insert(ignore_permissions=True)
+
+	if frappe.db.exists("DocType", "Salary Component"):
+		for salary_component, code in DEFAULT_SALARY_COMPONENT_SARS_CODES.items():
+			if frappe.db.exists("Salary Component", salary_component):
+				frappe.db.set_value(
+					"Salary Component",
+					salary_component,
+					"za_sars_payroll_code",
+					code,
+					update_modified=False,
+				)
+
+	frappe.db.commit()
+	print("  ✓ SARS Payroll Codes seeded")
+
+
+def migrate_irp5_legacy_source_fields():
+	"""Move legacy site-specific IRP5 source fields into app-owned za_local fields."""
+	if frappe.db.exists("DocType", "Company") and frappe.db.has_column("Company", "custom_paye_reference_number"):
+		for company in frappe.get_all("Company", fields=["name", "za_paye_reference_number", "custom_paye_reference_number"]):
+			if company.za_paye_reference_number:
+				continue
+			if company.custom_paye_reference_number:
+				frappe.db.set_value(
+					"Company",
+					company.name,
+					"za_paye_reference_number",
+					company.custom_paye_reference_number,
+					update_modified=False,
+				)
+
+	if frappe.db.exists("DocType", "Employee") and frappe.db.has_column("Employee", "custom_tax_number"):
+		for employee in frappe.get_all(
+			"Employee",
+			fields=["name", "za_income_tax_reference_number", "custom_tax_number"],
+		):
+			if employee.za_income_tax_reference_number:
+				continue
+			if employee.custom_tax_number:
+				frappe.db.set_value(
+					"Employee",
+					employee.name,
+					"za_income_tax_reference_number",
+					employee.custom_tax_number,
+					update_modified=False,
+				)
+
+	if frappe.db.exists("DocType", "Employee") and frappe.db.has_column("Employee", "custom_residential_address"):
+		for employee in frappe.get_all(
+			"Employee",
+			fields=["name", "employee_name", "za_residential_address", "custom_residential_address"],
+		):
+			if employee.za_residential_address:
+				continue
+			address_text = (employee.custom_residential_address or "").strip()
+			if not address_text:
+				continue
+
+			address_name = _create_irp5_address_from_legacy_text(employee.name, employee.employee_name, address_text)
+			if address_name:
+				frappe.db.set_value(
+					"Employee",
+					employee.name,
+					"za_residential_address",
+					address_name,
+					update_modified=False,
+				)
+
+	frappe.db.commit()
+	print("  ✓ Migrated legacy IRP5 source fields")
+
+
+def _create_irp5_address_from_legacy_text(employee_name: str, employee_display_name: str | None, address_text: str):
+	title = employee_display_name or employee_name
+	existing = frappe.get_all(
+		"Address",
+		filters={"address_title": title, "address_type": "Personal"},
+		fields=["name", "address_line1", "address_line2"],
+		limit=1,
+	)
+	if existing:
+		return existing[0].name
+
+	lines = [line.strip() for line in address_text.splitlines() if line.strip()]
+	if not lines:
+		return None
+
+	address = frappe.new_doc("Address")
+	address.address_title = title
+	address.address_type = "Personal"
+	address.address_line1 = lines[0]
+	if len(lines) > 1:
+		address.address_line2 = lines[1]
+	if len(lines) > 2:
+		address.city = lines[2][:140]
+	if len(lines) > 3:
+		address.pincode = lines[3][:10]
+	address.append(
+		"links",
+		{
+			"link_doctype": "Employee",
+			"link_name": employee_name,
+			"link_title": employee_display_name or employee_name,
+		},
+	)
+	address.flags.ignore_permissions = True
+	address.insert(ignore_permissions=True)
+	return address.name
 
 
 def create_salary_component_if_not_exists(component_data):

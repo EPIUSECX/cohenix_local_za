@@ -89,14 +89,14 @@ frappe.ui.form.on('IRP5 Certificate', {
             }).addClass('btn-primary');
         }
         
-        // Add Export IT3 PDF button if certificate is not in Draft status
+        // Export the official SARS certificate PDF once the snapshot is ready
         if (frm.doc.docstatus === 0 && frm.doc.status !== "Draft" && frm.doc.status) {
-            frm.add_custom_button(__('Export IT3 PDF'), function() {
+            frm.add_custom_button(__('Export Official Certificate PDF'), function() {
                 frappe.call({
-                    method: 'za_local.sa_payroll.doctype.irp5_certificate.irp5_certificate.get_it3_pdf',
+                    method: 'za_local.sa_payroll.doctype.irp5_certificate.irp5_certificate.get_official_pdf',
                     args: { docname: frm.doc.name },
                     freeze: true,
-                    freeze_message: __('Generating IT3 PDF...'),
+                    freeze_message: __('Generating official SARS certificate PDF...'),
                     callback: function(r) {
                         if (r.message) {
                             // Decode base64 and create blob for download
@@ -109,13 +109,13 @@ frappe.ui.form.on('IRP5 Certificate', {
                             const url = window.URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
-                            a.download = `${frm.doc.certificate_number || 'IT3-Certificate'}.pdf`;
+                            a.download = `${frm.doc.certificate_number || 'IRP5-Certificate'}.pdf`;
                             document.body.appendChild(a);
                             a.click();
                             window.URL.revokeObjectURL(url);
                             document.body.removeChild(a);
                             frappe.show_alert({
-                                message: __('IT3 PDF generated successfully'),
+                                message: __('Official SARS certificate PDF generated successfully'),
                                 indicator: 'green'
                             }, 3);
                         }
@@ -123,7 +123,7 @@ frappe.ui.form.on('IRP5 Certificate', {
                     error: function(r) {
                         frappe.msgprint({
                             title: __('Error'),
-                            message: __('Failed to generate IT3 PDF. Please check the error logs.'),
+                            message: __('Failed to generate the official certificate PDF. Please check the error logs.'),
                             indicator: 'red'
                         });
                     }

@@ -1,17 +1,24 @@
 {
  "actions": [],
+ "allow_rename": 1,
  "autoname": "field:certificate_number",
- "creation": "2025-05-07 10:00:00.000000",
+ "creation": "2026-04-23 00:00:00.000000",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "certificate_details_tab",
   "certificate_number",
+  "certificate_type",
+  "column_break_certificate_1",
   "tax_year",
+  "year_of_assessment",
+  "transaction_year",
   "reconciliation_period",
+  "reconciliation_period_yyyymm",
   "from_date",
   "to_date",
-  "column_break_5",
+  "issue_date",
   "company",
   "generation_mode",
   "department",
@@ -19,31 +26,107 @@
   "employee_name",
   "status",
   "emp501_reconciliation",
-  "section_break_10",
-  "income_details_section",
-  "income_details",
-  "section_break_13",
-  "deduction_details_section",
-  "deduction_details",
-  "company_contribution_details_section",
-  "company_contribution_details",
-  "section_break_16",
-  "tax_calculations_section",
+  "employer_details_tab",
+  "employer_legal_name",
+  "employer_trading_name",
+  "column_break_employer_1",
+  "employer_tax_id",
+  "employer_paye_reference_number",
+  "employer_sdl_reference_number",
+  "employer_uif_reference_number",
+  "employee_identity_tab",
+  "identity_type",
+  "employee_id_number",
+  "passport_number",
+  "passport_country_of_issue",
+  "column_break_employee_1",
+  "employee_initials",
+  "employee_first_names",
+  "employee_surname",
+  "employee_gender",
+  "date_of_birth",
+  "income_tax_reference_number",
+  "nature_of_person",
+  "address_details_tab",
+  "residential_address_section",
+  "res_address_line_1",
+  "res_address_line_2",
+  "res_address_line_3",
+  "res_address_line_4",
+  "res_postal_code",
+  "column_break_address_1",
+  "postal_address_section",
+  "post_address_line_1",
+  "post_address_line_2",
+  "post_address_line_3",
+  "post_address_line_4",
+  "post_postal_code",
+  "business_address_section",
+  "biz_address_line_1",
+  "biz_address_line_2",
+  "biz_address_line_3",
+  "biz_address_line_4",
+  "biz_postal_code",
+  "bank_details_tab",
+  "bank_name",
+  "bank_account_no",
+  "bank_account_type",
+  "column_break_bank_1",
+  "bank_account_holder_name",
+  "bank_account_holder_relationship",
+  "not_paid_electronically",
+  "statutory_snapshot_tab",
+  "employed_from",
+  "employed_to",
+  "periods_in_year",
+  "periods_worked",
+  "column_break_statutory_1",
+  "directive_numbers",
+  "reason_for_non_deduction",
+  "gross_taxable_income",
+  "non_taxable_income",
+  "total_deductions_contributions",
+  "medical_scheme_fees_tax_credit",
+  "additional_medical_expenses_tax_credit",
   "paye",
-  "column_break_18",
   "uif",
   "sdl",
   "eti",
-  "total_tax_payable"
+  "total_tax_payable",
+  "validation_tab",
+  "missing_sars_data",
+  "income_details_tab",
+  "income_details",
+  "deduction_details_tab",
+  "deduction_details",
+  "company_contribution_details_tab",
+  "company_contribution_details"
  ],
  "fields": [
+  {
+   "fieldname": "certificate_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Certificate"
+  },
   {
    "fieldname": "certificate_number",
    "fieldtype": "Data",
    "label": "Certificate Number",
+   "read_only": 1,
    "reqd": 1,
-   "unique": 1,
-   "read_only": 1
+   "unique": 1
+  },
+  {
+   "default": "IRP5",
+   "fieldname": "certificate_type",
+   "fieldtype": "Select",
+   "label": "Certificate Type",
+   "options": "IRP5\nIT3(a)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_certificate_1",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "tax_year",
@@ -53,11 +136,29 @@
    "reqd": 1
   },
   {
+   "fieldname": "year_of_assessment",
+   "fieldtype": "Data",
+   "label": "Year of Assessment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transaction_year",
+   "fieldtype": "Data",
+   "label": "Transaction Year",
+   "read_only": 1
+  },
+  {
    "fieldname": "reconciliation_period",
    "fieldtype": "Select",
    "label": "Reconciliation Period",
    "options": "Interim\nFinal",
    "reqd": 1
+  },
+  {
+   "fieldname": "reconciliation_period_yyyymm",
+   "fieldtype": "Data",
+   "label": "Reconciliation Period (YYYYMM)",
+   "read_only": 1
   },
   {
    "fieldname": "from_date",
@@ -72,8 +173,11 @@
    "reqd": 1
   },
   {
-   "fieldname": "column_break_5",
-   "fieldtype": "Column Break"
+   "default": "Today",
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "label": "Issue Date",
+   "read_only": 1
   },
   {
    "fieldname": "company",
@@ -83,20 +187,20 @@
    "reqd": 1
   },
   {
+   "default": "Individual",
+   "description": "Select 'Bulk' to generate certificates for multiple employees at once",
    "fieldname": "generation_mode",
    "fieldtype": "Select",
    "label": "Generation Mode",
-   "options": "Individual\nBulk",
-   "default": "Individual",
-   "description": "Select 'Bulk' to generate certificates for multiple employees at once"
+   "options": "Individual\nBulk"
   },
   {
+   "depends_on": "eval:doc.generation_mode === 'Bulk'",
+   "description": "Optional: Filter employees by department (Bulk mode only)",
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
-   "options": "Department",
-   "depends_on": "eval:doc.generation_mode === 'Bulk'",
-   "description": "Optional: Filter employees by department (Bulk mode only)"
+   "options": "Department"
   },
   {
    "fieldname": "employee",
@@ -112,29 +216,419 @@
    "read_only": 1
   },
   {
+   "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Draft\nPrepared\nSubmitted\nAccepted\nRejected",
-   "default": "Draft"
+   "options": "Draft\nPrepared\nSubmitted\nAccepted\nRejected\nCancelled"
   },
   {
+   "description": "Linked EMP501 Reconciliation if generated from EMP501",
    "fieldname": "emp501_reconciliation",
    "fieldtype": "Link",
    "label": "EMP501 Reconciliation",
    "options": "EMP501 Reconciliation",
-   "read_only": 1,
-   "description": "Linked EMP501 Reconciliation if generated from EMP501"
+   "read_only": 1
   },
   {
-   "fieldname": "section_break_10",
-   "fieldtype": "Section Break",
-   "label": "Income Details"
+   "fieldname": "employer_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Employer"
   },
   {
-   "fieldname": "income_details_section",
+   "fieldname": "employer_legal_name",
+   "fieldtype": "Data",
+   "label": "Employer Legal Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_trading_name",
+   "fieldtype": "Data",
+   "label": "Employer Trading Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_employer_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employer_tax_id",
+   "fieldtype": "Data",
+   "label": "Employer Tax ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_paye_reference_number",
+   "fieldtype": "Data",
+   "label": "PAYE Reference Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_sdl_reference_number",
+   "fieldtype": "Data",
+   "label": "SDL Reference Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employer_uif_reference_number",
+   "fieldtype": "Data",
+   "label": "UIF Reference Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_identity_tab",
+   "fieldtype": "Tab Break",
+   "label": "Employee"
+  },
+  {
+   "fieldname": "identity_type",
+   "fieldtype": "Data",
+   "label": "Identity Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_id_number",
+   "fieldtype": "Data",
+   "label": "Identity Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "passport_number",
+   "fieldtype": "Data",
+   "label": "Passport Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "passport_country_of_issue",
+   "fieldtype": "Data",
+   "label": "Passport Country of Issue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_employee_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_initials",
+   "fieldtype": "Data",
+   "label": "Initials",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_first_names",
+   "fieldtype": "Data",
+   "label": "First Names",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_surname",
+   "fieldtype": "Data",
+   "label": "Surname",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_gender",
+   "fieldtype": "Data",
+   "label": "Gender",
+   "read_only": 1
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth",
+   "read_only": 1
+  },
+  {
+   "fieldname": "income_tax_reference_number",
+   "fieldtype": "Data",
+   "label": "Income Tax Reference Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nature_of_person",
+   "fieldtype": "Data",
+   "label": "Nature of Person",
+   "read_only": 1
+  },
+  {
+   "fieldname": "address_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Addresses"
+  },
+  {
+   "fieldname": "residential_address_section",
    "fieldtype": "Section Break",
-   "label": "Income Details"
+   "label": "Residential Address"
+  },
+  {
+   "fieldname": "res_address_line_1",
+   "fieldtype": "Data",
+   "label": "Residential Address Line 1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "res_address_line_2",
+   "fieldtype": "Data",
+   "label": "Residential Address Line 2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "res_address_line_3",
+   "fieldtype": "Data",
+   "label": "Residential Address Line 3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "res_address_line_4",
+   "fieldtype": "Data",
+   "label": "Residential Address Line 4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "res_postal_code",
+   "fieldtype": "Data",
+   "label": "Residential Postal Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_address_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "postal_address_section",
+   "fieldtype": "Section Break",
+   "label": "Postal Address"
+  },
+  {
+   "fieldname": "post_address_line_1",
+   "fieldtype": "Data",
+   "label": "Postal Address Line 1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "post_address_line_2",
+   "fieldtype": "Data",
+   "label": "Postal Address Line 2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "post_address_line_3",
+   "fieldtype": "Data",
+   "label": "Postal Address Line 3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "post_address_line_4",
+   "fieldtype": "Data",
+   "label": "Postal Address Line 4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "post_postal_code",
+   "fieldtype": "Data",
+   "label": "Postal Postal Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "business_address_section",
+   "fieldtype": "Section Break",
+   "label": "Business Address"
+  },
+  {
+   "fieldname": "biz_address_line_1",
+   "fieldtype": "Data",
+   "label": "Business Address Line 1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "biz_address_line_2",
+   "fieldtype": "Data",
+   "label": "Business Address Line 2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "biz_address_line_3",
+   "fieldtype": "Data",
+   "label": "Business Address Line 3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "biz_address_line_4",
+   "fieldtype": "Data",
+   "label": "Business Address Line 4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "biz_postal_code",
+   "fieldtype": "Data",
+   "label": "Business Postal Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bank_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Bank"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bank_account_no",
+   "fieldtype": "Data",
+   "label": "Bank Account Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bank_account_type",
+   "fieldtype": "Data",
+   "label": "Bank Account Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_bank_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bank_account_holder_name",
+   "fieldtype": "Data",
+   "label": "Bank Account Holder Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bank_account_holder_relationship",
+   "fieldtype": "Data",
+   "label": "Account Holder Relationship",
+   "read_only": 1
+  },
+  {
+   "fieldname": "not_paid_electronically",
+   "fieldtype": "Check",
+   "label": "Not Paid Electronically",
+   "read_only": 1
+  },
+  {
+   "fieldname": "statutory_snapshot_tab",
+   "fieldtype": "Tab Break",
+   "label": "Statutory Snapshot"
+  },
+  {
+   "fieldname": "employed_from",
+   "fieldtype": "Date",
+   "label": "Employed From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employed_to",
+   "fieldtype": "Date",
+   "label": "Employed To",
+   "read_only": 1
+  },
+  {
+   "fieldname": "periods_in_year",
+   "fieldtype": "Int",
+   "label": "Periods in Year",
+   "read_only": 1
+  },
+  {
+   "fieldname": "periods_worked",
+   "fieldtype": "Int",
+   "label": "Periods Worked",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_statutory_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "directive_numbers",
+   "fieldtype": "Small Text",
+   "label": "Directive Numbers",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason_for_non_deduction",
+   "fieldtype": "Small Text",
+   "label": "Reason for Non-Deduction",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gross_taxable_income",
+   "fieldtype": "Currency",
+   "label": "Gross Taxable Income",
+   "read_only": 1
+  },
+  {
+   "fieldname": "non_taxable_income",
+   "fieldtype": "Currency",
+   "label": "Non-Taxable Income",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_deductions_contributions",
+   "fieldtype": "Currency",
+   "label": "Total Deductions and Contributions",
+   "read_only": 1
+  },
+  {
+   "fieldname": "medical_scheme_fees_tax_credit",
+   "fieldtype": "Currency",
+   "label": "Medical Scheme Fees Tax Credit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "additional_medical_expenses_tax_credit",
+   "fieldtype": "Currency",
+   "label": "Additional Medical Expenses Tax Credit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "paye",
+   "fieldtype": "Currency",
+   "label": "PAYE",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uif",
+   "fieldtype": "Currency",
+   "label": "UIF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sdl",
+   "fieldtype": "Currency",
+   "label": "SDL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "eti",
+   "fieldtype": "Currency",
+   "label": "ETI",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_tax_payable",
+   "fieldtype": "Currency",
+   "label": "Total Tax Payable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "validation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Validation"
+  },
+  {
+   "fieldname": "missing_sars_data",
+   "fieldtype": "Long Text",
+   "label": "Missing SARS Data",
+   "read_only": 1
+  },
+  {
+   "fieldname": "income_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Income Lines"
   },
   {
    "fieldname": "income_details",
@@ -143,14 +637,9 @@
    "options": "IRP5 Income Detail"
   },
   {
-   "fieldname": "section_break_13",
-   "fieldtype": "Section Break",
-   "label": "Deduction Details"
-  },
-  {
-   "fieldname": "deduction_details_section",
-   "fieldtype": "Section Break",
-   "label": "Deduction Details"
+   "fieldname": "deduction_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Deduction Lines"
   },
   {
    "fieldname": "deduction_details",
@@ -159,62 +648,26 @@
    "options": "IRP5 Deduction Detail"
   },
   {
-   "fieldname": "company_contribution_details_section",
-   "fieldtype": "Section Break",
-   "label": "Company Contribution Details"
+   "fieldname": "company_contribution_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Employer Contribution Lines"
   },
   {
    "fieldname": "company_contribution_details",
    "fieldtype": "Table",
    "label": "Company Contribution Details",
    "options": "IRP5 Company Contribution Detail"
-  },
-  {
-   "fieldname": "section_break_16",
-   "fieldtype": "Section Break",
-   "label": "Tax Calculations"
-  },
-  {
-   "fieldname": "paye",
-   "fieldtype": "Currency",
-   "label": "PAYE"
-  },
-  {
-   "fieldname": "column_break_18",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "uif",
-   "fieldtype": "Currency",
-   "label": "UIF"
-  },
-  {
-   "fieldname": "sdl",
-   "fieldtype": "Currency",
-   "label": "SDL"
-  },
-  {
-   "fieldname": "eti",
-   "fieldtype": "Currency",
-   "label": "ETI"
-  },
-  {
-   "fieldname": "total_tax_payable",
-   "fieldtype": "Currency",
-   "label": "Total Tax Payable",
-   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "istable": 0,
  "links": [
   {
    "link_doctype": "EMP501 Reconciliation",
    "link_fieldname": "emp501_reconciliation"
   }
  ],
- "modified": "2025-05-07 10:00:00.000000",
+ "modified": "2026-04-23 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "IRP5 Certificate",

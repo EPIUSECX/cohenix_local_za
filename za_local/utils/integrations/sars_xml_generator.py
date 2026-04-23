@@ -33,8 +33,8 @@ class SARSXMLGenerator:
 
         # Employer details
         employer = ET.SubElement(root, "Employer")
-        ET.SubElement(employer, "RegistrationNumber").text = self.company.get("za_paye_registration_number", "")
-        ET.SubElement(employer, "TradingName").text = self.company.company_name
+        ET.SubElement(employer, "RegistrationNumber").text = self.company.get("za_paye_reference_number", "")
+        ET.SubElement(employer, "TradingName").text = self.company.get("za_trading_name") or self.company.company_name
 
         # Tax year
         ET.SubElement(root, "TaxYear").text = emp501_doc.tax_year
@@ -73,10 +73,10 @@ class SARSXMLGenerator:
 
         # Income details
         income = ET.SubElement(cert, "Income")
-        ET.SubElement(income, "Remuneration").text = str(flt(irp5.total_remuneration, 2))
-        ET.SubElement(income, "TaxableIncome").text = str(flt(irp5.total_taxable_income, 2))
-        ET.SubElement(income, "PAYE").text = str(flt(irp5.total_paye, 2))
-        ET.SubElement(income, "UIF").text = str(flt(irp5.total_uif, 2))
+        ET.SubElement(income, "Remuneration").text = str(flt(irp5.gross_taxable_income, 2))
+        ET.SubElement(income, "TaxableIncome").text = str(flt(irp5.gross_taxable_income, 2))
+        ET.SubElement(income, "PAYE").text = str(flt(irp5.paye, 2))
+        ET.SubElement(income, "UIF").text = str(flt(irp5.uif, 2))
 
         return cert
 

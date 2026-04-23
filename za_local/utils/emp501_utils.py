@@ -9,7 +9,7 @@ import csv
 from tempfile import NamedTemporaryFile
 
 import frappe
-from frappe.utils import format_date, getdate
+from frappe.utils import flt, format_date, getdate
 
 
 @frappe.whitelist()
@@ -91,8 +91,8 @@ def generate_emp501_csv(emp501_name):
                 irp5 = frappe.get_doc("IRP5 Certificate", irp5_ref.irp5_certificate)
 
                 employee_name = frappe.db.get_value("Employee", irp5.employee, "employee_name") or ""
-                tax_number = irp5.get("tax_number") or ""
-                id_number = irp5.get("id_number") or ""
+                tax_number = irp5.get("income_tax_reference_number") or ""
+                id_number = irp5.get("employee_id_number") or ""
 
                 writer.writerow([
                     irp5.get("certificate_type", "IRP5"),
@@ -103,7 +103,7 @@ def generate_emp501_csv(emp501_name):
                     employee_name,
                     irp5.certificate_number,
                     format_date(irp5.get("issue_date") or emp501.submission_date),
-                    f"{irp5.total_income:.2f}",
+                    f"{flt(irp5.get('gross_taxable_income') or 0):.2f}",
                     f"{irp5.paye:.2f}",
                     f"{irp5.uif:.2f}",
                     f"{irp5.get('eti', 0):.2f}"
@@ -234,4 +234,3 @@ def fetch_irp5_certificates(company, tax_year):
     )
 
     return certificates
-
