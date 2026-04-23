@@ -350,12 +350,24 @@ CUSTOM_FIELD_FIXTURES_JSON = """
   },
   {
     "doctype": "Custom Field",
+    "name": "Employee-za_occupational_level",
+    "dt": "Employee",
+    "module": "SA Labour",
+    "label": "Occupational Level",
+    "fieldname": "za_occupational_level",
+    "fieldtype": "Select",
+    "options": "\\nTop Management\\nSenior Management\\nProfessionally Qualified\\nSkilled Technical\\nSemi-Skilled\\nUnskilled\\nTemporary Employees\\nNon-Permanent",
+    "insert_after": "za_race",
+    "description": "Occupational level for Employment Equity Act (EEA) reporting"
+  },
+  {
+    "doctype": "Custom Field",
     "name": "Employee-za_ee_column_break",
     "dt": "Employee",
     "module": "SA Labour",
     "fieldname": "za_ee_column_break",
     "fieldtype": "Column Break",
-    "insert_after": "za_race"
+    "insert_after": "za_occupational_level"
   },
   {
     "doctype": "Custom Field",

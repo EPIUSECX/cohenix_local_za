@@ -1,39 +1,26 @@
 {
  "app": "za_local",
  "charts": [],
+ "content": "[{\"id\":\"sa-lab-sp\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"sa-lab-h\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"sa-lab-p\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"text-muted\\\">Skills development, SETA, business travel, sectoral determinations, HR links, and Employment Equity reporting.</span>\",\"col\":12}},{\"id\":\"sa-lab-c1\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"sa-lab-c2\",\"type\":\"card\",\"data\":{\"card_name\":\"Transactions\",\"col\":4}},{\"id\":\"sa-lab-c3\",\"type\":\"card\",\"data\":{\"card_name\":\"HR \u2014 employees\",\"col\":4}},{\"id\":\"sa-lab-c4\",\"type\":\"card\",\"data\":{\"card_name\":\"Employment Equity reports\",\"col\":4}}]",
+ "creation": "2026-03-17 12:26:58.878580",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
  "for_user": "",
  "hide_custom": 0,
+ "icon": "hr",
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "link_type": "DocType",
- "number_cards": [],
- "owner": "Administrator",
- "parent_page": "SA Overview",
- "public": 1,
- "quick_lists": [],
- "roles": [],
- "shortcuts": [],
- "type": "Workspace",
- "creation": "2026-03-17 12:26:58.878580",
- "icon": "hr",
  "label": "SA Labour",
- "module": "SA Labour",
- "name": "SA Labour",
- "title": "SA Labour",
- "sequence_id": 26.0,
- "modified": "2026-04-01 14:00:00.000000",
- "modified_by": "Administrator",
- "content": "[{\"id\": \"sa-lab-sp\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sa-lab-h\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"sa-lab-p\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">Skills development, SETA, business travel, sectoral determinations, HR links, and Employment Equity reporting.</span>\", \"col\": 12}}, {\"id\": \"sa-lab-c1\", \"type\": \"card\", \"data\": {\"card_name\": \"Masters\", \"col\": 4}}, {\"id\": \"sa-lab-c2\", \"type\": \"card\", \"data\": {\"card_name\": \"Transactions\", \"col\": 4}}, {\"id\": \"sa-lab-c3\", \"type\": \"card\", \"data\": {\"card_name\": \"HR — employees\", \"col\": 4}}, {\"id\": \"sa-lab-c4\", \"type\": \"card\", \"data\": {\"card_name\": \"Employment Equity reports\", \"col\": 4}}]",
+ "link_type": "DocType",
  "links": [
   {
    "hidden": 0,
    "is_query_report": 0,
    "label": "Masters",
    "link_count": 5,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -90,56 +77,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Transactions",
-   "link_count": 4,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Business Trip",
-   "link_count": 0,
-   "link_to": "Business Trip",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Workplace Skills Plan",
-   "link_count": 0,
-   "link_to": "Workplace Skills Plan",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Annual Training Report",
-   "link_count": 0,
-   "link_to": "Annual Training Report",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Skills Development Record",
-   "link_count": 0,
-   "link_to": "Skills Development Record",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "HR — employees",
+   "label": "HR \u2014 employees",
    "link_count": 1,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -158,6 +98,7 @@
    "is_query_report": 0,
    "label": "Employment Equity reports",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -190,6 +131,59 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Transactions",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Business Trip",
+   "link_count": 0,
+   "link_to": "Business Trip",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Annual Training Report",
+   "link_count": 0,
+   "link_to": "Annual Training Report",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Skills Development Record",
+   "link_count": 0,
+   "link_to": "Skills Development Record",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
- ]
+ ],
+ "modified": "2026-04-23 11:23:48.319904",
+ "modified_by": "Administrator",
+ "module": "SA Labour",
+ "name": "SA Labour",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "SA Overview",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 26.0,
+ "shortcuts": [],
+ "title": "SA Labour",
+ "type": "Workspace"
 }

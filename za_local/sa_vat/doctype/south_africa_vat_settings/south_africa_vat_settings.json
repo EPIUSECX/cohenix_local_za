@@ -1,6 +1,6 @@
 {
  "actions": [],
- "creation": "2025-05-06 17:30:00.000000",
+ "creation": "2025-05-06 17:30:00",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -11,27 +11,22 @@
   "column_break_3",
   "enable_zero_rated_items",
   "enable_exempt_items",
-  "section_break_6",
   "vat_registration_section",
   "vat_registration_number",
   "vat_vendor_type",
   "column_break_10",
   "vat_filing_frequency",
   "vat_filing_day",
-  "section_break_13",
   "vat_accounts_section",
   "output_vat_account",
   "column_break_16",
   "input_vat_account",
-  "section_break_18",
   "vat_rates_section",
   "vat_rates",
-  "section_break_21",
   "sars_efiling_section",
   "sars_efiling_username",
   "column_break_24",
   "sars_efiling_password",
-  "section_break_26",
   "vat_report_settings_section",
   "default_vat_report_company",
   "column_break_29",
@@ -39,12 +34,11 @@
  ],
  "fields": [
   {
+   "description": "Company for which these VAT settings are being viewed.",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company",
-   "reqd": 0,
-   "description": "Company for which these VAT settings are being viewed."
+   "options": "Company"
   },
   {
    "fieldname": "vat_settings_section",
@@ -56,6 +50,7 @@
    "description": "Standard VAT rate in South Africa (percentage)",
    "fieldname": "standard_vat_rate",
    "fieldtype": "Percent",
+   "in_list_view": 1,
    "label": "Standard VAT Rate",
    "reqd": 1
   },
@@ -78,10 +73,6 @@
    "label": "Enable Exempt Items"
   },
   {
-   "fieldname": "section_break_6",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "vat_registration_section",
    "fieldtype": "Section Break",
    "label": "VAT Registration"
@@ -97,6 +88,7 @@
    "description": "Type of VAT vendor",
    "fieldname": "vat_vendor_type",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "VAT Vendor Type",
    "options": "VAT Vendor Type",
    "reqd": 1
@@ -109,6 +101,7 @@
    "description": "How often VAT returns are filed",
    "fieldname": "vat_filing_frequency",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "VAT Filing Frequency",
    "options": "Monthly\nBi-Monthly\nQuarterly\nAnnually",
    "reqd": 1
@@ -117,12 +110,9 @@
    "description": "Day of the month when VAT returns are due",
    "fieldname": "vat_filing_day",
    "fieldtype": "Int",
+   "in_list_view": 1,
    "label": "VAT Filing Day",
    "reqd": 1
-  },
-  {
-   "fieldname": "section_break_13",
-   "fieldtype": "Section Break"
   },
   {
    "fieldname": "vat_accounts_section",
@@ -150,10 +140,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "section_break_18",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "vat_rates_section",
    "fieldtype": "Section Break",
    "label": "VAT Rates"
@@ -167,12 +153,9 @@
    "reqd": 1
   },
   {
-   "fieldname": "section_break_21",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "sars_efiling_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "SARS e-Filing Integration"
   },
   {
@@ -190,10 +173,6 @@
    "fieldname": "sars_efiling_password",
    "fieldtype": "Password",
    "label": "SARS e-Filing Password"
-  },
-  {
-   "fieldname": "section_break_26",
-   "fieldtype": "Section Break"
   },
   {
    "fieldname": "vat_report_settings_section",
@@ -222,7 +201,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-05-06 17:30:00.000000",
+ "modified": "2026-04-23 11:16:31.369745",
  "modified_by": "Administrator",
  "module": "SA VAT",
  "name": "South Africa VAT Settings",
@@ -256,6 +235,7 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
