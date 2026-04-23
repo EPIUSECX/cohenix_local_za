@@ -38,3 +38,12 @@
 	display: none !important;
 }
 
+/*
+ * Frappe's onboarding panel is hardcoded to the lower-left in core.
+ * For ZA Local we anchor it to the lower-right so it doesn't compete with the workspace sidebar.
+ */
+.onb-panel,
+.expanded .onb-panel {
+	left: auto !important;
+	right: 24px !important;
+}
