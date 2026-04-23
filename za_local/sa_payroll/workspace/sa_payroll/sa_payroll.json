@@ -447,7 +447,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Statutory",
-   "link_count": 6,
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -511,9 +511,19 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "SARS Payroll Code",
+   "link_count": 0,
+   "link_to": "SARS Payroll Code",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-04-23 11:47:44.238656",
+ "modified": "2026-04-23 12:37:42.905322",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "SA Payroll",
