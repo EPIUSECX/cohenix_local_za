@@ -1,6 +1,6 @@
 {
  "app": "za_local",
- "creation": "2026-04-23 09:00:00.000000",
+ "creation": "2026-04-23 09:00:00",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
  "header_icon": "accounting",
@@ -607,7 +607,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-04-23 09:00:00.000000",
+ "modified": "2026-04-23 20:50:52.046827",
  "modified_by": "Administrator",
  "module": "SA Localisation",
  "module_onboarding": "SA Payroll Onboarding",
