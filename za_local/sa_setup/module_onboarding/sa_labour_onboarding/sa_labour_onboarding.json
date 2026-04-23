@@ -1,0 +1,44 @@
+{
+ "allow_roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR Manager"
+  }
+ ],
+ "creation": "2026-04-23 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Module Onboarding",
+ "idx": 0,
+ "is_complete": 0,
+ "modified": "2026-04-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Labour",
+ "name": "SA Labour Onboarding",
+ "owner": "Administrator",
+ "steps": [
+  {
+   "step": "Review Business Trip Settings"
+  },
+  {
+   "step": "Review SETA"
+  },
+  {
+   "step": "Review Bargaining Council"
+  },
+  {
+   "step": "Review Sectoral Minimum Wage"
+  },
+  {
+   "step": "Create Workplace Skills Plan"
+  },
+  {
+   "step": "Create Annual Training Report"
+  },
+  {
+   "step": "View EEA4 Employment Equity Plan"
+  }
+ ],
+ "title": "SA Labour Setup"
+}

@@ -50,7 +50,7 @@
    "link_count": 0,
    "link_to": "VAT201 Return",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -60,7 +60,7 @@
    "link_count": 0,
    "link_to": "VAT Audit Report",
    "link_type": "Report",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -79,7 +79,7 @@
    "link_count": 0,
    "link_to": "Item Tax Template",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -89,7 +89,7 @@
    "link_count": 0,
    "link_to": "Sales Taxes and Charges Template",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -99,7 +99,7 @@
    "link_count": 0,
    "link_to": "Purchase Taxes and Charges Template",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {

@@ -1,0 +1,21 @@
+{
+ "action": "Go to Page",
+ "action_label": "Review Sectoral Minimum Wage",
+ "creation": "2026-04-23 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_single": 0,
+ "is_skipped": 0,
+ "modified": "2026-04-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Review Sectoral Minimum Wage",
+ "owner": "Administrator",
+ "path": "/desk/sectoral-minimum-wage",
+ "reference_document": "Sectoral Minimum Wage",
+ "show_form_tour": 0,
+ "show_full_form": 0,
+ "title": "Review Sectoral Minimum Wage",
+ "validate_action": 1
+}

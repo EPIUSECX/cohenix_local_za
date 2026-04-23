@@ -31,7 +31,7 @@
    "link_count": 0,
    "link_to": "Business Trip Settings",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -41,7 +41,7 @@
    "link_count": 0,
    "link_to": "SETA",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -51,7 +51,7 @@
    "link_count": 0,
    "link_to": "Bargaining Council",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -61,7 +61,7 @@
    "link_count": 0,
    "link_to": "Sectoral Minimum Wage",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -119,7 +119,7 @@
    "link_count": 0,
    "link_to": "Eea4 Employment Equity Plan",
    "link_type": "Report",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -136,10 +136,20 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Transactions",
-   "link_count": 3,
+   "link_count": 4,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Workplace Skills Plan",
+   "link_count": 0,
+   "link_to": "Workplace Skills Plan",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -158,7 +168,7 @@
    "link_count": 0,
    "link_to": "Annual Training Report",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {

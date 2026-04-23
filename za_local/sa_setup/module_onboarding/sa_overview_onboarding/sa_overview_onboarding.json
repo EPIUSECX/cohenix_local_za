@@ -1,0 +1,44 @@
+{
+ "allow_roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "HR Manager"
+  }
+ ],
+ "creation": "2026-04-23 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Module Onboarding",
+ "idx": 0,
+ "is_complete": 0,
+ "modified": "2026-04-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA Localisation",
+ "name": "SA Overview Onboarding",
+ "owner": "Administrator",
+ "steps": [
+  {
+   "step": "Create ZA Local Setup"
+  },
+  {
+   "step": "Review South Africa VAT Settings"
+  },
+  {
+   "step": "Review Payroll Settings"
+  },
+  {
+   "step": "Review Tax Rebates and Medical Tax Credit"
+  },
+  {
+   "step": "Review Business Trip Settings"
+  },
+  {
+   "step": "Review COIDA Settings"
+  }
+ ],
+ "title": "SA Overview Setup"
+}

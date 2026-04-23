@@ -1,0 +1,44 @@
+{
+ "allow_roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  }
+ ],
+ "creation": "2026-04-23 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Module Onboarding",
+ "idx": 0,
+ "is_complete": 0,
+ "modified": "2026-04-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "SA VAT Onboarding",
+ "owner": "Administrator",
+ "steps": [
+  {
+   "step": "Review Company VAT Details"
+  },
+  {
+   "step": "Review South Africa VAT Settings"
+  },
+  {
+   "step": "Review Sales Tax Templates"
+  },
+  {
+   "step": "Review Purchase Tax Templates"
+  },
+  {
+   "step": "Review Item Tax Templates"
+  },
+  {
+   "step": "Create VAT201 Return"
+  },
+  {
+   "step": "View VAT Audit Report"
+  }
+ ],
+ "title": "SA VAT Setup"
+}

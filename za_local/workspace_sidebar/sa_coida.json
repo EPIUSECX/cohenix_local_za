@@ -91,9 +91,10 @@
    "type": "Link"
   }
  ],
- "modified": "2026-04-23 11:12:18.073756",
+ "modified": "2026-04-23 17:17:30.252990",
  "modified_by": "Administrator",
  "module": "SA Localisation",
+ "module_onboarding": "SA COIDA Onboarding",
  "name": "SA COIDA",
  "owner": "Administrator",
  "standard": 1,

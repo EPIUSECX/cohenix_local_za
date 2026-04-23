@@ -77,3 +77,40 @@ class TestRepositoryHygiene(FrappeTestCase):
 			expected.issubset(found),
 			msg=f"Missing expected workspace sidebar standard docs: {sorted(expected - found)}",
 		)
+
+	def test_expected_sa_module_onboarding_exists(self):
+		expected = {
+			"sa_localisation_onboarding.json",
+			"sa_overview_onboarding.json",
+			"sa_vat_onboarding.json",
+			"sa_payroll_onboarding.json",
+			"sa_labour_onboarding.json",
+			"sa_coida_onboarding.json",
+		}
+		found = {
+			path.name
+			for path in (PACKAGE_ROOT / "sa_setup" / "module_onboarding").rglob("*.json")
+		}
+		self.assertTrue(
+			expected.issubset(found),
+			msg=f"Missing expected module onboarding standard docs: {sorted(expected - found)}",
+		)
+
+	def test_module_sidebars_reference_module_onboarding(self):
+		expected = {
+			"sa_overview.json": "SA Overview Onboarding",
+			"sa_vat.json": "SA VAT Onboarding",
+			"sa_payroll.json": "SA Payroll Onboarding",
+			"sa_labour.json": "SA Labour Onboarding",
+			"sa_coida.json": "SA COIDA Onboarding",
+		}
+
+		for filename, onboarding in expected.items():
+			path = PACKAGE_ROOT / "workspace_sidebar" / filename
+			with path.open() as handle:
+				data = json.load(handle)
+			self.assertEqual(
+				data.get("module_onboarding"),
+				onboarding,
+				msg=f"{filename} should attach {onboarding}",
+			)

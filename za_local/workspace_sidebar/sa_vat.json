@@ -1,6 +1,6 @@
 {
  "app": "za_local",
- "creation": "2026-04-23 09:00:00.000000",
+ "creation": "2026-04-23 09:00:00",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
  "header_icon": "sell",
@@ -84,7 +84,7 @@
    "icon": "percent",
    "indent": 1,
    "keep_closed": 1,
-   "label": "ERPNext — tax templates",
+   "label": "ERPNext \u2014 tax templates",
    "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
@@ -139,9 +139,10 @@
    "type": "Link"
   }
  ],
- "modified": "2026-04-23 09:00:00.000000",
+ "modified": "2026-04-23 17:17:22.814007",
  "modified_by": "Administrator",
  "module": "SA Localisation",
+ "module_onboarding": "SA VAT Onboarding",
  "name": "SA VAT",
  "owner": "Administrator",
  "standard": 1,

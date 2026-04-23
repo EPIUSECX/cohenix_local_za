@@ -14,7 +14,7 @@
  "owner": "Administrator",
  "reference_report": "VAT Audit Report",
  "report_description": "Review the VAT audit trail before filing.",
- "report_reference_doctype": "Sales Invoice",
+ "report_reference_doctype": "GL Entry",
  "report_type": "Script Report",
  "show_form_tour": 0,
  "show_full_form": 0,

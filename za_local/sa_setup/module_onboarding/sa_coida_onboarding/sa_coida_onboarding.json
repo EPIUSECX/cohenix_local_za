@@ -1,0 +1,38 @@
+{
+ "allow_roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR Manager"
+  }
+ ],
+ "creation": "2026-04-23 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Module Onboarding",
+ "idx": 0,
+ "is_complete": 0,
+ "modified": "2026-04-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SA COIDA",
+ "name": "SA COIDA Onboarding",
+ "owner": "Administrator",
+ "steps": [
+  {
+   "step": "Review COIDA Settings"
+  },
+  {
+   "step": "Review COIDA Industry Rate"
+  },
+  {
+   "step": "Create COIDA Annual Return"
+  },
+  {
+   "step": "Create Workplace Injury"
+  },
+  {
+   "step": "Create OID Claim"
+  }
+ ],
+ "title": "SA COIDA Setup"
+}

@@ -156,7 +156,7 @@
    "link_count": 0,
    "link_to": "Business Trip Settings",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -184,7 +184,7 @@
    "link_count": 0,
    "link_to": "COIDA Settings",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
