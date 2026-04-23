@@ -15,16 +15,16 @@ from frappe.model.document import Document
 
 class BusinessTripRegion(Document):
 	"""Business Trip Region master"""
-	
+
 	def validate(self):
 		"""Validate region data"""
 		self.validate_rates()
-	
+
 	def validate_rates(self):
 		"""Ensure rates are positive"""
 		if self.daily_allowance_rate and self.daily_allowance_rate < 0:
 			frappe.throw(_("Daily Allowance Rate cannot be negative"))
-		
+
 		if self.incidental_allowance_rate and self.incidental_allowance_rate < 0:
 			frappe.throw(_("Incidental Allowance Rate cannot be negative"))
 
@@ -34,7 +34,7 @@ class BusinessTripRegion(Document):
 def get_active_regions(doctype, txt, searchfield, start, page_len, filters):
 	"""
 	Query function for active business trip regions.
-	
+
 	Args:
 		doctype: DocType name
 		txt: Search text
@@ -42,7 +42,7 @@ def get_active_regions(doctype, txt, searchfield, start, page_len, filters):
 		start: Start position
 		page_len: Page length
 		filters: Additional filters
-	
+
 	Returns:
 		list: List of matching regions
 	"""
@@ -53,7 +53,7 @@ def get_active_regions(doctype, txt, searchfield, start, page_len, filters):
 		WHERE is_active = 1
 		AND (name LIKE %(txt)s OR country LIKE %(txt)s)
 		ORDER BY
-			CASE 
+			CASE
 				WHEN country = 'South Africa' THEN 1
 				ELSE 2
 			END,

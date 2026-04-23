@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, flt, today, add_months
+from frappe.utils import add_months, flt, getdate, today
 
 
 class WorkplaceSkillsPlan(Document):
@@ -15,7 +15,7 @@ class WorkplaceSkillsPlan(Document):
 	def generate_wsp_report(self):
 		"""TODO: Implement generate_wsp_report"""
 		pass
-	
+
 	def validate_budget(self):
 		"""TODO: Implement validate_budget"""
 		pass

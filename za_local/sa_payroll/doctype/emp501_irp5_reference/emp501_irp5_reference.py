@@ -1,6 +1,7 @@
 import frappe
 from frappe.model.document import Document
 
+
 class EMP501IRP5Reference(Document):
     def validate(self):
         if self.irp5_certificate:

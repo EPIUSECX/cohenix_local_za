@@ -1,5 +1,6 @@
 from frappe import _
 
+
 def get_data():
 	return [
 		{
@@ -23,7 +24,7 @@ def get_data():
 					"name": "Employee Private Benefit",
 					"description": _("Track employee private benefits for tax purposes"),
 				},
-				
+
 				# Master Data Section
 				{
 					"type": "doctype",
@@ -65,7 +66,7 @@ def get_data():
 					"name": "Holiday List",
 					"description": _("South African public holidays for payroll periods"),
 				},
-				
+
 				# Benefits Section
 				{
 					"type": "doctype",
@@ -102,7 +103,7 @@ def get_data():
 					"name": "Fringe Benefit",
 					"description": _("Comprehensive fringe benefit management"),
 				},
-				
+
 				# Payments & Settlement Section
 				{
 					"type": "doctype",
@@ -119,7 +120,7 @@ def get_data():
 					"name": "Leave Encashment SA",
 					"description": _("Leave encashment calculations for SA compliance"),
 				},
-				
+
 				# SARS Submissions (Employer Tax)
 				{
 					"type": "doctype",

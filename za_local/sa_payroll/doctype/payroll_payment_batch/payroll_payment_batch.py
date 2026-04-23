@@ -11,7 +11,7 @@ class PayrollPaymentBatch(Document):
 	def validate(self):
 		"""Validate PayrollPaymentBatch"""
 		pass
-	
+
 	def on_submit(self):
 		"""Actions on submission"""
 		pass

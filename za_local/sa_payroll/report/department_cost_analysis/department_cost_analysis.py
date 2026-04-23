@@ -3,6 +3,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
 	columns = get_columns()
 	data = get_data(filters)
@@ -40,5 +41,5 @@ def get_data(filters):
 		GROUP BY e.department
 		ORDER BY total_gross DESC
 	"""
-	
+
 	return frappe.db.sql(query, filters, as_dict=1)

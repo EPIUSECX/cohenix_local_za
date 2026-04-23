@@ -1,8 +1,10 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, date_diff
+from frappe.utils import date_diff, getdate
+
 from za_local.utils.hrms_detection import is_hrms_installed
+
 
 class WorkplaceInjury(Document):
     def validate(self):
@@ -17,15 +19,15 @@ class WorkplaceInjury(Document):
                 _("Leave functionality requires HRMS. Leave requirement has been cleared."),
                 alert=True,
             )
-    
+
     def validate_dates(self):
         """Validate that injury date is not in the future"""
         if getdate(self.injury_date) > getdate():
             frappe.throw(_("Injury Date cannot be in the future"))
-        
+
         if self.expected_recovery_date and getdate(self.expected_recovery_date) < getdate(self.injury_date):
             frappe.throw(_("Expected Recovery Date cannot be before Injury Date"))
-    
+
     def calculate_leave_days(self):
         """Calculate leave days based on expected recovery date"""
         if self.expected_recovery_date:
@@ -33,20 +35,20 @@ class WorkplaceInjury(Document):
         else:
             # Default to 7 days if no recovery date is specified
             self.leave_days = 7
-    
+
     def on_submit(self):
         """Create leave application and OID claim if required"""
         if self.requires_leave and is_hrms_installed():
             self.create_leave_application()
-        
+
         if self.requires_claim:
             self.create_oid_claim()
-    
+
     def create_leave_application(self):
         """Create a leave application for the injured employee"""
         if self.leave_application:
             return
-        
+
         # Check if HRMS is installed and required DocTypes exist
         if not is_hrms_installed():
             frappe.msgprint(
@@ -54,38 +56,38 @@ class WorkplaceInjury(Document):
                 alert=True,
             )
             return
-        
+
         if not frappe.db.exists("DocType", "Leave Type"):
             frappe.msgprint(
                 _("Leave Type DocType not found. Leave Application cannot be created."),
                 alert=True,
             )
             return
-        
+
         if not frappe.db.exists("DocType", "Leave Application"):
             frappe.msgprint(
                 _("Leave Application DocType not found. Leave Application cannot be created."),
                 alert=True,
             )
             return
-        
+
         # Check if employee has a leave type for injury
         leave_type = frappe.db.get_value("Leave Type", {"name": ["like", "%Injury%"]}, "name")
         if not leave_type:
             leave_type = "Sick Leave"  # Default to sick leave if no injury leave type exists
-        
+
         leave_application = frappe.new_doc("Leave Application")
         leave_application.employee = self.employee
         leave_application.leave_type = leave_type
         leave_application.from_date = self.injury_date
-        
+
         # Calculate to_date based on leave_days
         to_date = frappe.utils.add_days(self.injury_date, self.leave_days - 1)
         leave_application.to_date = to_date
-        
+
         leave_application.description = f"Workplace Injury: {self.name}"
         leave_application.status = "Approved"  # Auto-approve for workplace injuries
-        
+
         try:
             leave_application.insert()
             leave_application.submit()
@@ -95,19 +97,19 @@ class WorkplaceInjury(Document):
                 frappe.bold(leave_application.name)))
         except Exception as e:
             frappe.msgprint(_("Could not create Leave Application: {0}").format(str(e)))
-    
+
     def create_oid_claim(self):
         """Create an OID claim for the workplace injury"""
         if self.oid_claim:
             return
-        
+
         oid_claim = frappe.new_doc("OID Claim")
         oid_claim.workplace_injury = self.name
         oid_claim.employee = self.employee
         oid_claim.injury_date = self.injury_date
         oid_claim.injury_type = self.injury_type
         oid_claim.injury_description = self.injury_description
-        
+
         try:
             oid_claim.insert()
             self.oid_claim = oid_claim.name
@@ -116,7 +118,7 @@ class WorkplaceInjury(Document):
                 frappe.bold(oid_claim.name)))
         except Exception as e:
             frappe.msgprint(_("Could not create OID Claim: {0}").format(str(e)))
-    
+
     def on_cancel(self):
         """Cancel linked documents when injury is cancelled"""
         if self.leave_application and is_hrms_installed():
@@ -129,7 +131,7 @@ class WorkplaceInjury(Document):
                             frappe.bold(self.leave_application)))
                 except Exception as e:
                     frappe.msgprint(_("Could not cancel Leave Application: {0}").format(str(e)))
-        
+
         if self.oid_claim:
             if frappe.db.exists("OID Claim", self.oid_claim):
                 try:

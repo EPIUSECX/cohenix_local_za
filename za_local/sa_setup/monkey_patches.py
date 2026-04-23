@@ -5,23 +5,24 @@ This module sets up all monkey patches required for South African localization.
 Monkey patches are applied during app installation/migration, not at import time.
 """
 
-from za_local.utils.hrms_detection import is_hrms_installed
 from za_local.accounts.setup_chart import (
-	extend_charts_for_country,
 	extend_chart_loader,
-	patch_financial_report_templates_sync
+	extend_charts_for_country,
+	patch_financial_report_templates_sync,
 )
+from za_local.utils.hrms_detection import is_hrms_installed
 
 
 def setup_hrms_monkey_patches():
 	"""
 	Conditionally setup HRMS monkey patches.
-	
+
 	Only applies patches if HRMS is installed.
 	"""
 	if is_hrms_installed():
 		try:
 			from hrms.payroll.doctype.payroll_entry import payroll_entry as _payroll_entry  # type: ignore
+
 			from za_local.overrides import payroll_entry as _za_payroll_entry
 			_payroll_entry.get_payroll_entry_bank_entries = _za_payroll_entry.get_payroll_entry_bank_entries
 		except ImportError:
@@ -32,7 +33,7 @@ def setup_hrms_monkey_patches():
 def setup_all_monkey_patches():
 	"""
 	Setup all monkey patches for za_local.
-	
+
 	This function should be called from after_install and after_migrate hooks.
 	It sets up:
 	- HRMS-specific patches (if HRMS is installed)

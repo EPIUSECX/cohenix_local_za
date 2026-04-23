@@ -10,7 +10,8 @@ Note: This module only works when HRMS is installed.
 
 import frappe
 from frappe import _
-from za_local.utils.hrms_detection import require_hrms, get_hrms_doctype_class
+
+from za_local.utils.hrms_detection import get_hrms_doctype_class, require_hrms
 
 # Conditionally import HRMS classes
 SalaryStructureAssignment = get_hrms_doctype_class(
@@ -27,27 +28,27 @@ if SalaryStructureAssignment is None:
 class ZASalaryStructureAssignment(SalaryStructureAssignment):
     """
     South African Salary Structure Assignment implementation.
-    
+
     Fixes the opening entries validation to correctly distinguish between
     unset values (None) and explicitly set zero values.
     """
-    
+
     def __init__(self, *args, **kwargs):
         """Ensure HRMS is available before initialization"""
         if SalaryStructureAssignment is None:
             require_hrms("Salary Structure Assignment")
         super().__init__(*args, **kwargs)
-    
+
     def warn_about_missing_opening_entries(self):
         """
         Override to fix validation: check for None instead of falsy values.
-        
+
         The original implementation treats 0 as falsy, causing warnings
         even when values are explicitly set to zero. This fix checks if
         values are None (not set) rather than checking if they're falsy.
         """
         require_hrms("Salary Structure Assignment")
-        
+
         if (
             self.are_opening_entries_required()
             and self.taxable_earnings_till_date is None

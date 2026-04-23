@@ -14,21 +14,21 @@ class HousingBenefit(Document):
 			# Use first 20 chars of address for name
 			address_short = self.property_address[:20].replace("\n", " ")
 			self.name = f"{self.employee}-{address_short}"
-			
+
 	def validate(self):
 		"""Validate housing benefit"""
 		self.calculate_monthly_benefit()
-		
+
 	@frappe.whitelist()
 	def calculate_monthly_benefit(self):
 		"""
 		Calculate monthly taxable value for housing benefit.
-		
+
 		SARS Rules:
 		- Company-owned property: Lower of actual cost or market rental
 		- Housing allowance: Full allowance is taxable
 		- Electricity/water: Add to taxable value if provided free
-		
+
 		Simplified calculation:
 		- Owned by Company: Use rental value (assumed to be market-related)
 		- Third Party: Full rental value taxable
@@ -36,7 +36,7 @@ class HousingBenefit(Document):
 		monthly_rental = flt(self.monthly_rental_value)
 		electricity = flt(self.electricity_contribution)
 		water = flt(self.water_contribution)
-		
+
 		# Base taxable value
 		if self.owned_by == "Company":
 			# Company-owned: rental value is taxable
@@ -44,10 +44,10 @@ class HousingBenefit(Document):
 		else:
 			# Third party: full rental value
 			base_taxable = monthly_rental
-		
+
 		# Add utilities if provided free
 		self.monthly_taxable_value = base_taxable + electricity + water
-		
+
 		# Set calculation method for transparency
 		self.calculation_method = (
 			f"Rental Value: R{monthly_rental:,.2f}\n"
@@ -56,7 +56,7 @@ class HousingBenefit(Document):
 			f"Water: R{water:,.2f}\n"
 			f"Total Monthly Taxable Value: R{self.monthly_taxable_value:,.2f}"
 		)
-		
+
 		return self.monthly_taxable_value
 
 
@@ -64,10 +64,10 @@ class HousingBenefit(Document):
 def get_housing_tax_rate(owned_by):
 	"""
 	Get housing benefit tax rate based on ownership.
-	
+
 	Args:
 		owned_by: "Company" or "Third Party"
-		
+
 	Returns:
 		dict: Tax treatment information
 	"""

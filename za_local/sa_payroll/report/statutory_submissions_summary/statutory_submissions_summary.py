@@ -3,6 +3,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
 	columns = get_columns()
 	data = get_data(filters)
@@ -31,7 +32,7 @@ def get_data(filters):
 		GROUP BY sd.salary_component
 		ORDER BY sd.salary_component
 	"""
-	
+
 	return frappe.db.sql(query, filters, as_dict=1)
 
 def get_chart_data(data):

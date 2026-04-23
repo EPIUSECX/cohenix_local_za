@@ -1,10 +1,11 @@
 import frappe
 from frappe.model.document import Document
 
+
 class COIDASettings(Document):
     def validate(self):
         self.validate_industry_rates()
-    
+
     def validate_industry_rates(self):
         """Ensure industry rates are valid percentages"""
         for rate in self.industry_rates:

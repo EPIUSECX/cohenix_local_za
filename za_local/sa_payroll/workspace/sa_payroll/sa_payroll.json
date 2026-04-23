@@ -6,7 +6,7 @@
    "label": "Outgoing Salary"
   }
  ],
- "content": "[{\"id\": \"sa-pay-ch\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Outgoing Salary\", \"col\": 12}}, {\"id\": \"sa-pay-sp\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sa-pay-h\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"sa-pay-p\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">South Africa: EMP201/501, rebates, and statutory reports together with standard payroll operations.</span>\", \"col\": 12}}, {\"id\": \"sa-pay-c1\", \"type\": \"card\", \"data\": {\"card_name\": \"Statutory\", \"col\": 4}}, {\"id\": \"sa-pay-c2\", \"type\": \"card\", \"data\": {\"card_name\": \"Masters\", \"col\": 4}}, {\"id\": \"sa-pay-c3\", \"type\": \"card\", \"data\": {\"card_name\": \"Payroll\", \"col\": 4}}, {\"id\": \"sa-pay-c4\", \"type\": \"card\", \"data\": {\"card_name\": \"Incentives\", \"col\": 4}}, {\"id\": \"sa-pay-c5\", \"type\": \"card\", \"data\": {\"card_name\": \"Accounting\", \"col\": 4}}, {\"id\": \"sa-pay-c6\", \"type\": \"card\", \"data\": {\"card_name\": \"Accounting Reports\", \"col\": 4}}, {\"id\": \"sa-pay-c7\", \"type\": \"card\", \"data\": {\"card_name\": \"Payroll Reports\", \"col\": 4}}, {\"id\": \"sa-pay-c8\", \"type\": \"card\", \"data\": {\"card_name\": \"Deduction Reports\", \"col\": 4}}]",
+ "content": "[{\"id\":\"sa-pay-ch\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Outgoing Salary\",\"col\":12}},{\"id\":\"sa-pay-sp\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"sa-pay-h\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"sa-pay-p\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"text-muted\\\">South Africa: EMP201/501, rebates, and statutory reports together with standard payroll operations.</span>\",\"col\":12}},{\"id\":\"sa-pay-c1\",\"type\":\"card\",\"data\":{\"card_name\":\"Statutory\",\"col\":4}},{\"id\":\"sa-pay-c2\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"sa-pay-c3\",\"type\":\"card\",\"data\":{\"card_name\":\"Payroll\",\"col\":4}},{\"id\":\"sa-pay-c4\",\"type\":\"card\",\"data\":{\"card_name\":\"Incentives\",\"col\":4}},{\"id\":\"sa-pay-c5\",\"type\":\"card\",\"data\":{\"card_name\":\"Accounting\",\"col\":4}},{\"id\":\"sa-pay-c6\",\"type\":\"card\",\"data\":{\"card_name\":\"Accounting Reports\",\"col\":4}},{\"id\":\"sa-pay-c7\",\"type\":\"card\",\"data\":{\"card_name\":\"Payroll Reports\",\"col\":4}},{\"id\":\"sa-pay-c8\",\"type\":\"card\",\"data\":{\"card_name\":\"Deduction Reports\",\"col\":4}}]",
  "creation": "2026-03-12 12:47:22.452546",
  "custom_blocks": [],
  "docstatus": 0,
@@ -23,66 +23,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Statutory",
-   "link_count": 5,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "ZA Local Setup",
-   "link_count": 0,
-   "link_to": "ZA Local Setup",
-   "link_type": "DocType",
-   "onboard": 1,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "EMP201 Submission",
-   "link_count": 0,
-   "link_to": "EMP201 Submission",
-   "link_type": "DocType",
-   "onboard": 1,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "EMP501 Reconciliation",
-   "link_count": 0,
-   "link_to": "EMP501 Reconciliation",
-   "link_type": "DocType",
-   "onboard": 1,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Tax Rebates and Medical Tax Credit",
-   "link_count": 0,
-   "link_to": "Tax Rebates and Medical Tax Credit",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Retirement Fund",
-   "link_count": 0,
-   "link_to": "Retirement Fund",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "Masters",
    "link_count": 5,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -141,6 +84,7 @@
    "is_query_report": 0,
    "label": "Incentives",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -179,6 +123,7 @@
    "is_query_report": 0,
    "label": "Payroll Reports",
    "link_count": 9,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -277,6 +222,7 @@
    "is_query_report": 0,
    "label": "Deduction Reports",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -315,6 +261,7 @@
    "is_query_report": 0,
    "label": "Accounting",
    "link_count": 7,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -393,6 +340,7 @@
    "is_query_report": 0,
    "label": "Accounting Reports",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -431,6 +379,7 @@
    "is_query_report": 0,
    "label": "Payroll",
    "link_count": 6,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -493,9 +442,78 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Statutory",
+   "link_count": 6,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "ZA Local Setup",
+   "link_count": 0,
+   "link_to": "ZA Local Setup",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "EMP201 Submission",
+   "link_count": 0,
+   "link_to": "EMP201 Submission",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "EMP501 Reconciliation",
+   "link_count": 0,
+   "link_to": "EMP501 Reconciliation",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tax Rebates and Medical Tax Credit",
+   "link_count": 0,
+   "link_to": "Tax Rebates and Medical Tax Credit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retirement Fund",
+   "link_count": 0,
+   "link_to": "Retirement Fund",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "IRP5 Certificate",
+   "link_count": 0,
+   "link_to": "IRP5 Certificate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-04-01 12:00:00.000000",
+ "modified": "2026-04-23 11:47:44.238656",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "SA Payroll",

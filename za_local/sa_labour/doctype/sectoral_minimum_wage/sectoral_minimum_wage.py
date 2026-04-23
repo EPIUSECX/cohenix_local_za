@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, flt, today, add_months, date_diff
+from frappe.utils import add_months, date_diff, flt, getdate, today
 
 
 class SectoralMinimumWage(Document):

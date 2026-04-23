@@ -6,15 +6,17 @@ for the South African localization app.
 """
 
 import copy
-import frappe
 import json
+from pathlib import Path
+
+import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.utils.fixtures import import_fixtures
+
 from za_local.sa_setup.custom_fields import setup_custom_fields
 from za_local.sa_setup.monkey_patches import setup_all_monkey_patches
 from za_local.sa_setup.property_setters import apply_property_setters
 from za_local.utils.hrms_detection import is_hrms_installed
-
 
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
@@ -35,7 +37,7 @@ def sync_za_local():
 def before_install():
 	"""
 	Run before app installation.
-	
+
 	Creates essential DocTypes that are required before the app is fully installed:
 	- Company Contribution (child table for Salary Structure) - only if HRMS is installed
 	"""
@@ -123,7 +125,7 @@ def set_accounts_settings_for_za_vat():
 		settings.add_taxes_from_item_tax_template = 0
 		settings.flags.ignore_permissions = True
 		settings.save()
-	except Exception as e:
+	except Exception:
 		frappe.log_error(
 			message=frappe.get_traceback(),
 			title="ZA Local: Set Accounts Settings for VAT",
@@ -133,34 +135,34 @@ def set_accounts_settings_for_za_vat():
 def cleanup_invalid_doctype_links():
 	"""
 	Remove invalid DocType Links from the database.
-	
+
 	These links may exist from previous installations and cause
 	validation errors when creating property setters.
 	"""
 	print("\nCleaning up invalid DocType Links...")
-	
+
 	# List of invalid links to remove: (parent_doctype, link_doctype, link_fieldname)
 	invalid_links = [
 		("Payroll Entry", "EMP201 Submission", "payroll_entry"),
 	]
-	
+
 	for parent_dt, link_dt, link_field in invalid_links:
 		# Find and delete invalid links
 		links_to_delete = frappe.db.sql("""
-			SELECT name 
-			FROM `tabDocType Link` 
-			WHERE parent = %s 
-				AND link_doctype = %s 
+			SELECT name
+			FROM `tabDocType Link`
+			WHERE parent = %s
+				AND link_doctype = %s
 				AND link_fieldname = %s
 		""", (parent_dt, link_dt, link_field), as_dict=1)
-		
+
 		for link in links_to_delete:
 			try:
 				frappe.delete_doc("DocType Link", link.name, force=True, ignore_permissions=True)
 				print(f"  ✓ Removed invalid link: {parent_dt} → {link_dt}.{link_field}")
 			except Exception as e:
 				print(f"  ! Error removing link {link.name}: {e}")
-	
+
 		frappe.db.commit()
 		print("  ✓ Invalid DocType Links cleaned up\n")
 
@@ -325,7 +327,7 @@ def sync_sa_workspaces():
 			return
 
 		try:
-			with open(json_path, "r") as f:
+			with open(json_path) as f:
 				data = json.load(f)
 		except Exception as e:
 			print(f"  ! Could not read workspace definition {json_path}: {e}")
@@ -967,13 +969,13 @@ def before_migrate():
 def ensure_modules_visible():
 	"""
 	Ensure all za_local modules are visible in the sidebar navigation.
-	
+
 	In Frappe, modules appear in the sidebar if they have DocTypes assigned
 	and the modules are properly configured. This function ensures all
 	za_local modules are set up correctly.
 	"""
 	print("\nEnsuring za_local modules are visible...")
-	
+
 	# List of za_local modules from modules.txt
 	za_local_modules = [
 		"SA Localisation",
@@ -983,38 +985,38 @@ def ensure_modules_visible():
 		"SA Labour",
 		"SA COIDA",
 	]
-	
+
 	for module_name in za_local_modules:
 		# Check if module exists
 		if not frappe.db.exists("Module Def", module_name):
 			print(f"  ⊙ Module '{module_name}' does not exist (will be created by Frappe)")
 			continue
-		
+
 		try:
 			module_doc = frappe.get_doc("Module Def", module_name)
-			
+
 			# Ensure module is properly configured
 			if module_doc.app_name != "za_local":
 				module_doc.app_name = "za_local"
 				module_doc.save(ignore_permissions=True)
 				print(f"  ✓ Updated module '{module_name}' app_name to 'za_local'")
-			
+
 			# Ensure module is not custom (app modules should have custom=0)
 			if module_doc.custom != 0:
 				module_doc.custom = 0
 				module_doc.save(ignore_permissions=True)
 				print(f"  ✓ Updated module '{module_name}' to non-custom")
-			
+
 			# Check if module has DocTypes
 			doctype_count = frappe.db.count("DocType", {"module": module_name})
 			if doctype_count > 0:
 				print(f"  ✓ Module '{module_name}' has {doctype_count} DocType(s)")
 			else:
 				print(f"  ⚠ Module '{module_name}' has no DocTypes (may not appear in sidebar)")
-		
+
 		except Exception as e:
 			print(f"  ! Could not check/update module '{module_name}': {e}")
-	
+
 	frappe.db.commit()
 	print("  ✓ Module visibility check complete\n")
 
@@ -1022,27 +1024,27 @@ def ensure_modules_visible():
 def create_company_contribution_doctype():
 	"""
 	Create Company Contribution DocType if it doesn't exist.
-	
+
 	This is a child table used in Salary Structure for company contributions
 	like UIF employer portion, SDL, COIDA, etc.
-	
+
 	Note: Only creates if HRMS is installed, as it's used by Salary Structure.
 	"""
 	if not is_hrms_installed():
 		print("  ⊙ Skipping Company Contribution DocType (HRMS not installed)")
 		return
-	
+
 	if frappe.db.exists("DocType", "Company Contribution"):
 		print("Company Contribution DocType already exists")
 		return
-	
+
 	print("Creating Company Contribution DocType...")
-	
+
 	# Determine module - use Payroll if available, otherwise SA Payroll
 	module_name = "Payroll"  # HRMS module
 	if not frappe.db.exists("Module Def", "Payroll"):
 		module_name = "SA Payroll"  # Fallback to our module
-	
+
 	doc = frappe.get_doc({
 		"doctype": "DocType",
 		"name": "Company Contribution",
@@ -1124,7 +1126,7 @@ def create_company_contribution_doctype():
 			}
 		]
 	})
-	
+
 	doc.insert(ignore_permissions=True)
 	frappe.db.commit()
 	print("✓ Company Contribution DocType created successfully")
@@ -1133,18 +1135,18 @@ def create_company_contribution_doctype():
 def setup_default_data():
 	"""
 	Set up default data required for South African localization.
-	
+
 	Creates:
 	- Default ETI Slabs
 	- Default Tax Rebates
 	- Default Medical Tax Credit Rates
 	"""
 	print("Setting up default data...")
-	
+
 	# ETI Slabs will be created when the ETI Slab doctype is migrated
 	# Tax Rebates will be created when the Tax Rebates doctype is migrated
 	# For now, we just print a message
-	
+
 	print("✓ Default data setup complete")
 	print("  Note: Configure ETI Slabs, Tax Rebates, and other settings manually")
 
@@ -1152,7 +1154,7 @@ def setup_default_data():
 def create_salary_component_if_not_exists(component_data):
 	"""
 	Helper function to create a salary component if it doesn't exist.
-	
+
 	Args:
 		component_data (dict): Salary component configuration
 	"""
@@ -1170,7 +1172,7 @@ def create_salary_component_if_not_exists(component_data):
 def setup_default_salary_components():
 	"""
 	Create default South African salary components.
-	
+
 	Creates components for:
 	- PAYE
 	- UIF Employee Contribution
@@ -1215,7 +1217,7 @@ def setup_default_salary_components():
 			"amount_based_on_formula": 1
 		}
 	]
-	
+
 	for component in components:
 		create_salary_component_if_not_exists(component)
 
@@ -1299,14 +1301,14 @@ def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict
 def import_master_data():
 	"""
 	Import master data from CSV files.
-	
+
 	Loads predefined data for:
 	- Business Trip Regions (SA cities and international rates)
 	- SETA list
 	- Bargaining Councils
 	"""
 	print("Importing master data...")
-	
+
 	try:
 		from za_local.utils.csv_importer import import_all_master_data
 		import_all_master_data()
@@ -1322,7 +1324,7 @@ def setup_default_retirement_funds():
 		{"fund_name": "Company Provident Fund", "fund_type": "Provident"},
 		{"fund_name": "Retirement Annuity", "fund_type": "Retirement Annuity"},
 	]
-	
+
 	for fund in retirement_funds:
 		if not frappe.db.exists("Retirement Fund", {"fund_name": fund["fund_name"]}):
 			try:
@@ -1337,7 +1339,7 @@ def setup_default_retirement_funds():
 				doc.insert(ignore_permissions=True)
 			except Exception as e:
 				print(f"! Could not create retirement fund {fund['fund_name']}: {e}")
-	
+
 	print("✓ Default retirement funds created")
 
 
@@ -1345,44 +1347,44 @@ def run_za_local_setup(setup_doc):
 	"""
 	Execute za_local setup based on user selections.
 	Called from ZA Local Setup DocType when user completes the setup wizard.
-	
+
 	Args:
 		setup_doc: ZA Local Setup document instance
 	"""
 	import json
 	from pathlib import Path
-	
+
 	setup_doc.setup_status = "In Progress"
 	setup_doc.save()
 	frappe.db.commit()
-	
+
 	try:
 		data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
-		
+
 		# Load salary components
 		if setup_doc.load_salary_components:
 			load_data_from_json(data_dir / "salary_components.json")
 			print("✓ Loaded statutory salary components")
-		
+
 		if setup_doc.load_earnings_components:
 			load_data_from_json(data_dir / "earnings_components.json")
 			print("✓ Loaded earnings components")
-		
+
 		# Load tax configuration
 		if setup_doc.load_tax_slabs:
 			load_data_from_json(data_dir / "tax_slabs_2025.json")  # 2024-2025 (2025 tax year)
 			print("✓ Loaded 2024-2025 tax slabs")
-		
+
 		if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
 			load_data_from_json(data_dir / "tax_rebates_2025.json")  # 2024-2025 (2025 tax year)
 			print("✓ Loaded tax rebates and medical tax credits")
-		
+
 		# Load master data
 		if setup_doc.load_business_trip_regions:
 			from za_local.utils.csv_importer import import_csv_data
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
 			print("✓ Loaded business trip regions")
-		
+
 		# Load Chart of Accounts
 		if setup_doc.load_chart_of_accounts and setup_doc.company:
 			print("Loading South African Chart of Accounts...")
@@ -1393,22 +1395,22 @@ def run_za_local_setup(setup_doc):
 			except Exception as e:
 				print(f"  ! Warning: Could not load Chart of Accounts: {e}")
 				print("  Note: Chart of Accounts can be loaded manually later")
-				frappe.log_error(f"Chart of Accounts loading failed: {str(e)}", "ZA Local Setup")
+				frappe.log_error(f"Chart of Accounts loading failed: {e!s}", "ZA Local Setup")
 
 		# Mark as completed
 		setup_doc.setup_status = "Completed"
 		setup_doc.setup_completed_on = frappe.utils.now()
 		setup_doc.save()
 		frappe.db.commit()
-		
+
 		frappe.msgprint("✅ South African localization setup completed successfully!")
-		
+
 	except Exception as e:
 		setup_doc.setup_status = "Pending"
 		setup_doc.save()
 		frappe.db.commit()
-		frappe.log_error(f"Setup failed: {str(e)}", "ZA Local Setup")
-		frappe.throw(f"Setup failed: {str(e)}")
+		frappe.log_error(f"Setup failed: {e!s}", "ZA Local Setup")
+		frappe.throw(f"Setup failed: {e!s}")
 
 
 @frappe.whitelist()
@@ -1420,8 +1422,8 @@ def refresh_sa_tax_tables():
 	Can be run via bench:
 	  bench --site <site> execute za_local.sa_setup.install.refresh_sa_tax_tables
 	"""
-	from pathlib import Path
 	import json
+	from pathlib import Path
 
 	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
 	fixture_files = [
@@ -1453,7 +1455,7 @@ def refresh_sa_tax_tables():
 			else:
 				# Best-effort pre-delete so fixture values overwrite existing ones for non-Single doctypes
 				try:
-					with open(file_path, "r") as f:
+					with open(file_path) as f:
 						raw = json.load(f)
 
 					records: list[dict] = []
@@ -1489,7 +1491,7 @@ def refresh_sa_tax_tables():
 def _merge_tax_rebates_from_file(file_path: Path) -> None:
 	"""Merge a tax_rebates_*.json fixture into the Single DocType without discarding other years."""
 	try:
-		with open(file_path, "r") as f:
+		with open(file_path) as f:
 			data = json.load(f)
 	except Exception as e:
 		print(f"  ! Could not read {file_path.name}: {e}")
@@ -1538,15 +1540,15 @@ def _merge_tax_rebates_from_file(file_path: Path) -> None:
 def load_data_from_json(file_path):
 	"""
 	Load data from JSON file and insert into database.
-	
+
 	Args:
 		file_path: Path to JSON file
 	"""
 	import json
-	
-	with open(file_path, "r") as f:
+
+	with open(file_path) as f:
 		data = json.load(f)
-	
+
 	# Handle different JSON formats
 	if isinstance(data, dict):
 		# Check if it's a single record (has "doctype" key)
@@ -1565,7 +1567,7 @@ def load_data_from_json(file_path):
 		# List of records
 		for record in data:
 			insert_record(record)
-	
+
 	# Commit after loading all records from this file
 	frappe.db.commit()
 
@@ -1575,36 +1577,36 @@ def insert_record(record):
 	Insert a single record, skip if exists.
 	Handles both regular DocTypes and Single DocTypes.
 	Also handles child tables (like Holiday List with holidays).
-	
+
 	Args:
 		record: Dict with doctype and field values
 	"""
 	doctype = record.get("doctype")
-	
+
 	# Determine the name field - different DocTypes use different name fields
 	# Standard: "name"
-	# Salary Component: "salary_component" 
+	# Salary Component: "salary_component"
 	# Holiday List: "holiday_list_name"
-	name = (record.get("name") or 
-	        record.get("salary_component") or 
+	name = (record.get("name") or
+	        record.get("salary_component") or
 	        record.get("holiday_list_name"))
-	
+
 	# Check if it's a Single DocType
 	meta = frappe.get_meta(doctype)
 	is_single = meta.issingle
-	
+
 	# Handle company field - set to first company if empty
 	if "company" in record and not record.get("company"):
 		companies = frappe.get_all("Company", limit=1)
 		if companies:
 			record["company"] = companies[0].name
-	
+
 	try:
 		# Suppress validation warnings during setup (e.g., "Accounts not set")
 		# These are expected and users will configure accounts later
 		_message_log = frappe.local.message_log
 		frappe.local.message_log = []
-		
+
 		if is_single:
 			# For Single DocTypes, always update (don't check exists)
 			doc = frappe.get_single(doctype)
@@ -1624,7 +1626,7 @@ def insert_record(record):
 			else:
 				# If no name field, check if we should create anyway
 				exists = False
-			
+
 			if not exists:
 				# Create the document
 				# frappe.get_doc() automatically handles child tables when you pass them in the record dict
@@ -1632,7 +1634,7 @@ def insert_record(record):
 				# Each item in the "holidays" array becomes a row in the Holiday child table
 				doc = frappe.get_doc(record)
 				doc.insert(ignore_permissions=True, ignore_mandatory=True)
-				
+
 				created_name = name or doc.name
 				print(f"  ✓ Created {doctype}: {created_name}")
 
@@ -1643,7 +1645,7 @@ def insert_record(record):
 						print(f"    → Submitted {doctype}: {created_name}")
 				except Exception as submit_err:
 					print(f"    ! Warning: Could not submit {doctype} {created_name}: {submit_err}")
-				
+
 				# For Holiday List, verify holidays were saved
 				if doctype == "Holiday List":
 					# Reload document to get latest state from database
@@ -1656,25 +1658,25 @@ def insert_record(record):
 						holiday_count_from_record = len(record.get("holidays", []))
 						if holiday_count_from_record > 0:
 							print(f"    ! Warning: {holiday_count_from_record} holidays in record but not saved.")
-							print(f"    ! This may indicate a child table field name mismatch or HRMS not fully installed.")
+							print("    ! This may indicate a child table field name mismatch or HRMS not fully installed.")
 						else:
-							print(f"    ! Warning: No holidays found in record")
+							print("    ! Warning: No holidays found in record")
 			else:
 				print(f"  ⊙ Skipped {doctype}: {name} (already exists)")
-		
+
 		# Restore message log
 		frappe.local.message_log = _message_log
 	except Exception as e:
 		# Restore message log even on error
 		frappe.local.message_log = _message_log
 		print(f"  ✗ Error with {doctype} {name or 'unknown'}: {e}")
-		
+
 		# For Holiday List, provide more specific error information
 		if doctype == "Holiday List":
-			print(f"    ! Holiday List creation failed. Check:")
-			print(f"      - Is HRMS installed? (Holiday List is an HRMS DocType)")
-			print(f"      - Does the record have 'holidays' child table array?")
-			print(f"      - Are holiday items properly formatted with 'holiday_date' and 'description'?")
-		
+			print("    ! Holiday List creation failed. Check:")
+			print("      - Is HRMS installed? (Holiday List is an HRMS DocType)")
+			print("      - Does the record have 'holidays' child table array?")
+			print("      - Are holiday items properly formatted with 'holiday_date' and 'description'?")
+
 		import traceback
 		traceback.print_exc()

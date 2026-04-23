@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, flt, today, add_months
+from frappe.utils import add_months, flt, getdate, today
 
 
 class TravelAllowanceRate(Document):
@@ -15,7 +15,7 @@ class TravelAllowanceRate(Document):
 	def get_current_rate(self):
 		"""TODO: Implement get_current_rate"""
 		pass
-	
+
 	def validate_effective_date(self):
 		"""TODO: Implement validate_effective_date"""
 		pass

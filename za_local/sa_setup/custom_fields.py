@@ -13,8 +13,8 @@ Property setters are centralized in `sa_setup/property_setters.py` and applied b
 import json
 
 import frappe
-from za_local.utils.hrms_detection import is_hrms_installed
 
+from za_local.utils.hrms_detection import is_hrms_installed
 
 # ---------------------------------------------------------------------------
 # Section 1: Custom Field fixtures (source of truth; applied by _apply_custom_field_fixtures)

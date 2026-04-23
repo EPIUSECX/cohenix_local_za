@@ -5,16 +5,17 @@ Interactive wizard to configure za_local app for first-time use.
 Integrates with ERPNext setup wizard via after_wizard_complete hook.
 """
 
+import json
+
 import frappe
 from frappe import _
-from frappe.utils import today, getdate
-import json
+from frappe.utils import getdate, today
 
 
 def run_sa_compliance_wizard(company=None):
     """
     Run the complete SA compliance setup wizard
-    
+
     Steps:
     1. Company registration details (PAYE, UIF, SDL, COIDA, VAT numbers)
     2. Leave types setup
@@ -26,16 +27,16 @@ def run_sa_compliance_wizard(company=None):
     """
     if not company:
         company = frappe.defaults.get_user_default("Company")
-        
+
     if not company:
         frappe.throw(_("Please select a company first"))
-    
+
     print("\n" + "="*80)
     print(f"Starting SA Compliance Setup Wizard for: {company}")
     print("="*80 + "\n")
-    
+
     steps_completed = []
-    
+
     # Step 1: Company Details
     try:
         setup_company_statutory_details(company)
@@ -43,7 +44,7 @@ def run_sa_compliance_wizard(company=None):
         print("✓ Step 1: Company statutory details configured")
     except Exception as e:
         print(f"✗ Step 1 failed: {e}")
-    
+
     # Step 2: Leave Types
     try:
         from za_local.sa_setup.leave_types import setup_sa_leave_types
@@ -52,7 +53,7 @@ def run_sa_compliance_wizard(company=None):
         print("✓ Step 2: BCEA leave types created")
     except Exception as e:
         print(f"✗ Step 2 failed: {e}")
-    
+
     # Step 3: Salary Components
     try:
         setup_sa_salary_components()
@@ -60,7 +61,7 @@ def run_sa_compliance_wizard(company=None):
         print("✓ Step 3: SA salary components created")
     except Exception as e:
         print(f"✗ Step 3 failed: {e}")
-    
+
     # Step 4: Tax Slabs
     try:
         setup_current_year_tax_slabs()
@@ -68,7 +69,7 @@ def run_sa_compliance_wizard(company=None):
         print("✓ Step 4: Current year tax slabs loaded")
     except Exception as e:
         print(f"✗ Step 4 failed: {e}")
-    
+
     # Step 5: Public Holidays
     try:
         from za_local.sa_setup.leave_types import setup_public_holidays
@@ -77,7 +78,7 @@ def run_sa_compliance_wizard(company=None):
         print("✓ Step 5: SA public holidays generated")
     except Exception as e:
         print(f"✗ Step 5 failed: {e}")
-    
+
     # Step 6: ETI Slabs
     try:
         setup_eti_slabs()
@@ -85,7 +86,7 @@ def run_sa_compliance_wizard(company=None):
         print("✓ Step 6: ETI slabs configured")
     except Exception as e:
         print(f"✗ Step 6 failed: {e}")
-    
+
     # Step 7: Default Retirement Funds
     try:
         from za_local.sa_setup.install import setup_default_retirement_funds
@@ -94,7 +95,7 @@ def run_sa_compliance_wizard(company=None):
         print("✓ Step 7: Default retirement funds created")
     except Exception as e:
         print(f"✗ Step 7 failed: {e}")
-    
+
     print("\n" + "="*80)
     print("Setup Wizard Completed!")
     print("="*80)
@@ -102,7 +103,7 @@ def run_sa_compliance_wizard(company=None):
     for step in steps_completed:
         print(f"  ✓ {step}")
     print("\n" + "="*80)
-    
+
     return {
         "status": "success" if len(steps_completed) >= 6 else "partial",
         "steps_completed": steps_completed,
@@ -121,7 +122,7 @@ def setup_company_statutory_details(company):
 
 def setup_sa_salary_components():
     """Create baseline SA salary components.
-    
+
     UIF and SDL contribution components are provisioned via fixtures
     (salary_components.json) as UIF Employee/Employer Contribution and
     SDL Contribution; we no longer create separate 'UIF'/'SDL' deduction
@@ -150,7 +151,7 @@ def setup_sa_salary_components():
             "description": "Employment Tax Incentive (employer benefit)"
         }
     ]
-    
+
     for comp in components:
         if not frappe.db.exists("Salary Component", comp["salary_component"]):
             try:
@@ -173,11 +174,11 @@ def setup_current_year_tax_slabs():
             "data",
             "tax_slabs_2025.json"  # 2024-2025 (2025 tax year)
         )
-        
+
         if os.path.exists(fixture_path):
-            with open(fixture_path, 'r') as f:
+            with open(fixture_path) as f:
                 data = json.load(f)
-                
+
             # Import tax slabs if Tax Slab DocType exists
             if "Tax Slab" in data:
                 for slab in data["Tax Slab"]:
@@ -187,7 +188,7 @@ def setup_current_year_tax_slabs():
                         print(f"  → Tax slab: {slab['name']} ({slab['rate_of_tax']}%)")
         else:
             print(f"  ! Fixture file not found: {fixture_path}")
-            
+
     except Exception as e:
         print(f"  ! Error loading tax slabs: {e}")
 
@@ -206,13 +207,13 @@ def setup_eti_slabs():
 def get_wizard_status(company=None):
     """
     Check which setup steps have been completed
-    
+
     Returns:
         dict: Status of each setup step
     """
     if not company:
         company = frappe.defaults.get_user_default("Company")
-    
+
     status = {
         "company_details": False,
         "leave_types": False,
@@ -222,22 +223,22 @@ def get_wizard_status(company=None):
         "eti_configured": False,
         "retirement_funds": False
     }
-    
+
     # Check each step
     try:
         # Company details
         comp_doc = frappe.get_doc("Company", company)
         if comp_doc.get("za_paye_registration_number") or comp_doc.get("za_uif_reference_number"):
             status["company_details"] = True
-        
+
         # Leave types
         if frappe.db.exists("Leave Type", "Annual Leave (SA)"):
             status["leave_types"] = True
-        
+
         # Salary components
         if frappe.db.exists("Salary Component", "PAYE") and frappe.db.exists("Salary Component", "UIF"):
             status["salary_components"] = True
-        
+
         # Public holidays (check for Holiday List records)
         current_year = getdate(today()).year
         # Check if any Holiday List exists with holidays in current year
@@ -259,23 +260,23 @@ def get_wizard_status(company=None):
                 if holidays:
                     status["public_holidays"] = True
                     break
-        
+
         # Retirement funds
         if frappe.db.count("Retirement Fund") > 0:
             status["retirement_funds"] = True
-            
+
     except Exception as e:
         frappe.log_error(f"Error checking wizard status: {e}")
-    
+
     return status
 
 
 def setup_sa_print_formats():
 	"""Set SA-compliant print formats as site defaults for South-Africa-only sites."""
 	import frappe
-	
+
 	print("\n→ Setting up SA-compliant print formats...")
-	
+
 	# Map of DocType to SA Print Format
 	print_format_mapping = {
 		"Sales Invoice": "SA Sales Invoice",
@@ -286,7 +287,7 @@ def setup_sa_print_formats():
 		"Purchase Order": "SA Purchase Order",
 		"Payment Entry": "SA Payment Entry"
 	}
-	
+
 	for doctype, print_format in print_format_mapping.items():
 		try:
 			# Check if print format exists
@@ -296,7 +297,7 @@ def setup_sa_print_formats():
 				print(f"  ✓ Set {print_format} as default for {doctype}")
 		except Exception as e:
 			print(f"  ! Error setting print format for {doctype}: {e}")
-	
+
 	frappe.db.commit()
 	print("  ✓ SA print formats configured successfully")
 
@@ -304,19 +305,19 @@ def setup_sa_print_formats():
 def get_sa_localization_stages(args):
 	"""
 	Return za_local setup stage for the wizard.
-	
+
 	Returns a stage if:
 	- Country is South Africa, OR
 	- Country is not set yet (fresh install) and za_local is installed
-	
+
 	Called by Frappe's setup wizard via setup_wizard_stages hook.
 	"""
 	import frappe
 	from frappe import _
-	
+
 	# Get country from args
 	country = args.get("country")
-	
+
 	# Check if za_local is installed (if app is installed, we should show the wizard)
 	# This allows the wizard to run even if country isn't set yet during fresh install
 	za_local_installed = False
@@ -355,7 +356,7 @@ def get_sa_localization_stages(args):
 		]
 
 	return []
-	
+
 	# If country is set to something other than South Africa, don't add stage
 	return []
 
@@ -364,21 +365,23 @@ def setup_za_localization(args):
 	"""
 	Execute za_local setup during the wizard.
 	Loads salary components, tax slabs, and master data.
-	
+
 	Args:
 		args: Dictionary from setup wizard containing user selections
 	"""
+	from pathlib import Path
+
 	import frappe
 	from frappe import _
-	from za_local.sa_setup.install import load_data_from_json, insert_record
+
 	from za_local.accounts.setup_chart import load_sa_chart_of_accounts
-	from za_local.utils.hrms_detection import is_hrms_installed, require_hrms
+	from za_local.sa_setup.install import insert_record, load_data_from_json
 	from za_local.utils.csv_importer import import_csv_data
-	from pathlib import Path
-	
+	from za_local.utils.hrms_detection import is_hrms_installed, require_hrms
+
 	# Check if HRMS features are enabled
 	enable_hrms_payroll = args.get("za_enable_hrms_payroll", 0)
-	
+
 	# Validate HRMS requirement if enabled
 	if enable_hrms_payroll:
 		if not is_hrms_installed():
@@ -388,7 +391,7 @@ def setup_za_localization(args):
 				title=_("HRMS Required")
 			)
 		require_hrms("ZA HR/Payroll Localisation")
-	
+
 	# Get user selections from args (passed from JavaScript)
 	# HRMS-dependent features are only loaded if HRMS is enabled
 	if enable_hrms_payroll:
@@ -400,13 +403,13 @@ def setup_za_localization(args):
 		load_salary = 0
 		load_earnings = 0
 		load_holidays = 0
-	
+
 	# Non-HRMS features (always available)
 	load_tax_slabs = args.get("za_load_tax_slabs", 1)
 	load_tax_rebates = args.get("za_load_tax_rebates", 1)
 	load_medical = args.get("za_load_medical_credits", 1)
 	load_regions = args.get("za_load_business_trip_regions", 1)
-	
+
 	# Get company name from args (still used for other setup pieces and ZA chart augmentation)
 	# Wizard may pass company_name or company; fallback to default or first SA company
 	company = (
@@ -422,16 +425,16 @@ def setup_za_localization(args):
 			limit=1,
 		)
 		company = companies[0] if companies else None
-	
+
 	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
-	
+
 	try:
 		# Step 1: Setup SA print formats as default
 		try:
 			setup_sa_print_formats()
 		except Exception as e:
 			print(f"  ! Warning: Could not setup print formats: {e}")
-			frappe.log_error(f"Print formats setup failed: {str(e)}", "ZA Local Setup")
+			frappe.log_error(f"Print formats setup failed: {e!s}", "ZA Local Setup")
 
 		# Step 1.5: Ensure BCEA-compliant Leave Types exist (only if HRMS is enabled)
 		if enable_hrms_payroll:
@@ -441,10 +444,10 @@ def setup_za_localization(args):
 				setup_sa_leave_types()
 			except Exception as e:
 				print(f"  ! Warning: Could not load Leave Types: {e}")
-				frappe.log_error(f"Leave Types setup failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"Leave Types setup failed: {e!s}", "ZA Local Setup")
+
 		# Load in correct order (dependencies first)
-		
+
 		# 2. Load Payroll Periods first (required by Tax Rebates)
 		# Note: Payroll Periods are HRMS-dependent, but Tax Rebates can work without them
 		# For now, we'll skip Payroll Periods if HRMS is not enabled
@@ -457,7 +460,7 @@ def setup_za_localization(args):
 			except Exception as e:
 				print(f"  ! Warning: Could not load Payroll Periods: {e}")
 				print("  Note: Tax Rebates will work but may need manual Payroll Period configuration")
-		
+
 		# 3. Load Tax Rebates (depends on Payroll Period)
 		if load_tax_rebates or load_medical:
 			print("Loading Tax Rebates and Medical Credits...")
@@ -467,8 +470,8 @@ def setup_za_localization(args):
 				load_data_from_json(data_dir / "tax_rebates_2027.json")  # 2026-2027 (2027 tax year)
 			except Exception as e:
 				print(f"  ! Warning: Could not load Tax Rebates: {e}")
-				frappe.log_error(f"Tax Rebates loading failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"Tax Rebates loading failed: {e!s}", "ZA Local Setup")
+
 		# 4. Load Income Tax Slab
 		if load_tax_slabs:
 			print("Loading Income Tax Slab...")
@@ -478,8 +481,8 @@ def setup_za_localization(args):
 				load_data_from_json(data_dir / "tax_slabs_2027.json")  # 2026-2027 (2027 tax year)
 			except Exception as e:
 				print(f"  ! Warning: Could not load Tax Slabs: {e}")
-				frappe.log_error(f"Tax Slabs loading failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"Tax Slabs loading failed: {e!s}", "ZA Local Setup")
+
 		# 5. Load Salary Components
 		if load_salary:
 			print("Loading Salary Components...")
@@ -487,8 +490,8 @@ def setup_za_localization(args):
 				load_data_from_json(data_dir / "salary_components.json")
 			except Exception as e:
 				print(f"  ! Warning: Could not load Salary Components: {e}")
-				frappe.log_error(f"Salary Components loading failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"Salary Components loading failed: {e!s}", "ZA Local Setup")
+
 		# 6. Load Earnings Components
 		if load_earnings:
 			print("Loading Earnings Components...")
@@ -496,8 +499,8 @@ def setup_za_localization(args):
 				load_data_from_json(data_dir / "earnings_components.json")
 			except Exception as e:
 				print(f"  ! Warning: Could not load Earnings Components: {e}")
-				frappe.log_error(f"Earnings Components loading failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"Earnings Components loading failed: {e!s}", "ZA Local Setup")
+
 		# 7. Load Holiday Lists (match the years for which tax slabs are loaded)
 		# Note: Holiday List is an HRMS DocType, so only load if HRMS is enabled
 		if load_holidays:
@@ -516,8 +519,8 @@ def setup_za_localization(args):
 			except Exception as e:
 				print(f"  ! Error loading holiday lists: {e}")
 				print("  Note: Holiday lists can be created manually later in HR > Holiday List")
-				frappe.log_error(f"Holiday list loading failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"Holiday list loading failed: {e!s}", "ZA Local Setup")
+
 		# 8. Load Master Data (Business Trip Regions)
 		if load_regions:
 			print("Loading Business Trip Regions...")
@@ -525,8 +528,8 @@ def setup_za_localization(args):
 				import_csv_data("Business Trip Region", "business_trip_region.csv")
 			except Exception as e:
 				print(f"  ! Warning: Could not load Business Trip Regions: {e}")
-				frappe.log_error(f"Business Trip Regions loading failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"Business Trip Regions loading failed: {e!s}", "ZA Local Setup")
+
 		# 9. Augment Chart of Accounts with ZA-specific tax accounts
 		# This runs after ERPNext has already created the base chart in the main wizard,
 		# and only adds SA tax assets/liabilities (does not replace the chart).
@@ -540,15 +543,15 @@ def setup_za_localization(args):
 					print("  ⊙ ZA Chart of Accounts augmentation skipped (no existing accounts found)")
 			except Exception as e:
 				print(f"  ! Warning: Could not load ZA Chart of Accounts for {company}: {e}")
-				frappe.log_error(f"ZA Chart of Accounts loading failed: {str(e)}", "ZA Local Setup")
-		
+				frappe.log_error(f"ZA Chart of Accounts loading failed: {e!s}", "ZA Local Setup")
+
 		# Don't use msgprint in setup wizard - it can cause issues
 		# frappe.msgprint(_("South African localization configured successfully!"))
 		print("✓ South African localization configured successfully!")
-		
+
 	except Exception as e:
 		# Log the error but don't raise - allow setup wizard to continue
-		frappe.log_error(f"SA Localization setup failed: {str(e)}", "ZA Local Setup")
+		frappe.log_error(f"SA Localization setup failed: {e!s}", "ZA Local Setup")
 		print(f"✗ SA Localization setup encountered errors: {e}")
 		print("  Note: Some features may not be configured. Check error logs for details.")
 		# Don't raise - let setup wizard complete even if some steps failed

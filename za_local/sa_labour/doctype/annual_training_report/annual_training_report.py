@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, flt, today, add_months
+from frappe.utils import add_months, flt, getdate, today
 
 
 class AnnualTrainingReport(Document):
@@ -15,7 +15,7 @@ class AnnualTrainingReport(Document):
 	def generate_atr_report(self):
 		"""TODO: Implement generate_atr_report"""
 		pass
-	
+
 	def calculate_actual_spend(self):
 		"""TODO: Implement calculate_actual_spend"""
 		pass

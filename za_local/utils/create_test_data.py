@@ -15,9 +15,10 @@ Usage:
     bench execute za_local.utils.create_test_data.create_all_test_data
 """
 
-import frappe
-from frappe.utils import today, add_days, add_months, getdate
 from datetime import date
+
+import frappe
+from frappe.utils import add_days, add_months, getdate, today
 
 
 def create_all_test_data():
@@ -25,13 +26,13 @@ def create_all_test_data():
 	print("\n" + "="*80)
 	print("Creating Test Data for za_local")
 	print("="*80 + "\n")
-	
+
 	company = get_or_create_test_company()
 	employees = create_test_employees(company)
 	create_test_business_trips(employees)
 	create_test_tax_directives(employees)
 	create_test_skills_development(employees)
-	
+
 	print("\n" + "="*80)
 	print("✅ Test Data Created Successfully!")
 	print("="*80)
@@ -48,11 +49,11 @@ def create_all_test_data():
 def get_or_create_test_company():
 	"""Get or create test company with SA details"""
 	company_name = "Test Company (Pty) Ltd"
-	
+
 	if frappe.db.exists("Company", company_name):
 		print(f"✓ Test company already exists: {company_name}")
 		return company_name
-	
+
 	company = frappe.get_doc({
 		"doctype": "Company",
 		"company_name": company_name,
@@ -65,7 +66,7 @@ def get_or_create_test_company():
 		"za_seta": "Services SETA"
 	})
 	company.insert(ignore_permissions=True)
-	
+
 	print(f"✓ Created test company: {company_name}")
 	return company_name
 
@@ -73,7 +74,7 @@ def get_or_create_test_company():
 def create_test_employees(company):
 	"""Create test employees with SA compliance data"""
 	print("\nCreating test employees...")
-	
+
 	employees_data = [
 		{
 			"first_name": "Thabo",
@@ -150,16 +151,16 @@ def create_test_employees(company):
 			"designation": "HR Officer"
 		}
 	]
-	
+
 	created_employees = []
 	for emp_data in employees_data:
 		employee_id = f"{emp_data['first_name'][:2].upper()}{emp_data['last_name'][:3].upper()}"
-		
+
 		if frappe.db.exists("Employee", {"employee_name": f"{emp_data['first_name']} {emp_data['last_name']}"}):
 			print(f"  ✓ Employee already exists: {emp_data['first_name']} {emp_data['last_name']}")
 			created_employees.append(employee_id)
 			continue
-		
+
 		employee = frappe.get_doc({
 			"doctype": "Employee",
 			**emp_data,
@@ -168,9 +169,9 @@ def create_test_employees(company):
 		})
 		employee.insert(ignore_permissions=True)
 		created_employees.append(employee.name)
-		
+
 		print(f"  ✓ Created employee: {emp_data['first_name']} {emp_data['last_name']} ({employee.name})")
-	
+
 	return created_employees
 
 
@@ -178,14 +179,14 @@ def create_test_business_trips(employees):
 	"""Create sample business trips"""
 	if not employees:
 		return
-	
+
 	print("\nCreating test business trips...")
-	
+
 	# Only create if Business Trip Settings exists
 	if not frappe.db.exists("DocType", "Business Trip"):
 		print("  ! Business Trip DocType not found, skipping")
 		return
-	
+
 	# Create Business Trip Settings if not exists
 	if not frappe.db.exists("Business Trip Settings"):
 		settings = frappe.get_doc({
@@ -196,7 +197,7 @@ def create_test_business_trips(employees):
 		})
 		settings.insert(ignore_permissions=True)
 		print("  ✓ Created Business Trip Settings")
-	
+
 	# Create sample trip for first employee
 	trip = frappe.get_doc({
 		"doctype": "Business Trip",
@@ -207,7 +208,7 @@ def create_test_business_trips(employees):
 		"to_date": add_days(today(), -5),
 		"status": "Draft"
 	})
-	
+
 	# Add allowances
 	trip.append("allowances", {
 		"date": add_days(today(), -7),
@@ -216,7 +217,7 @@ def create_test_business_trips(employees):
 		"incidental_rate": 100,
 		"total": 1500
 	})
-	
+
 	# Add journey
 	trip.append("journeys", {
 		"date": add_days(today(), -7),
@@ -226,7 +227,7 @@ def create_test_business_trips(employees):
 		"receipt_amount": 2500,
 		"receipt_attached": 1
 	})
-	
+
 	trip.insert(ignore_permissions=True)
 	print(f"  ✓ Created business trip: {trip.name}")
 
@@ -235,14 +236,14 @@ def create_test_tax_directives(employees):
 	"""Create sample tax directives"""
 	if not employees or len(employees) < 2:
 		return
-	
+
 	print("\nCreating test tax directives...")
-	
+
 	# Only create if Tax Directive DocType exists
 	if not frappe.db.exists("DocType", "Tax Directive"):
 		print("  ! Tax Directive DocType not found, skipping")
 		return
-	
+
 	# Create tax directive for second employee (low PAYE rate)
 	directive = frappe.get_doc({
 		"doctype": "Tax Directive",
@@ -262,14 +263,14 @@ def create_test_skills_development(employees):
 	"""Create sample skills development records"""
 	if not employees:
 		return
-	
+
 	print("\nCreating test skills development records...")
-	
+
 	# Only create if Skills Development Record DocType exists
 	if not frappe.db.exists("DocType", "Skills Development Record"):
 		print("  ! Skills Development Record DocType not found, skipping")
 		return
-	
+
 	for employee in employees[:2]:  # First 2 employees
 		record = frappe.get_doc({
 			"doctype": "Skills Development Record",
@@ -283,7 +284,7 @@ def create_test_skills_development(employees):
 			"completion_status": "Completed"
 		})
 		record.insert(ignore_permissions=True)
-	
+
 	print(f"  ✓ Created {2} skills development records")
 
 
@@ -293,20 +294,20 @@ def clear_test_data():
 	print("\n" + "="*80)
 	print("Clearing Test Data")
 	print("="*80 + "\n")
-	
+
 	company_name = "Test Company (Pty) Ltd"
-	
+
 	if frappe.db.exists("Company", company_name):
 		# Delete employees
 		employees = frappe.get_all("Employee", filters={"company": company_name}, pluck="name")
 		for emp in employees:
 			frappe.delete_doc("Employee", emp, force=1)
 		print(f"✓ Deleted {len(employees)} test employees")
-		
+
 		# Delete company
 		frappe.delete_doc("Company", company_name, force=1)
-		print(f"✓ Deleted test company")
-	
+		print("✓ Deleted test company")
+
 	print("\n" + "="*80)
 	print("✅ Test Data Cleared")
 	print("="*80 + "\n")

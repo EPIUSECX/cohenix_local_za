@@ -3,6 +3,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
@@ -20,9 +21,9 @@ def get_columns():
 
 def get_data(filters):
     company = filters.get("company")
-    
+
     query = """
-        SELECT 
+        SELECT
             e.za_occupational_level as occupational_level,
             e.za_race as race,
             e.gender,
@@ -38,5 +39,5 @@ def get_data(filters):
         GROUP BY e.za_occupational_level, e.za_race, e.gender
         ORDER BY e.za_occupational_level, e.za_race, e.gender
     """
-    
+
     return frappe.db.sql(query, {"company": company}, as_dict=1)

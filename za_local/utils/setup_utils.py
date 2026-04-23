@@ -9,10 +9,10 @@ These are separated from setup modules to follow Frappe best practices.
 def get_property_type(value):
     """
     Get the property type based on value type for Frappe property setters.
-    
+
     Args:
         value: The value to determine property type for
-        
+
     Returns:
         str: Property type ("Check", "Code", or "Data")
     """

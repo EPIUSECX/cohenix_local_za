@@ -63,7 +63,7 @@ class SouthAfricaVATSettings(Document):
         # If no explicit default_vat_report_company, fall back to selected company
         if self.company and not self.default_vat_report_company:
             self.default_vat_report_company = self.company
-        
+
     def validate_vat_rates(self):
         """Validate VAT rates"""
         # If no rates captured yet, pre-populate sensible defaults so the user
@@ -105,7 +105,7 @@ class SouthAfricaVATSettings(Document):
                 # Ensure standard rate matches the main setting
                 if rate.rate != self.standard_vat_rate:
                     rate.rate = self.standard_vat_rate
-                    
+
         if not standard_rate_exists and self.vat_rates:
             # Add standard rate if not present
             self.append("vat_rates", {
@@ -114,14 +114,14 @@ class SouthAfricaVATSettings(Document):
                 "is_standard_rate": 1,
                 "description": "Standard VAT rate for South Africa"
             })
-            
+
         # Check for zero rate if enabled
         if self.enable_zero_rated_items:
             zero_rate_exists = False
             for rate in self.vat_rates:
                 if rate.rate == 0 and rate.is_zero_rated:
                     zero_rate_exists = True
-                    
+
             if not zero_rate_exists:
                 # Add zero rate if not present
                 self.append("vat_rates", {
@@ -131,14 +131,14 @@ class SouthAfricaVATSettings(Document):
                     "is_exempt": 0,
                     "description": "Zero-rated items (0% VAT)"
                 })
-                
+
         # Check for exempt rate if enabled
         if self.enable_exempt_items:
             exempt_rate_exists = False
             for rate in self.vat_rates:
                 if rate.is_exempt:
                     exempt_rate_exists = True
-                    
+
             if not exempt_rate_exists:
                 # Add exempt rate if not present
                 self.append("vat_rates", {
@@ -148,12 +148,12 @@ class SouthAfricaVATSettings(Document):
                     "is_exempt": 1,
                     "description": "VAT exempt items"
                 })
-                
+
     def validate_vat_accounts(self):
         """Validate VAT accounts"""
         if self.input_vat_account == self.output_vat_account:
             frappe.throw("Input VAT Account and Output VAT Account cannot be the same")
-            
+
         # Check if accounts exist
         for account_field in ["input_vat_account", "output_vat_account"]:
             account = getattr(self, account_field)
@@ -186,7 +186,7 @@ class SouthAfricaVATSettings(Document):
                 "South African VAT Registration Numbers typically start with '4'",
                 indicator="yellow",
             )
-                
+
     def on_update(self):
         """Update VAT settings in Accounts Settings"""
         # Update standard VAT rate in Accounts Settings
@@ -194,10 +194,10 @@ class SouthAfricaVATSettings(Document):
         if hasattr(accounts_settings, "standard_tax_rate") and accounts_settings.standard_tax_rate != self.standard_vat_rate:
             accounts_settings.standard_tax_rate = self.standard_vat_rate
             accounts_settings.save()
-            
+
         # Create or update tax templates based on VAT rates
         self.update_tax_templates()
-        
+
     def update_tax_templates(self):
         """Create or update tax templates based on VAT rates"""
         # Only proceed if default_vat_report_company is set
@@ -214,10 +214,10 @@ class SouthAfricaVATSettings(Document):
 
         # Create purchase tax template
         self.create_or_update_tax_template("Purchase", self.input_vat_account)
-        
+
         # Create/update item tax templates for each VAT rate
         self.update_item_tax_templates()
-        
+
     def create_or_update_tax_template(self, template_type, account):
         """Create or update tax template for sales or purchase.
         Look up by title and company so we find the doc even when autoname is title - company abbr."""
@@ -255,7 +255,7 @@ class SouthAfricaVATSettings(Document):
                     "rate": rate.rate
                 })
         tax_template.save()
-        
+
         return tax_template.name
 
     def update_item_tax_templates(self):

@@ -2,6 +2,7 @@
 import frappe
 from frappe.utils import flt
 
+
 def calculate_lump_sum_tax(amount, reason="termination"):
     """
     Calculate tax on lump sum payments (severance, leave payout)

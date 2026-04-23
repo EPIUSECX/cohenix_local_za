@@ -2,6 +2,7 @@
 import frappe
 from frappe.utils import flt
 
+
 def calculate_reimbursive_allowance(km_traveled, rate):
     """Calculate reimbursive allowance - fully taxable"""
     return flt(km_traveled) * flt(rate)

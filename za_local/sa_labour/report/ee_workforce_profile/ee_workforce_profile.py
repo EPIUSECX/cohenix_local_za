@@ -3,6 +3,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
@@ -20,12 +21,12 @@ def get_columns():
 
 def get_data(filters):
     company = filters.get("company")
-    
+
     data = []
-    
+
     # Overall totals
     totals = frappe.db.sql("""
-        SELECT 
+        SELECT
             SUM(CASE WHEN za_race = 'African' THEN 1 ELSE 0 END) as african,
             SUM(CASE WHEN za_race = 'Coloured' THEN 1 ELSE 0 END) as coloured,
             SUM(CASE WHEN za_race = 'Indian' THEN 1 ELSE 0 END) as indian,
@@ -34,15 +35,15 @@ def get_data(filters):
         FROM `tabEmployee`
         WHERE company = %(company)s AND status = 'Active'
     """, {"company": company}, as_dict=1)[0]
-    
+
     data.append({
         "metric": "Total Employees",
         **totals
     })
-    
+
     # By Gender
     gender_data = frappe.db.sql("""
-        SELECT 
+        SELECT
             gender as metric,
             SUM(CASE WHEN za_race = 'African' THEN 1 ELSE 0 END) as african,
             SUM(CASE WHEN za_race = 'Coloured' THEN 1 ELSE 0 END) as coloured,
@@ -53,12 +54,12 @@ def get_data(filters):
         WHERE company = %(company)s AND status = 'Active'
         GROUP BY gender
     """, {"company": company}, as_dict=1)
-    
+
     data.extend(gender_data)
-    
+
     # Disabled
     disabled_data = frappe.db.sql("""
-        SELECT 
+        SELECT
             SUM(CASE WHEN za_race = 'African' AND za_is_disabled = 1 THEN 1 ELSE 0 END) as african,
             SUM(CASE WHEN za_race = 'Coloured' AND za_is_disabled = 1 THEN 1 ELSE 0 END) as coloured,
             SUM(CASE WHEN za_race = 'Indian' AND za_is_disabled = 1 THEN 1 ELSE 0 END) as indian,
@@ -67,10 +68,10 @@ def get_data(filters):
         FROM `tabEmployee`
         WHERE company = %(company)s AND status = 'Active'
     """, {"company": company}, as_dict=1)[0]
-    
+
     data.append({
         "metric": "Persons with Disabilities",
         **disabled_data
     })
-    
+
     return data

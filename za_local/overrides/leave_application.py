@@ -8,8 +8,9 @@ Note: This module only works when HRMS is installed.
 
 import frappe
 from frappe import _
-from frappe.utils import getdate, date_diff
-from za_local.utils.hrms_detection import require_hrms, get_hrms_doctype_class
+from frappe.utils import date_diff, getdate
+
+from za_local.utils.hrms_detection import get_hrms_doctype_class, require_hrms
 
 # Conditionally import HRMS classes
 LeaveApplication = get_hrms_doctype_class(
@@ -26,20 +27,20 @@ if LeaveApplication is None:
 class ZALeaveApplication(LeaveApplication):
 	"""
 	South African Leave Application implementation.
-	
+
 	Extends standard Leave Application with:
 	- BCEA compliance validations
 	- Medical certificate requirements
 	- Gender-specific leave types
 	- Leave accrual validations
 	"""
-	
+
 	def __init__(self, *args, **kwargs):
 		"""Ensure HRMS is available before initialization"""
 		if LeaveApplication is None:
 			require_hrms("Leave Application")
 		super().__init__(*args, **kwargs)
-	
+
 	def validate(self):
 		"""Validate leave application with SA-specific checks"""
 		require_hrms("Leave Application")
@@ -47,7 +48,7 @@ class ZALeaveApplication(LeaveApplication):
 		self.validate_medical_certificate()
 		self.validate_bcea_requirements()
 		self.validate_gender_specific_leave()
-		
+
 	def validate_medical_certificate(self):
 		"""
 		Validate medical certificate requirement for sick leave.
@@ -55,14 +56,14 @@ class ZALeaveApplication(LeaveApplication):
 		"""
 		if not self.leave_type:
 			return
-			
+
 		# Get leave type details
 		leave_type = frappe.get_doc("Leave Type", self.leave_type)
-		
+
 		# Check if this is sick leave requiring medical certificate
 		if "sick" in self.leave_type.lower():
 			days_required = getattr(leave_type, "za_medical_certificate_required_after", 2)
-			
+
 			if self.total_leave_days > days_required:
 				# Check if medical certificate is attached
 				attachments = frappe.get_all(
@@ -72,14 +73,14 @@ class ZALeaveApplication(LeaveApplication):
 						"attached_to_name": self.name
 					}
 				)
-				
+
 				if not attachments:
 					frappe.msgprint(
 						_(f"Medical certificate is required for sick leave exceeding {days_required} days"),
 						indicator="orange",
 						title=_("Medical Certificate Required")
 					)
-					
+
 	def validate_bcea_requirements(self):
 		"""
 		Validate BCEA compliance requirements.
@@ -89,13 +90,13 @@ class ZALeaveApplication(LeaveApplication):
 		"""
 		if not self.leave_type:
 			return
-			
+
 		leave_type = frappe.get_doc("Leave Type", self.leave_type)
-		
+
 		# Check if leave type is BCEA compliant
 		if not getattr(leave_type, "za_bcea_compliant", False):
 			return
-			
+
 		# Validate based on leave type
 		if "annual" in self.leave_type.lower():
 			self.validate_annual_leave_bcea()
@@ -103,7 +104,7 @@ class ZALeaveApplication(LeaveApplication):
 			self.validate_sick_leave_bcea()
 		elif "family" in self.leave_type.lower():
 			self.validate_family_leave_bcea()
-			
+
 	def validate_annual_leave_bcea(self):
 		"""
 		Validate annual leave BCEA compliance.
@@ -116,19 +117,16 @@ class ZALeaveApplication(LeaveApplication):
 				indicator="blue",
 				title=_("BCEA Compliance")
 			)
-			
+
 	def validate_sick_leave_bcea(self):
 		"""
 		Validate sick leave BCEA compliance.
 		36 days per 3-year cycle for employees working at least 4 days per week.
 		"""
-		# Get employee working days
-		employee = frappe.get_doc("Employee", self.employee)
-		
 		# BCEA sick leave entitlement
 		# This is tracked by the leave allocation - just validate consistency
 		pass
-		
+
 	def validate_family_leave_bcea(self):
 		"""
 		Validate family responsibility leave BCEA compliance.
@@ -138,7 +136,7 @@ class ZALeaveApplication(LeaveApplication):
 		from_date = getdate(self.from_date)
 		year_start = from_date.replace(month=1, day=1)
 		year_end = from_date.replace(month=12, day=31)
-		
+
 		total_family_leave = frappe.db.sql("""
 			SELECT SUM(total_leave_days)
 			FROM `tabLeave Application`
@@ -155,28 +153,28 @@ class ZALeaveApplication(LeaveApplication):
 			"year_end": year_end,
 			"name": self.name or "New"
 		})[0][0] or 0
-		
+
 		total_with_current = total_family_leave + self.total_leave_days
-		
+
 		if total_with_current > 3:
 			frappe.throw(
 				_("Family responsibility leave exceeds BCEA limit of 3 days per year. "
 				  "Already taken: {0} days").format(total_family_leave)
 			)
-			
+
 	def validate_gender_specific_leave(self):
 		"""
 		Validate gender-specific leave types (e.g., maternity leave).
 		"""
 		if not self.leave_type:
 			return
-			
+
 		leave_type = frappe.get_doc("Leave Type", self.leave_type)
 		applicable_gender = getattr(leave_type, "za_applicable_gender", None)
-		
+
 		if applicable_gender:
 			employee = frappe.get_doc("Employee", self.employee)
-			
+
 			if employee.gender != applicable_gender:
 				frappe.throw(
 					_("Leave type {0} is only applicable to {1} employees").format(
@@ -189,4 +187,3 @@ class ZALeaveApplication(LeaveApplication):
 def override_leave_application():
 	"""Register the override in hooks.py"""
 	pass
-

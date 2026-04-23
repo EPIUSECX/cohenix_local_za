@@ -3,12 +3,11 @@ ZA VAT tax calculation: when the same account has multiple tax rows (e.g. 15% an
 each row only gets amount from items whose rate matches that row. This is required for
 SA legislation and VAT 201 reporting (standard_rated_supplies vs zero_rated_supplies).
 """
-from frappe.utils import flt  # type: ignore
-
 # Import the ERPNext class we extend (no patching of their code)
 from erpnext.controllers.taxes_and_totals import (  # type: ignore
 	calculate_taxes_and_totals as BaseCalculateTaxesAndTotals,
 )
+from frappe.utils import flt  # type: ignore
 
 
 class ZACalculateTaxesAndTotals(BaseCalculateTaxesAndTotals):

@@ -2,6 +2,7 @@
 import frappe
 from frappe.utils import flt
 
+
 def calculate_fringe_benefit_tax(benefit_type, value):
     """Calculate tax on fringe benefit"""
     return flt(value)

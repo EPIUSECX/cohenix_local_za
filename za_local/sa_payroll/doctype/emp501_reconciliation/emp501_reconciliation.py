@@ -1,8 +1,10 @@
-import frappe
-from frappe.model.document import Document
 import json
-from frappe.utils import getdate, add_months, get_first_day, get_last_day, flt
-from frappe import _ # Ensure _ is imported for translations
+
+import frappe
+from frappe import _  # Ensure _ is imported for translations
+from frappe.model.document import Document
+from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate
+
 
 @frappe.whitelist()
 def get_company_tax_details(company):
@@ -36,7 +38,7 @@ class EMP501Reconciliation(Document):
     def validate(self):
         self.validate_dates() # This should be called after tax_year and reconciliation_period are set
         self.calculate_totals()
-        
+
     def validate_dates(self):
         """
         Validate date ranges for EMP501 Reconciliation based on selected Tax Year and Period.
@@ -63,11 +65,11 @@ class EMP501Reconciliation(Document):
             expected_from_date = fiscal_year_doc.year_start_date
             # Interim period is March 1st to August 31st of the starting year of the fiscal year
             expected_to_date = getdate(f"{fiscal_year_doc.year_start_date.year}-08-31")
-        
+
         elif self.reconciliation_period == "Final":
             expected_from_date = fiscal_year_doc.year_start_date
             expected_to_date = fiscal_year_doc.year_end_date
-        
+
         else:
             frappe.throw(_("Invalid Reconciliation Period selected."), title=_("Validation Error"))
 
@@ -92,13 +94,13 @@ class EMP501Reconciliation(Document):
                 ),
                 title=_("Invalid To Date")
             )
-            
+
     def calculate_totals(self):
         self.total_paye = 0
         self.total_sdl = 0
         self.total_uif = 0
         self.total_eti = 0
-        
+
         if self.emp201_submissions:
             for submission_ref in self.emp201_submissions:
                 if submission_ref.emp201_submission:
@@ -110,9 +112,9 @@ class EMP501Reconciliation(Document):
                         self.total_eti += flt(emp201.eti_utilized_current_month)
                     except frappe.DoesNotExistError:
                         frappe.log_error(f"EMP201 Submission {submission_ref.emp201_submission} not found.", "EMP501 Calculate Totals")
-        
+
         self.total_tax_payable = self.total_paye + self.total_sdl + self.total_uif - self.total_eti
-    
+
     def before_submit(self):
         """
         Validate that EMP501 is ready for submission.
@@ -124,7 +126,7 @@ class EMP501Reconciliation(Document):
                 _("Please generate IRP5 certificates before submitting. Click 'Generate IRP5 Certificates' button in the Actions menu."),
                 title=_("IRP5 Certificates Required")
             )
-        
+
         # Validate that EMP201 submissions are linked (recommended but not strictly required)
         if not self.emp201_submissions or len(self.emp201_submissions) == 0:
             frappe.msgprint(
@@ -132,7 +134,7 @@ class EMP501Reconciliation(Document):
                 title=_("No EMP201 Submissions"),
                 indicator="orange"
             )
-        
+
         # Validate that all required reference numbers are present
         if not self.paye_reference_number:
             frappe.throw(_("PAYE Reference Number is required before submission."), title=_("Missing PAYE Reference"))
@@ -140,28 +142,28 @@ class EMP501Reconciliation(Document):
             frappe.throw(_("SDL Reference Number is required before submission."), title=_("Missing SDL Reference"))
         if not self.uif_reference_number:
             frappe.throw(_("UIF Reference Number is required before submission."), title=_("Missing UIF Reference"))
-    
+
     def on_submit(self):
-        self.status = "Submitted" 
-        
+        self.status = "Submitted"
+
     def on_cancel(self):
         self.status = "Cancelled"
         frappe.msgprint(_("EMP501 Reconciliation {0} has been cancelled.").format(self.name))
-        
+
     @frappe.whitelist()
     def fetch_emp201_submissions(self):
         if not self.from_date or not self.to_date:
-            frappe.throw(_("Please ensure Tax Year and Reconciliation Period are selected, then save to populate dates, or set From Date and To Date manually."), 
+            frappe.throw(_("Please ensure Tax Year and Reconciliation Period are selected, then save to populate dates, or set From Date and To Date manually."),
                         title=_("Missing Date Range"))
         if not self.company:
-            frappe.throw(_("Company is required to fetch EMP201 submissions"), 
+            frappe.throw(_("Company is required to fetch EMP201 submissions"),
                         title=_("Missing Company"))
-            
+
         self.emp201_submissions = []
-        
+
         from_date = getdate(self.from_date)
         to_date = getdate(self.to_date)
-        
+
         try:
             emp201_docs = frappe.get_all("EMP201 Submission",
                 filters={
@@ -170,7 +172,7 @@ class EMP501Reconciliation(Document):
                     "submission_period_start_date": [">=", from_date],
                     "submission_period_end_date": ["<=", to_date]
                 },
-                fields=["name", "submission_period_start_date as submission_date", "net_paye_payable as paye", 
+                fields=["name", "submission_period_start_date as submission_date", "net_paye_payable as paye",
                         "sdl_payable as sdl", "uif_payable as uif", "eti_utilized_current_month as eti"]
             )
         except Exception as e:
@@ -191,22 +193,22 @@ class EMP501Reconciliation(Document):
                 "eti": emp201_doc.eti
             })
             count += 1
-            
+
         self.calculate_totals()
         self.save(ignore_permissions=True)
-        
+
         if count == 0:
             frappe.msgprint(
                 _("No EMP201 submissions found for the selected period. You can still proceed to generate IRP5 certificates."),
                 title=_("No EMP201 Submissions Found"),
                 indicator="orange"
             )
-        
+
         return {
             "count": count,
             "message": _("{0} EMP201 submission(s) fetched successfully.").format(count) if count > 0 else _("No EMP201 submissions found.")
         }
-    
+
     @frappe.whitelist()
     def generate_irp5_certificates(self):
         """
@@ -215,16 +217,16 @@ class EMP501Reconciliation(Document):
         """
         if not self.from_date or not self.to_date or not self.tax_year or not self.company:
             frappe.throw(_("Company, Tax Year, From Date, and To Date are required to generate IRP5s."))
-        
+
         if not self.reconciliation_period:
             frappe.throw(_("Reconciliation Period is required to generate IRP5s."))
-        
+
         # Ensure document is saved before generating certificates (needed for linking)
         if self.is_new() or (hasattr(self, 'name') and self.name and self.name.startswith('new-')):
             # Save the document first to get a proper name
             self.save(ignore_permissions=True)
             frappe.db.commit()  # Commit to ensure name is available
-            
+
         # Get all unique employees with salary slips in the period
         salary_slips = frappe.get_all("Salary Slip",
             filters={
@@ -235,21 +237,21 @@ class EMP501Reconciliation(Document):
             },
             fields=["distinct employee", "employee_name"]
         )
-        
+
         if not salary_slips:
-            frappe.msgprint(_("No salary slips found for the selected period. Cannot generate IRP5 certificates."), 
+            frappe.msgprint(_("No salary slips found for the selected period. Cannot generate IRP5 certificates."),
                           indicator="orange")
             return {"created": 0, "updated": 0, "errors": 0, "message": "No salary slips found"}
-        
+
         unique_employees = {sl.employee: sl.employee_name for sl in salary_slips}
 
         # Clear existing references (will be regenerated)
         self.irp5_certificates = []
-        
+
         created_count = 0
         updated_count = 0
         errors = []
-        
+
         for emp_id, emp_name in unique_employees.items():
             try:
                 # Check if certificate already exists
@@ -259,11 +261,11 @@ class EMP501Reconciliation(Document):
                     "company": self.company,
                     "reconciliation_period": self.reconciliation_period
                 }, "name")
-                
+
                 if existing_cert_name:
                     # Update existing certificate
                     cert = frappe.get_doc("IRP5 Certificate", existing_cert_name)
-                    
+
                     # Only update if certificate is not submitted
                     if cert.docstatus == 1:
                         # Certificate is submitted, cannot modify
@@ -279,7 +281,7 @@ class EMP501Reconciliation(Document):
                             "status": cert.status
                         })
                         continue
-                    
+
                     # Update certificate fields
                     cert.from_date = self.from_date
                     cert.to_date = self.to_date
@@ -312,7 +314,7 @@ class EMP501Reconciliation(Document):
                     cert_status = cert.status
                     irp5_cert_name = cert.name
                     created_count += 1
-                
+
                 # Verify certificate exists in database before adding to child table
                 if irp5_cert_name:
                     # Double-check that the certificate actually exists
@@ -332,11 +334,11 @@ class EMP501Reconciliation(Document):
                             "employee": emp_name,
                             "error": "Certificate creation failed - certificate not found in database"
                         })
-                
+
             except Exception as e:
                 # Log full traceback for debugging
                 error_traceback = frappe.get_traceback()
-                error_msg = f"Failed to process IRP5 for employee {emp_name} ({emp_id}): {str(e)}"
+                error_msg = f"Failed to process IRP5 for employee {emp_name} ({emp_id}): {e!s}"
                 frappe.log_error(error_traceback, f"IRP5 Generation Error - {emp_name}")
                 # Include more details in error message
                 error_details = {
@@ -348,16 +350,16 @@ class EMP501Reconciliation(Document):
                 errors.append(error_details)
                 # Don't add to child table if certificate creation failed
                 continue
-        
+
         # Save EMP501 with updated IRP5 references
         self.save(ignore_permissions=True)
-        
+
         # Prepare summary message
         total_processed = created_count + updated_count
         message = _("{0} IRP5 certificates processed. {1} newly created, {2} updated.").format(
             total_processed, created_count, updated_count
         )
-        
+
         if errors:
             error_details = "\n".join([f"- {e.get('employee', 'Unknown')}: {e.get('error', 'Unknown error')}" for e in errors[:5]])  # Show first 5 errors
             if len(errors) > 5:
@@ -367,7 +369,7 @@ class EMP501Reconciliation(Document):
             frappe.msgprint(full_error_message, indicator="orange", title=_("IRP5 Generation Complete"))
         else:
             frappe.msgprint(message, indicator="green", title=_("IRP5 Generation Complete"))
-        
+
         return {
             "created": created_count,
             "updated": updated_count,
@@ -376,17 +378,17 @@ class EMP501Reconciliation(Document):
             "total": total_processed,
             "message": message
         }
-    
+
     @frappe.whitelist()
     def submit_to_sars(self):
         if self.docstatus != 1:
              frappe.throw(_("Document must be submitted before sending to SARS."))
-            
+
         sars_settings = frappe.get_single("SARS e-Filing Integration")
         if not sars_settings.get("enabled"):
             frappe.throw(_("SARS e-Filing Integration is not enabled in settings."))
-            
-        submission_data = {
+
+        _submission_data = {
             "emp501": {
                 "reference": self.name,
                 "tax_year": self.tax_year,
@@ -405,13 +407,13 @@ class EMP501Reconciliation(Document):
                 }
             }
         }
-        
+
         self.sars_submission_status = "Submitted"
         self.sars_submission_date = frappe.utils.now_datetime()
         self.sars_submission_reference = f"SARS-{frappe.utils.random_string(10).upper()}"
         self.sars_response = json.dumps({"status": "success", "message": "Submission accepted by SARS (mock)"})
         self.save()
-        
+
         frappe.msgprint(_("EMP501 successfully submitted to SARS (mock). Reference: {0}").format(self.sars_submission_reference))
         return {
             "status": "success",

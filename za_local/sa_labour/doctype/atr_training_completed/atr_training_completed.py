@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, flt, today, add_months
+from frappe.utils import add_months, flt, getdate, today
 
 
 class AtrTrainingCompleted(Document):

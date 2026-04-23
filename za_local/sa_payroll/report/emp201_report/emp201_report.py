@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
@@ -51,17 +52,17 @@ def get_data(filters):
         elif filters.get("to_date"):
             conditions.append("posting_date <= %(to_date)s")
             values["to_date"] = filters["to_date"]
-            
+
     sql_conditions = "WHERE " + " AND ".join(conditions) if conditions else ""
 
     data = frappe.db.sql(f"""
         SELECT
-            name, company, month, fiscal_year, 
+            name, company, month, fiscal_year,
             submission_period_start_date, submission_period_end_date,
             gross_paye_before_eti, eti_utilized_current_month,
             net_paye_payable, uif_payable, sdl_payable,
             (net_paye_payable + uif_payable + sdl_payable) as total_payable,
-            status 
+            status
         FROM `tabEMP201 Submission`
         {sql_conditions}
         ORDER BY posting_date DESC

@@ -2,9 +2,10 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.model.document import Document
-from frappe.utils import getdate, add_months, get_first_day, get_last_day
 from frappe import _
+from frappe.model.document import Document
+from frappe.utils import add_months, get_first_day, get_last_day, getdate
+
 
 class EMP201Submission(Document):
     # Main class for EMP201 Submission
@@ -48,10 +49,10 @@ class EMP201Submission(Document):
             # Adjust year for months that fall in the next calendar year of the fiscal year
             if month_number < 3: # Jan & Feb belong to the previous fiscal year's start
                 year += 1
-            
+
             start_date = get_first_day(f"{year}-{month_number}-01")
             end_date = get_last_day(f"{year}-{month_number}-01")
-            
+
             self.submission_period_start_date = start_date
             self.submission_period_end_date = end_date
 
@@ -62,7 +63,7 @@ class EMP201Submission(Document):
 
     @frappe.whitelist()
     def fetch_emp201_data(self):
-        from frappe.utils import flt, add_months, get_first_day
+        from frappe.utils import flt, get_first_day
 
         if not self.company or not self.submission_period_start_date or not self.submission_period_end_date:
             frappe.throw(_("Company and submission period dates are required to fetch data."))
@@ -89,7 +90,7 @@ class EMP201Submission(Document):
 
         for slip in salary_slips:
             ss = frappe.get_doc("Salary Slip", slip.name)
-            
+
             # Process deductions for PAYE (using is_income_tax_component flag) and UIF Employee
             deductions = ss.get("deductions")
             if deductions:
@@ -100,7 +101,7 @@ class EMP201Submission(Document):
                         is_paye = frappe.db.get_value("Salary Component", component_name, "is_income_tax_component")
                         if is_paye:
                             gross_paye += flt(comp.amount)
-                        
+
                         # Check for UIF Employee Contribution (exclude employer)
                         component_name_lower = component_name.strip().lower()
                         if ("uif" in component_name_lower or "unemployment insurance fund" in component_name_lower) and "employer" not in component_name_lower:

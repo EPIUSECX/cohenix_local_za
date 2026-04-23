@@ -3,6 +3,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
 	columns = get_columns()
 	data = get_data(filters)
@@ -43,5 +44,5 @@ def get_data(filters):
 			AND ss.docstatus = 1
 		ORDER BY e.department, ss.employee_name
 	"""
-	
+
 	return frappe.db.sql(query, filters, as_dict=1)

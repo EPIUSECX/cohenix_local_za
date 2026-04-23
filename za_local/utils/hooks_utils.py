@@ -11,7 +11,7 @@ from za_local.utils.hrms_detection import is_hrms_installed
 def get_hrms_doctype_js():
 	"""
 	Conditionally add HRMS-dependent doctype JS files.
-	
+
 	Returns:
 		dict: Dictionary mapping doctype names to JS file paths
 	"""

@@ -4,8 +4,8 @@ This ensures 15% and 0% tax rows (same account) get correct amounts per item
 for SA legislation and VAT 201 reporting, without patching ERPNext core.
 """
 
-from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
+from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 
 
 class ZASalesInvoice(SalesInvoice):

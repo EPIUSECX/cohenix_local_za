@@ -12,10 +12,11 @@ Background jobs for monitoring SA compliance requirements:
 - EEA reporting reminders
 """
 
+from datetime import date
+
 import frappe
 from frappe import _
-from frappe.utils import today, add_days, get_datetime, getdate, add_months
-from datetime import date
+from frappe.utils import add_days, add_months, get_datetime, getdate, today
 
 
 def all():
@@ -51,29 +52,28 @@ def quarterly():
 def check_tax_directive_expiry():
 	"""
 	Check for tax directives expiring within 30 days.
-	
+
 	Creates notifications for HR Admin to renew directives before expiry.
 	"""
 	# Get directives expiring in next 30 days
 	thirty_days_from_now = add_days(today(), 30)
-	
+
 	expiring_directives = frappe.get_all(
 		"Tax Directive",
 		filters={
 			"status": "Active",
-			"effective_to": ["<=", thirty_days_from_now],
-			"effective_to": [">=", today()]
+			"effective_to": ["between", [today(), thirty_days_from_now]],
 		},
 		fields=["name", "employee", "employee_name", "effective_to"]
 	)
-	
+
 	if not expiring_directives:
 		return
-	
+
 	# Create notification for HR Admin
 	for directive in expiring_directives:
 		days_until_expiry = (getdate(directive.effective_to) - getdate(today())).days
-		
+
 		# Create notification
 		notification = frappe.new_doc("Notification Log")
 		notification.subject = _("Tax Directive Expiring Soon: {0}").format(directive.employee_name)
@@ -91,7 +91,7 @@ def check_tax_directive_expiry():
 		notification.document_name = directive.name
 		notification.for_user = get_hr_admin_users()
 		notification.insert(ignore_permissions=True)
-	
+
 	frappe.db.commit()
 	print(f"✓ Tax Directive Expiry Check: {len(expiring_directives)} directive(s) expiring soon")
 
@@ -103,7 +103,7 @@ def check_eti_eligibility_changes():
 	Check for ETI eligibility changes:
 	1. Employees turning 30 (no longer eligible)
 	2. Employees reaching 24-month employment mark
-	
+
 	Logs changes and creates notifications.
 	"""
 	# Check employees turning 30 today
@@ -115,7 +115,7 @@ def check_eti_eligibility_changes():
 		AND DAY(date_of_birth) = DAY(CURDATE())
 		AND TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) = 30
 	""", as_dict=True)
-	
+
 	for emp in employees_turning_30:
 		# Create notification
 		notify_hr_admin(
@@ -124,10 +124,10 @@ def check_eti_eligibility_changes():
 			doctype="Employee",
 			docname=emp.name
 		)
-	
+
 	# Check employees reaching 24-month mark
 	twenty_four_months_ago = add_months(today(), -24)
-	
+
 	employees_at_24_months = frappe.get_all(
 		"Employee",
 		filters={
@@ -136,7 +136,7 @@ def check_eti_eligibility_changes():
 		},
 		fields=["name", "employee_name", "date_of_joining"]
 	)
-	
+
 	for emp in employees_at_24_months:
 		notify_hr_admin(
 			subject=f"ETI Period Ending: {emp.employee_name}",
@@ -144,7 +144,7 @@ def check_eti_eligibility_changes():
 			doctype="Employee",
 			docname=emp.name
 		)
-	
+
 	if employees_turning_30 or employees_at_24_months:
 		frappe.db.commit()
 		print(f"✓ ETI Eligibility Check: {len(employees_turning_30)} turning 30, {len(employees_at_24_months)} at 24 months")
@@ -160,63 +160,63 @@ def validate_employee_id_numbers():
 	3. Flag invalid entries
 	"""
 	from za_local.utils.tax_utils import validate_south_african_id
-	
+
 	employees = frappe.get_all(
 		"Employee",
 		filters={"status": "Active", "za_id_number": ["is", "set"]},
 		fields=["name", "employee_name", "za_id_number"]
 	)
-	
+
 	invalid_ids = []
 	duplicate_ids = {}
-	
+
 	for emp in employees:
 		if not emp.za_id_number or len(emp.za_id_number) != 13:
 			continue
-		
+
 		# Check for duplicates
 		if emp.za_id_number in duplicate_ids:
 			duplicate_ids[emp.za_id_number].append(emp)
 		else:
 			duplicate_ids[emp.za_id_number] = [emp]
-		
+
 		# Validate checksum
 		try:
 			if not validate_south_african_id(emp.za_id_number):
 				invalid_ids.append(emp)
 		except Exception:
 			invalid_ids.append(emp)
-	
+
 	# Report invalid IDs
 	if invalid_ids:
 		message = "The following employees have invalid SA ID numbers:\n\n"
 		for emp in invalid_ids:
 			message += f"- {emp.employee_name} ({emp.name}): {emp.za_id_number}\n"
-		
+
 		notify_hr_admin(
 			subject="Invalid SA ID Numbers Detected",
 			message=message,
 			doctype="Employee",
 			docname=None
 		)
-	
+
 	# Report duplicates
 	actual_duplicates = {id_num: emps for id_num, emps in duplicate_ids.items() if len(emps) > 1}
-	
+
 	if actual_duplicates:
 		message = "The following SA ID numbers are assigned to multiple employees:\n\n"
 		for id_num, emps in actual_duplicates.items():
 			message += f"ID Number {id_num}:\n"
 			for emp in emps:
 				message += f"  - {emp.employee_name} ({emp.name})\n"
-		
+
 		notify_hr_admin(
 			subject="Duplicate SA ID Numbers Detected",
 			message=message,
 			doctype="Employee",
 			docname=None
 		)
-	
+
 	if invalid_ids or actual_duplicates:
 		frappe.db.commit()
 		print(f"✓ ID Validation: {len(invalid_ids)} invalid, {len(actual_duplicates)} duplicates")
@@ -227,11 +227,11 @@ def validate_employee_id_numbers():
 def check_sars_rate_updates():
 	"""
 	Check for SARS rate updates (placeholder for future API integration).
-	
+
 	Currently creates reminder on March 1 (new tax year) to update rates.
 	"""
 	today_date = getdate(today())
-	
+
 	# Reminder on March 1 (new tax year)
 	if today_date.month == 3 and today_date.day == 1:
 		notify_hr_admin(
@@ -253,7 +253,7 @@ def check_sars_rate_updates():
 def check_coida_rate_updates():
 	"""
 	Check for COIDA rate updates (placeholder for future integration).
-	
+
 	COIDA rates are updated periodically by the Compensation Fund.
 	"""
 	# Placeholder for future implementation
@@ -266,11 +266,11 @@ def check_coida_rate_updates():
 def reminder_for_eea_reporting():
 	"""
 	Quarterly reminders for Employment Equity reporting.
-	
+
 	EEA reports are due January 15 annually.
 	"""
 	today_date = getdate(today())
-	
+
 	# Reminder in December for January 15 deadline
 	if today_date.month == 12 and today_date.day == 1:
 		notify_hr_admin(
@@ -305,7 +305,7 @@ def get_hr_admin_users():
 def notify_hr_admin(subject, message, doctype=None, docname=None):
 	"""
 	Create notification for HR Admin users.
-	
+
 	Args:
 		subject: Notification subject
 		message: Notification message
@@ -315,12 +315,11 @@ def notify_hr_admin(subject, message, doctype=None, docname=None):
 	notification = frappe.new_doc("Notification Log")
 	notification.subject = subject
 	notification.email_content = message
-	
+
 	if doctype:
 		notification.document_type = doctype
 	if docname:
 		notification.document_name = docname
-	
+
 	notification.for_user = get_hr_admin_users()
 	notification.insert(ignore_permissions=True)
-

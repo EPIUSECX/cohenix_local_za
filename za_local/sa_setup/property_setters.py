@@ -10,8 +10,8 @@ to align with South African business practices and compliance requirements.
 
 import frappe
 from frappe.custom.doctype.customize_form.customize_form import (
-	doctype_properties,
 	docfield_properties,
+	doctype_properties,
 )
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
@@ -23,21 +23,21 @@ PROTECTED_FILE_DOCTYPES = (
 	"Salary Slip",
 	"Payroll Entry",
 	"Additional Salary",
-	
+
 	# SARS Tax Documents
 	"IRP5 Certificate",
 	"EMP201 Submission",
 	"EMP501 Reconciliation",
 	"Tax Directive",
-	
+
 	# VAT Documents
 	"VAT201 Return",
-	
+
 	# COIDA Documents
 	"COIDA Annual Return",
 	"Workplace Injury",
 	"OID Claim",
-	
+
 	# Sales & Purchase (for VAT audit trail)
 	"Quotation",
 	"Sales Order",
@@ -48,7 +48,7 @@ PROTECTED_FILE_DOCTYPES = (
 	"Purchase Order",
 	"Purchase Receipt",
 	"Purchase Invoice",
-	
+
 	# Financial Documents
 	"Journal Entry",
 	"Payment Entry",
@@ -57,12 +57,12 @@ PROTECTED_FILE_DOCTYPES = (
 	"POS Invoice",
 	"Period Closing Voucher",
 	"Contract",
-	
+
 	# HR Documents
 	"Leave Application",
 	"Employee Separation",
 	"Expense Claim",
-	
+
 	# SA-specific Documents
 	"Employee Final Settlement",
 	"UIF U19 Declaration",
@@ -73,41 +73,41 @@ PROTECTED_FILE_DOCTYPES = (
 def get_property_setters():
 	"""
 	Returns property setters for South African localization.
-	
+
 	Property setters modify default values and behavior of standard DocTypes
 	without creating custom fields.
-	
+
 	Format: (fieldname, property, value) or (None, property, value) for DocType-level
 	"""
 	return {
 		"Employee": [
 			# Set default currency to South African Rand
 			("salary_currency", "default", "ZAR"),
-			
+
 			# Default salary payment mode to Bank (EFT is standard in SA)
 			("salary_mode", "default", "Bank"),
-			
+
 			# Hide accommodation type fields (not commonly used in SA HR)
 			("permanent_accommodation_type", "hidden", 1),
 			("current_accommodation_type", "hidden", 1),
 		],
-		
+
 		"Company": [
 			# Set default currency to ZAR for SA companies
 			("default_currency", "default", "ZAR"),
 		],
-		
+
 		"Salary Structure": [
 			# Default currency for salary structures
 			("currency", "default", "ZAR"),
-			
+
 			# Hide Flexible Benefits section - not used in South African payroll
 			# Flexible benefits are for cafeteria-style plans (US/UK), not SA payroll
 			# Note: The actual fieldname is "employee_benefits" (child table), not "flexible_benefit"
 			("employee_benefits", "hidden", 1),
 			("max_benefits", "hidden", 1),
 		],
-		
+
 		"Salary Structure Assignment": [
 			# Hide Flexible Benefits section - not used in South African payroll
 			# Flexible benefits are for cafeteria-style plans (US/UK), not SA payroll
@@ -115,12 +115,12 @@ def get_property_setters():
 			("employee_benefits", "hidden", 1),
 			("max_benefits", "hidden", 1),
 		],
-		
+
 		"Salary Component": [
 			# Add "Company Contribution" as a Type option alongside Earning and Deduction
 			("type", "options", "Earning\nDeduction\nCompany Contribution"),
 		],
-		
+
 		# Protect attachments on submitted documents (SARS audit requirement)
 		PROTECTED_FILE_DOCTYPES: [
 			(None, "protect_attached_files", 1),

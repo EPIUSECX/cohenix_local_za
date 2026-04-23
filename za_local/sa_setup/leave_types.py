@@ -2,9 +2,10 @@
 import frappe
 from frappe import _
 
+
 def setup_sa_leave_types():
     """Create South African BCEA-compliant leave types"""
-    
+
     leave_types = [
         {
             "leave_type_name": "Annual Leave (SA)",
@@ -53,7 +54,7 @@ def setup_sa_leave_types():
             "allow_negative": 0
         }
     ]
-    
+
     for leave_type in leave_types:
         if not frappe.db.exists("Leave Type", leave_type["leave_type_name"]):
             doc = frappe.get_doc({

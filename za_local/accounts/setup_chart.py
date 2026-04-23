@@ -6,19 +6,20 @@ for companies during setup and provides integration helpers
 for the ERPNext setup wizard.
 """
 
+import json
+from pathlib import Path
+
 import frappe
 from frappe import _
-from pathlib import Path
-import json
 
 
 def load_sa_chart_of_accounts(company):
 	"""
 	Load South African Chart of Accounts for a company.
-	
+
 	If company has no accounts, loads the full SA chart.
 	If company already has accounts, adds only the SA-specific tax accounts.
-	
+
 	Args:
 		company: Company name for which to load the chart
 	"""
@@ -34,7 +35,7 @@ def load_sa_chart_of_accounts(company):
 			"ZA Local Chart of Accounts",
 		)
 		return False
-	
+
 	try:
 		# Company should already have a base chart created by ERPNext's setup wizard.
 		# We only *augment* that chart with SA-specific tax accounts.
@@ -49,17 +50,17 @@ def load_sa_chart_of_accounts(company):
 				"ZA Local Chart of Accounts",
 			)
 			return False
-		
+
 		# Add SA-specific tax accounts into the existing chart.
 		# We derive the insertion points (Current Assets / Current Liabilities
 		# and Tax Assets / Tax Liabilities) from the live chart so this works
 		# with any standard template (Standard, Standard with Numbers, etc.).
 		_add_sa_tax_accounts(company)
 		return True
-		
+
 	except Exception as e:
 		frappe.log_error(
-			f"Error loading Chart of Accounts for {company}: {str(e)}\n{frappe.get_traceback()}",
+			f"Error loading Chart of Accounts for {company}: {e!s}\n{frappe.get_traceback()}",
 			"ZA Local Chart of Accounts",
 		)
 		# Do not re-raise: allow setup wizard to complete; user can add SA accounts later if needed
@@ -220,12 +221,12 @@ def _add_sa_tax_accounts(company):
 def _extract_tax_accounts(chart_tree):
 	"""
 	Extract SA-specific tax accounts from chart tree.
-	
+
 	Returns:
 		dict: {"liabilities": {...}, "assets": {...}}
 	"""
 	tax_accounts = {"liabilities": {}, "assets": {}}
-	
+
 	# Extract from Liabilities > Current Liabilities > Tax Liabilities
 	if "Liabilities" in chart_tree:
 		liabilities = chart_tree["Liabilities"]
@@ -244,7 +245,7 @@ def _extract_tax_accounts(chart_tree):
 						if isinstance(account_info, dict):
 							if not account_info or (account_info.get("account_type") == "Tax" and not account_info.get("is_group")):
 								tax_accounts["liabilities"][account_name] = account_info or {}
-	
+
 	# Extract from Assets > Current Assets > Tax Assets
 	if "Assets" in chart_tree:
 		assets = chart_tree["Assets"]
@@ -259,14 +260,14 @@ def _extract_tax_accounts(chart_tree):
 						if isinstance(account_info, dict):
 							if not account_info or (account_info.get("account_type") == "Tax" and not account_info.get("is_group")):
 								tax_accounts["assets"][account_name] = account_info or {}
-	
+
 	return tax_accounts
 
 
 def _get_or_create_account(company, account_name, account_type, parent=None, is_group=0, root_type=None):
 	"""
 	Get existing account or create it if it doesn't exist.
-	
+
 	Args:
 		company: Company name
 		account_name: Account name
@@ -274,7 +275,7 @@ def _get_or_create_account(company, account_name, account_type, parent=None, is_
 		parent: Parent account name
 		is_group: Whether account is a group
 		root_type: Root type (for root accounts only)
-	
+
 	Returns:
 		Account document
 	"""
@@ -284,10 +285,10 @@ def _get_or_create_account(company, account_name, account_type, parent=None, is_
 		{"company": company, "account_name": account_name},
 		"name"
 	)
-	
+
 	if existing:
 		return frappe.get_doc("Account", existing)
-	
+
 	# Create new account
 	account_doc = frappe.get_doc({
 		"doctype": "Account",
@@ -298,13 +299,13 @@ def _get_or_create_account(company, account_name, account_type, parent=None, is_
 		"is_group": is_group,
 		"root_type": root_type,
 	})
-	
+
 	if root_type:
 		account_doc.flags.ignore_mandatory = True
-	
+
 	account_doc.flags.ignore_permissions = True
 	account_doc.insert()
-	
+
 	return account_doc
 
 
@@ -313,15 +314,15 @@ def get_chart_template_name():
 	try:
 		chart_path = Path(frappe.get_app_path("za_local", "accounts", "chart_of_accounts",
 											  "za_south_africa_chart_template.json"))
-		
+
 		if chart_path.exists():
-			with open(chart_path, "r") as f:
+			with open(chart_path) as f:
 				chart_data = json.load(f)
 				return chart_data.get("name")
 	except Exception as e:
 		# Log error but don't fail - chart template loading is optional
-		frappe.log_error(f"Error getting chart template name: {str(e)}", "ZA Chart Template")
-	
+		frappe.log_error(f"Error getting chart template name: {e!s}", "ZA Chart Template")
+
 	return None
 
 
@@ -344,13 +345,13 @@ def get_za_chart_tree():
 		if not chart_path.exists():
 			return None
 
-		with open(chart_path, "r") as f:
+		with open(chart_path) as f:
 			chart_data = json.load(f)
 
 		return chart_data.get("tree")
 	except Exception as e:
 		# Log error but don't fail - this is a best-effort helper
-		frappe.log_error(f"Error getting ZA chart tree: {str(e)}", "ZA Chart Template")
+		frappe.log_error(f"Error getting ZA chart tree: {e!s}", "ZA Chart Template")
 		return None
 
 
@@ -367,7 +368,9 @@ def get_charts_for_country_with_za(country, with_standard: bool = False):
 	request; the monkey patch only runs at install/migrate and is not active
 	when the setup wizard runs in a fresh process.
 	"""
-	from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
+	from erpnext.accounts.doctype.account.chart_of_accounts import (
+		chart_of_accounts as coa_module,  # type: ignore
+	)
 
 	charts = coa_module.get_charts_for_country(country, with_standard)
 	if country == "South Africa" and isinstance(charts, list):
@@ -383,13 +386,16 @@ def get_charts_for_country_with_za(country, with_standard: bool = False):
 def extend_charts_for_country():
 	"""
 	Extend ERPNext's chart discovery to include za_local charts.
-	
+
 	This monkey patches ERPNext's get_charts_for_country function to include
 	the South African chart template when South Africa is selected as the country.
 	"""
 	try:
-		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
 		from functools import wraps
+
+		from erpnext.accounts.doctype.account.chart_of_accounts import (
+			chart_of_accounts as coa_module,  # type: ignore
+		)
 
 		# Check if function exists and hasn't been wrapped already
 		if not hasattr(coa_module, "get_charts_for_country"):
@@ -447,8 +453,11 @@ def extend_chart_loader():
 	Chart of Accounts (full replacement pattern).
 	"""
 	try:
-		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
 		from functools import wraps
+
+		from erpnext.accounts.doctype.account.chart_of_accounts import (
+			chart_of_accounts as coa_module,  # type: ignore
+		)
 
 		if not hasattr(coa_module, "get_chart"):
 			return
@@ -501,8 +510,12 @@ def patch_financial_report_templates_sync():
 	- Still syncing default templates for all installed apps
 	"""
 	try:
-		from erpnext.accounts.doctype.financial_report_template import financial_report_template as frt_module  # type: ignore
-		from erpnext.accounts.doctype.account.chart_of_accounts import chart_of_accounts as coa_module  # type: ignore
+		from erpnext.accounts.doctype.account.chart_of_accounts import (
+			chart_of_accounts as coa_module,  # type: ignore
+		)
+		from erpnext.accounts.doctype.financial_report_template import (
+			financial_report_template as frt_module,  # type: ignore
+		)
 
 		if not hasattr(frt_module, "sync_financial_report_templates"):
 			return

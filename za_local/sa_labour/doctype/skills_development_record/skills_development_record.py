@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, flt, today, add_months
+from frappe.utils import add_months, flt, getdate, today
 
 
 class SkillsDevelopmentRecord(Document):
@@ -15,7 +15,7 @@ class SkillsDevelopmentRecord(Document):
 	def calculate_bec_points(self):
 		"""TODO: Implement calculate_bec_points"""
 		pass
-	
+
 	def validate_training_dates(self):
 		"""TODO: Implement validate_training_dates"""
 		pass

@@ -3,6 +3,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
@@ -20,9 +21,9 @@ def get_columns():
 
 def get_data(filters):
     company = filters.get("company")
-    
+
     query = """
-        SELECT 
+        SELECT
             za_occupational_level as occupational_level,
             SUM(CASE WHEN za_race = 'African' THEN 1 ELSE 0 END) as current_african,
             SUM(CASE WHEN za_race = 'Coloured' THEN 1 ELSE 0 END) as current_coloured,
@@ -36,5 +37,5 @@ def get_data(filters):
         GROUP BY za_occupational_level
         ORDER BY za_occupational_level
     """
-    
+
     return frappe.db.sql(query, {"company": company}, as_dict=1)

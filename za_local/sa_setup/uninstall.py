@@ -10,29 +10,29 @@ import frappe
 def after_uninstall():
     """
     Run after app uninstallation.
-    
+
     Cleans up:
     - Custom fields with za_ prefix
     - Property setters
     - Custom doctypes (with confirmation)
-    
+
     Note: This does NOT delete data, only customizations.
     """
     print("\n" + "="*80)
     print("Uninstalling South African Localization...")
     print("="*80 + "\n")
-    
+
     # Remove custom fields
     remove_custom_fields()
-    
+
     # Remove property setters
     remove_property_setters()
-    
+
     # Clean up custom DocTypes (optional - with data preservation)
     cleanup_custom_doctypes()
-    
+
     frappe.db.commit()
-    
+
     print("\n" + "="*80)
     print("South African Localization uninstalled successfully!")
     print("="*80)
@@ -60,7 +60,7 @@ def remove_custom_fields():
                 count += 1
             except Exception as e:
                 print(f"  Warning: Could not delete custom field {field_name}: {e}")
-    
+
     frappe.db.commit()
     print(f"✓ Removed {count} custom fields")
 
@@ -70,9 +70,9 @@ def remove_property_setters():
     Remove property setters created by za_local app.
     """
     print("Removing property setters...")
-    
+
     from za_local.sa_setup.property_setters import get_property_setters
-    
+
     count = 0
     for doctypes, property_setters in get_property_setters().items():
         if isinstance(doctypes, str):
@@ -93,7 +93,7 @@ def remove_property_setters():
                     count += 1
                 except Exception as e:
                     print(f"  Warning: Could not delete property setter for {doctype}.{property_setter[0]}: {e}")
-    
+
     frappe.db.commit()
     print(f"✓ Removed {count} property setters")
 
@@ -101,22 +101,22 @@ def remove_property_setters():
 def cleanup_custom_doctypes():
     """
     List custom DocTypes created by za_local for optional manual cleanup.
-    
+
     Does NOT automatically delete to preserve data.
     """
     print("\nThe following DocTypes were created by ZA Local:")
     print("(These have NOT been deleted to preserve your data)")
     print("-" * 80)
-    
+
     modules = ["SA Payroll", "SA Tax", "SA VAT", "COIDA"]
-    
+
     doctypes = frappe.get_all(
         "DocType",
         filters={"module": ["in", modules], "custom": 1},
         fields=["name", "module"],
         order_by="module, name"
     )
-    
+
     if doctypes:
         current_module = None
         for dt in doctypes:
@@ -124,13 +124,13 @@ def cleanup_custom_doctypes():
                 current_module = dt.module
                 print(f"\n{current_module}:")
             print(f"  - {dt.name}")
-        
+
         print("\n" + "-" * 80)
         print("To remove these DocTypes and their data, delete them manually")
         print("from: Setup > DocType List")
     else:
         print("  No custom DocTypes found.")
-    
+
     print("-" * 80)
 
 

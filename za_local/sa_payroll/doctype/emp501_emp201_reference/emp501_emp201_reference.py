@@ -1,6 +1,7 @@
 import frappe
 from frappe.model.document import Document
 
+
 class EMP501EMP201Reference(Document):
     def validate(self):
         if self.emp201_submission:
