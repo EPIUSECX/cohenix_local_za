@@ -16,8 +16,12 @@ class ZALocalSetup(Document):
 
 	def on_update(self):
 		"""Called after document is saved"""
-		# If status changed to Completed, run the setup
-		if self.setup_status == "In Progress" and not self.setup_completed_on:
+		# Only run setup when the user explicitly moves the document into "In Progress".
+		if (
+			self.has_value_changed("setup_status")
+			and self.setup_status == "In Progress"
+			and not self.setup_completed_on
+		):
 			self.run_setup()
 
 	def run_setup(self):
@@ -32,3 +36,15 @@ class ZALocalSetup(Document):
 			self.save()
 			frappe.throw(_("Setup failed: {0}").format(str(e)))
 
+	@frappe.whitelist()
+	def start_setup(self):
+		"""Explicit user action to apply the selected South African setup options."""
+		if not self.company:
+			frappe.throw(_("Company is required"))
+
+		self.setup_status = "In Progress"
+		self.save()
+		return {
+			"status": self.setup_status,
+			"setup_completed_on": self.setup_completed_on,
+		}

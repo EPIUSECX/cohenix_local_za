@@ -22,31 +22,188 @@ UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
 
 DEFAULT_SARS_PAYROLL_CODES = [
-	{"code": "3601", "description": "Income - Gross Remuneration", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 10},
-	{"code": "3605", "description": "Income - Annual Payment", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 20},
-	{"code": "3607", "description": "Income - Overtime", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 30},
-	{"code": "3701", "description": "Income - Travel Allowance", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 40},
-	{"code": "3702", "description": "Income - Other Allowances", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 50},
-	{"code": "3704", "description": "Income - Subsistence Allowance", "category": "Income", "tax_treatment": "Non-Taxable", "print_sequence": 60},
-	{"code": "3713", "description": "Income - Uniform Allowance", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 70},
-	{"code": "3802", "description": "Income - Use of Motor Vehicle", "category": "Income", "tax_treatment": "Taxable", "print_sequence": 80},
-	{"code": "4001", "description": "Deduction - Pension / Provident Fund", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 100},
-	{"code": "4005", "description": "Deduction - Medical Scheme Fees", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 110},
-	{"code": "4006", "description": "Deduction - Retirement Annuity Fund", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 120},
-	{"code": "4007", "description": "Deduction - Group Life Insurance", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 130},
-	{"code": "4008", "description": "Deduction - Disability Insurance", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 140},
-	{"code": "4010", "description": "Deduction - Loan Repayment", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 150},
-	{"code": "4102", "description": "Deduction - PAYE", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 160},
-	{"code": "4116", "description": "Tax Credit - Medical Scheme Fees Tax Credit", "category": "Tax Credit", "tax_treatment": "Reference", "print_sequence": 170},
-	{"code": "4120", "description": "Tax Credit - Additional Medical Expenses Tax Credit", "category": "Tax Credit", "tax_treatment": "Reference", "print_sequence": 180},
-	{"code": "4141", "description": "Deduction / Contribution - UIF", "category": "Deduction", "tax_treatment": "Reference", "print_sequence": 190},
-	{"code": "4142", "description": "Employer Contribution - SDL", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 200},
-	{"code": "4472", "description": "Employer Contribution - Pension Fund", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 210},
-	{"code": "4474", "description": "Employer Contribution - Medical Scheme", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 220},
-	{"code": "4475", "description": "Employer Contribution - Group Life Insurance", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 230},
-	{"code": "4476", "description": "Employer Contribution - Disability Insurance", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 240},
-	{"code": "4477", "description": "Employer Contribution - Funeral Benefit", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 250},
-	{"code": "4497", "description": "Employer Contribution - Other Employer Contributions", "category": "Employer Contribution", "tax_treatment": "Reference", "print_sequence": 260},
+	{
+		"code": "3601",
+		"description": "Income - Gross Remuneration",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 10,
+	},
+	{
+		"code": "3605",
+		"description": "Income - Annual Payment",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 20,
+	},
+	{
+		"code": "3607",
+		"description": "Income - Overtime",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 30,
+	},
+	{
+		"code": "3701",
+		"description": "Income - Travel Allowance",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 40,
+	},
+	{
+		"code": "3702",
+		"description": "Income - Other Allowances",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 50,
+	},
+	{
+		"code": "3704",
+		"description": "Income - Subsistence Allowance",
+		"category": "Income",
+		"tax_treatment": "Non-Taxable",
+		"print_sequence": 60,
+	},
+	{
+		"code": "3713",
+		"description": "Income - Uniform Allowance",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 70,
+	},
+	{
+		"code": "3802",
+		"description": "Income - Use of Motor Vehicle",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 80,
+	},
+	{
+		"code": "4001",
+		"description": "Deduction - Pension / Provident Fund",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 100,
+	},
+	{
+		"code": "4005",
+		"description": "Deduction - Medical Scheme Fees",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 110,
+	},
+	{
+		"code": "4006",
+		"description": "Deduction - Retirement Annuity Fund",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 120,
+	},
+	{
+		"code": "4007",
+		"description": "Deduction - Group Life Insurance",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 130,
+	},
+	{
+		"code": "4008",
+		"description": "Deduction - Disability Insurance",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 140,
+	},
+	{
+		"code": "4010",
+		"description": "Deduction - Loan Repayment",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 150,
+	},
+	{
+		"code": "4102",
+		"description": "Deduction - PAYE",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 160,
+	},
+	{
+		"code": "4116",
+		"description": "Tax Credit - Medical Scheme Fees Tax Credit",
+		"category": "Tax Credit",
+		"tax_treatment": "Reference",
+		"print_sequence": 170,
+	},
+	{
+		"code": "4118",
+		"description": "Tax Credit - Employment Tax Incentive",
+		"category": "Tax Credit",
+		"tax_treatment": "Reference",
+		"print_sequence": 175,
+	},
+	{
+		"code": "4120",
+		"description": "Tax Credit - Additional Medical Expenses Tax Credit",
+		"category": "Tax Credit",
+		"tax_treatment": "Reference",
+		"print_sequence": 180,
+	},
+	{
+		"code": "4141",
+		"description": "Deduction / Contribution - UIF",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 190,
+	},
+	{
+		"code": "4142",
+		"description": "Employer Contribution - SDL",
+		"category": "Employer Contribution",
+		"tax_treatment": "Reference",
+		"print_sequence": 200,
+	},
+	{
+		"code": "4472",
+		"description": "Employer Contribution - Pension Fund",
+		"category": "Employer Contribution",
+		"tax_treatment": "Reference",
+		"print_sequence": 210,
+	},
+	{
+		"code": "4474",
+		"description": "Employer Contribution - Medical Scheme",
+		"category": "Employer Contribution",
+		"tax_treatment": "Reference",
+		"print_sequence": 220,
+	},
+	{
+		"code": "4475",
+		"description": "Employer Contribution - Group Life Insurance",
+		"category": "Employer Contribution",
+		"tax_treatment": "Reference",
+		"print_sequence": 230,
+	},
+	{
+		"code": "4476",
+		"description": "Employer Contribution - Disability Insurance",
+		"category": "Employer Contribution",
+		"tax_treatment": "Reference",
+		"print_sequence": 240,
+	},
+	{
+		"code": "4477",
+		"description": "Employer Contribution - Funeral Benefit",
+		"category": "Employer Contribution",
+		"tax_treatment": "Reference",
+		"print_sequence": 250,
+	},
+	{
+		"code": "4497",
+		"description": "Employer Contribution - Other Employer Contributions",
+		"category": "Employer Contribution",
+		"tax_treatment": "Reference",
+		"print_sequence": 260,
+	},
 ]
 
 DEFAULT_SALARY_COMPONENT_SARS_CODES = {
@@ -70,6 +227,8 @@ DEFAULT_SALARY_COMPONENT_SARS_CODES = {
 	"Use of Motor Vehicle": "3802",
 	"PAYE": "4102",
 	"Income Tax": "4102",
+	"Employment Tax Incentive": "4118",
+	"ETI": "4118",
 	"UIF Employee Contribution": "4141",
 	"UIF Employer Contribution": "4141",
 	"UIF": "4141",
@@ -145,16 +304,16 @@ def after_install():
 	sync_sa_workspaces()
 	sync_za_local_desktop_icons()
 	frappe.db.commit()
-	print("\n" + "="*80)
+	print("\n" + "=" * 80)
 	print("South African Localization installed successfully!")
-	print("="*80)
+	print("=" * 80)
 	print("\nNext steps:")
 	print("1. Configure Company SA registration numbers")
 	print("2. Set up Payroll Settings with SA statutory components")
 	print("3. Configure ETI Slabs and Tax Rebates")
 	print("4. Set up COIDA and VAT settings if applicable")
 	print("5. Configure Business Trip Settings for travel allowances")
-	print("="*80 + "\n")
+	print("=" * 80 + "\n")
 
 
 def after_migrate():
@@ -219,13 +378,17 @@ def cleanup_invalid_doctype_links():
 
 	for parent_dt, link_dt, link_field in invalid_links:
 		# Find and delete invalid links
-		links_to_delete = frappe.db.sql("""
+		links_to_delete = frappe.db.sql(
+			"""
 			SELECT name
 			FROM `tabDocType Link`
 			WHERE parent = %s
 				AND link_doctype = %s
 				AND link_fieldname = %s
-		""", (parent_dt, link_dt, link_field), as_dict=1)
+		""",
+			(parent_dt, link_dt, link_field),
+			as_dict=1,
+		)
 
 		for link in links_to_delete:
 			try:
@@ -281,9 +444,7 @@ def migrate_workspace_sa_localisation_to_sa_overview():
 	if not frappe.db.exists("Workspace", "SA Localisation"):
 		return
 	if frappe.db.exists("Workspace", "SA Overview"):
-		print(
-			"  ⊙ SA Overview workspace already exists; skipping SA Localisation → SA Overview rename"
-		)
+		print("  ⊙ SA Overview workspace already exists; skipping SA Localisation → SA Overview rename")
 		return
 	try:
 		from frappe.model.rename_doc import rename_doc
@@ -415,7 +576,16 @@ def sync_sa_workspaces():
 		data = copy.deepcopy(data)
 		_sanitize_workspace_dashboard_charts(data)
 
-		immutable_keys = {"name", "doctype", "creation", "modified", "owner", "modified_by", "docstatus", "idx"}
+		immutable_keys = {
+			"name",
+			"doctype",
+			"creation",
+			"modified",
+			"owner",
+			"modified_by",
+			"docstatus",
+			"idx",
+		}
 
 		if frappe.db.exists("Workspace", ws_name):
 			try:
@@ -575,9 +745,7 @@ _SETTINGS_SIDEBAR_FOOTER_DOCTYPES = frozenset(
 )
 
 
-def _is_sidebar_settings_footer_link(
-	link_type: str, link_to: str, workspace_name: str | None = None
-) -> bool:
+def _is_sidebar_settings_footer_link(link_type: str, link_to: str, workspace_name: str | None = None) -> bool:
 	# SA Overview hub intentionally lists setup DocTypes in cards (not a pinned footer).
 	if workspace_name == "SA Overview":
 		return False
@@ -658,9 +826,7 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
 		if key in settings_footer_keys:
 			return
 		settings_footer_keys.add(key)
-		settings_footer.append(
-			{"label": label, "link_type": link_type, "link_to": link_to}
-		)
+		settings_footer.append({"label": label, "link_type": link_type, "link_to": link_to})
 
 	# Home must remain the first sidebar row (idx 0) after rebuild.
 	add_row(
@@ -905,9 +1071,7 @@ def sync_za_local_desktop_icons():
 	logo = details[0].get("logo", "/assets/za_local/images/sa_map_icon.png")
 
 	# Desktop Icon PK = label; App tile label must not clash with a Link row of the same label.
-	for row in frappe.get_all(
-		"Desktop Icon", filters={"label": app_title}, fields=["name", "icon_type"]
-	):
+	for row in frappe.get_all("Desktop Icon", filters={"label": app_title}, fields=["name", "icon_type"]):
 		if row.icon_type == "App":
 			continue
 		try:
@@ -1024,9 +1188,7 @@ def before_migrate():
 		# Update any DocType or Report that still has module "COIDA" to "SA COIDA"
 		for dt in ("DocType", "Report"):
 			if frappe.db.table_exists(dt):
-				frappe.db.sql(
-					"UPDATE `tab{0}` SET module = 'SA COIDA' WHERE module = 'COIDA'".format(dt)
-				)
+				frappe.db.sql("UPDATE `tab{0}` SET module = 'SA COIDA' WHERE module = 'COIDA'".format(dt))
 		frappe.db.commit()
 		# Ensure cache is cleared so app_modules is rebuilt from modules.txt (SA COIDA not COIDA)
 		frappe.cache().delete_value("app_modules")
@@ -1116,87 +1278,75 @@ def create_company_contribution_doctype():
 	if not frappe.db.exists("Module Def", "Payroll"):
 		module_name = "SA Payroll"  # Fallback to our module
 
-	doc = frappe.get_doc({
-		"doctype": "DocType",
-		"name": "Company Contribution",
-		"module": module_name,
-		"custom": 1,
-		"istable": 1,
-		"editable_grid": 1,
-		"track_changes": 1,
-		"fields": [
-			{
-				"fieldname": "salary_component",
-				"label": "Salary Component",
-				"fieldtype": "Link",
-				"options": "Salary Component",
-				"in_list_view": 1,
-				"reqd": 1
-			},
-			{
-				"fieldname": "abbr",
-				"label": "Abbr",
-				"fieldtype": "Data",
-				"fetch_from": "salary_component.salary_component_abbr",
-				"read_only": 1
-			},
-			{
-				"fieldname": "amount",
-				"label": "Amount",
-				"fieldtype": "Currency",
-				"options": "currency",
-				"in_list_view": 1,
-				"allow_on_submit": 1
-			},
-			{
-				"fieldname": "condition_and_formula_section",
-				"label": "Condition and Formula",
-				"fieldtype": "Section Break",
-				"collapsible": 1
-			},
-			{
-				"fieldname": "condition",
-				"label": "Condition",
-				"fieldtype": "Code",
-				"fetch_from": "salary_component.condition",
-				"allow_on_submit": 1
-			},
-			{
-				"fieldname": "column_break_6",
-				"fieldtype": "Column Break"
-			},
-			{
-				"fieldname": "amount_based_on_formula",
-				"label": "Amount based on formula",
-				"fieldtype": "Check",
-				"default": "0",
-				"fetch_from": "salary_component.amount_based_on_formula",
-				"allow_on_submit": 1
-			},
-			{
-				"fieldname": "formula",
-				"label": "Formula",
-				"fieldtype": "Code",
-				"fetch_from": "salary_component.formula",
-				"allow_on_submit": 1
-			}
-		],
-		"permissions": [
-			{
-				"role": "HR Manager",
-				"read": 1,
-				"write": 1,
-				"create": 1,
-				"delete": 1
-			},
-			{
-				"role": "HR User",
-				"read": 1,
-				"write": 1,
-				"create": 1
-			}
-		]
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "DocType",
+			"name": "Company Contribution",
+			"module": module_name,
+			"custom": 1,
+			"istable": 1,
+			"editable_grid": 1,
+			"track_changes": 1,
+			"fields": [
+				{
+					"fieldname": "salary_component",
+					"label": "Salary Component",
+					"fieldtype": "Link",
+					"options": "Salary Component",
+					"in_list_view": 1,
+					"reqd": 1,
+				},
+				{
+					"fieldname": "abbr",
+					"label": "Abbr",
+					"fieldtype": "Data",
+					"fetch_from": "salary_component.salary_component_abbr",
+					"read_only": 1,
+				},
+				{
+					"fieldname": "amount",
+					"label": "Amount",
+					"fieldtype": "Currency",
+					"options": "currency",
+					"in_list_view": 1,
+					"allow_on_submit": 1,
+				},
+				{
+					"fieldname": "condition_and_formula_section",
+					"label": "Condition and Formula",
+					"fieldtype": "Section Break",
+					"collapsible": 1,
+				},
+				{
+					"fieldname": "condition",
+					"label": "Condition",
+					"fieldtype": "Code",
+					"fetch_from": "salary_component.condition",
+					"allow_on_submit": 1,
+				},
+				{"fieldname": "column_break_6", "fieldtype": "Column Break"},
+				{
+					"fieldname": "amount_based_on_formula",
+					"label": "Amount based on formula",
+					"fieldtype": "Check",
+					"default": "0",
+					"fetch_from": "salary_component.amount_based_on_formula",
+					"allow_on_submit": 1,
+				},
+				{
+					"fieldname": "formula",
+					"label": "Formula",
+					"fieldtype": "Code",
+					"fetch_from": "salary_component.formula",
+					"allow_on_submit": 1,
+				},
+			],
+			"permissions": [
+				{"role": "HR Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+				{"role": "HR User", "read": 1, "write": 1, "create": 1},
+			],
+		}
+	)
 
 	doc.insert(ignore_permissions=True)
 	frappe.db.commit()
@@ -1254,8 +1404,12 @@ def seed_sars_payroll_codes():
 
 def migrate_irp5_legacy_source_fields():
 	"""Move legacy site-specific IRP5 source fields into app-owned za_local fields."""
-	if frappe.db.exists("DocType", "Company") and frappe.db.has_column("Company", "custom_paye_reference_number"):
-		for company in frappe.get_all("Company", fields=["name", "za_paye_reference_number", "custom_paye_reference_number"]):
+	if frappe.db.exists("DocType", "Company") and frappe.db.has_column(
+		"Company", "custom_paye_reference_number"
+	):
+		for company in frappe.get_all(
+			"Company", fields=["name", "za_paye_reference_number", "custom_paye_reference_number"]
+		):
 			if company.za_paye_reference_number:
 				continue
 			if company.custom_paye_reference_number:
@@ -1283,7 +1437,9 @@ def migrate_irp5_legacy_source_fields():
 					update_modified=False,
 				)
 
-	if frappe.db.exists("DocType", "Employee") and frappe.db.has_column("Employee", "custom_residential_address"):
+	if frappe.db.exists("DocType", "Employee") and frappe.db.has_column(
+		"Employee", "custom_residential_address"
+	):
 		for employee in frappe.get_all(
 			"Employee",
 			fields=["name", "employee_name", "za_residential_address", "custom_residential_address"],
@@ -1294,7 +1450,9 @@ def migrate_irp5_legacy_source_fields():
 			if not address_text:
 				continue
 
-			address_name = _create_irp5_address_from_legacy_text(employee.name, employee.employee_name, address_text)
+			address_name = _create_irp5_address_from_legacy_text(
+				employee.name, employee.employee_name, address_text
+			)
 			if address_name:
 				frappe.db.set_value(
 					"Employee",
@@ -1308,7 +1466,9 @@ def migrate_irp5_legacy_source_fields():
 	print("  ✓ Migrated legacy IRP5 source fields")
 
 
-def _create_irp5_address_from_legacy_text(employee_name: str, employee_display_name: str | None, address_text: str):
+def _create_irp5_address_from_legacy_text(
+	employee_name: str, employee_display_name: str | None, address_text: str
+):
 	title = employee_display_name or employee_name
 	existing = frappe.get_all(
 		"Address",
@@ -1354,10 +1514,7 @@ def create_salary_component_if_not_exists(component_data):
 		component_data (dict): Salary component configuration
 	"""
 	if not frappe.db.exists("Salary Component", component_data["name"]):
-		doc = frappe.get_doc({
-			"doctype": "Salary Component",
-			**component_data
-		})
+		doc = frappe.get_doc({"doctype": "Salary Component", **component_data})
 		doc.insert(ignore_permissions=True)
 		print(f"✓ Created Salary Component: {component_data['name']}")
 	else:
@@ -1382,7 +1539,7 @@ def setup_default_salary_components():
 			"type": "Deduction",
 			"description": "Pay As You Earn - Income Tax",
 			"is_tax_applicable": 0,
-			"variable_based_on_taxable_salary": 1
+			"variable_based_on_taxable_salary": 1,
 		},
 		{
 			"name": "UIF Employee Contribution",
@@ -1391,7 +1548,7 @@ def setup_default_salary_components():
 			"description": "Unemployment Insurance Fund - Employee Contribution (1%)",
 			"is_tax_applicable": 0,
 			"formula": UIF_FORMULA,
-			"amount_based_on_formula": 1
+			"amount_based_on_formula": 1,
 		},
 		{
 			"name": "UIF Employer Contribution",
@@ -1400,7 +1557,7 @@ def setup_default_salary_components():
 			"description": "Unemployment Insurance Fund - Employer Contribution (1%)",
 			"is_tax_applicable": 0,
 			"formula": UIF_FORMULA,
-			"amount_based_on_formula": 1
+			"amount_based_on_formula": 1,
 		},
 		{
 			"name": "SDL Contribution",
@@ -1409,8 +1566,8 @@ def setup_default_salary_components():
 			"description": "Skills Development Levy (1%)",
 			"is_tax_applicable": 0,
 			"formula": SDL_FORMULA,
-			"amount_based_on_formula": 1
-		}
+			"amount_based_on_formula": 1,
+		},
 	]
 
 	for component in components:
@@ -1493,6 +1650,7 @@ def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict
 
 	frappe.db.commit()
 
+
 def import_master_data():
 	"""
 	Import master data from CSV files.
@@ -1506,6 +1664,7 @@ def import_master_data():
 
 	try:
 		from za_local.utils.csv_importer import import_all_master_data
+
 		import_all_master_data()
 	except Exception as e:
 		print(f"  Warning: Could not import master data: {e}")
@@ -1523,14 +1682,16 @@ def setup_default_retirement_funds():
 	for fund in retirement_funds:
 		if not frappe.db.exists("Retirement Fund", {"fund_name": fund["fund_name"]}):
 			try:
-				doc = frappe.get_doc({
-					"doctype": "Retirement Fund",
-					**fund,
-					"employee_contribution_percentage": 7.5,
-					"employer_contribution_percentage": 10.0,
-					"tax_deductible_limit": 27.5,  # 27.5% of taxable income
-					"company": frappe.defaults.get_defaults().get("company")
-				})
+				doc = frappe.get_doc(
+					{
+						"doctype": "Retirement Fund",
+						**fund,
+						"employee_contribution_percentage": 7.5,
+						"employer_contribution_percentage": 10.0,
+						"tax_deductible_limit": 27.5,  # 27.5% of taxable income
+						"company": frappe.defaults.get_defaults().get("company"),
+					}
+				)
 				doc.insert(ignore_permissions=True)
 			except Exception as e:
 				print(f"! Could not create retirement fund {fund['fund_name']}: {e}")
@@ -1577,6 +1738,7 @@ def run_za_local_setup(setup_doc):
 		# Load master data
 		if setup_doc.load_business_trip_regions:
 			from za_local.utils.csv_importer import import_csv_data
+
 			import_csv_data("Business Trip Region", "business_trip_region.csv")
 			print("✓ Loaded business trip regions")
 
@@ -1585,6 +1747,7 @@ def run_za_local_setup(setup_doc):
 			print("Loading South African Chart of Accounts...")
 			try:
 				from za_local.accounts.setup_chart import load_sa_chart_of_accounts
+
 				load_sa_chart_of_accounts(setup_doc.company)
 				print("✓ Loaded Chart of Accounts")
 			except Exception as e:
@@ -1627,13 +1790,13 @@ def refresh_sa_tax_tables():
 		"payroll_period_2026.json",  # 2025-2026 (2026 tax year)
 		"payroll_period_2027.json",  # 2026-2027 (2027 tax year)
 		# Income Tax Slabs
-		"tax_slabs_2025.json",       # 2024-2025 (2025 tax year)
-		"tax_slabs_2026.json",       # 2025-2026 (2026 tax year)
-		"tax_slabs_2027.json",       # 2026-2027 (2027 tax year)
+		"tax_slabs_2025.json",  # 2024-2025 (2025 tax year)
+		"tax_slabs_2026.json",  # 2025-2026 (2026 tax year)
+		"tax_slabs_2027.json",  # 2026-2027 (2027 tax year)
 		# Tax Rebates & Medical Credits
-		"tax_rebates_2025.json",     # 2024-2025 (2025 tax year)
-		"tax_rebates_2026.json",     # 2025-2026 (2026 tax year)
-		"tax_rebates_2027.json",     # 2026-2027 (2027 tax year)
+		"tax_rebates_2025.json",  # 2024-2025 (2025 tax year)
+		"tax_rebates_2026.json",  # 2025-2026 (2026 tax year)
+		"tax_rebates_2027.json",  # 2026-2027 (2027 tax year)
 	]
 
 	print("\nRefreshing South African payroll periods and tax tables from fixtures...")
@@ -1668,7 +1831,11 @@ def refresh_sa_tax_tables():
 					for record in records:
 						doctype = record.get("doctype")
 						name = record.get("name")
-						if doctype in ("Payroll Period", "Income Tax Slab") and name and frappe.db.exists(doctype, name):
+						if (
+							doctype in ("Payroll Period", "Income Tax Slab")
+							and name
+							and frappe.db.exists(doctype, name)
+						):
 							frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
 							print(f"  ⊙ Deleted existing {doctype}: {name}")
 				except Exception:
@@ -1782,9 +1949,7 @@ def insert_record(record):
 	# Standard: "name"
 	# Salary Component: "salary_component"
 	# Holiday List: "holiday_list_name"
-	name = (record.get("name") or
-	        record.get("salary_component") or
-	        record.get("holiday_list_name"))
+	name = record.get("name") or record.get("salary_component") or record.get("holiday_list_name")
 
 	# Check if it's a Single DocType
 	meta = frappe.get_meta(doctype)
@@ -1845,15 +2010,19 @@ def insert_record(record):
 				if doctype == "Holiday List":
 					# Reload document to get latest state from database
 					doc.reload()
-					holiday_count = len(doc.get("holidays", [])) if hasattr(doc, 'get') else 0
+					holiday_count = len(doc.get("holidays", [])) if hasattr(doc, "get") else 0
 					if holiday_count > 0:
 						print(f"    → Added {holiday_count} holidays to '{created_name}'")
 					else:
 						# If no holidays in doc, check the original record
 						holiday_count_from_record = len(record.get("holidays", []))
 						if holiday_count_from_record > 0:
-							print(f"    ! Warning: {holiday_count_from_record} holidays in record but not saved.")
-							print("    ! This may indicate a child table field name mismatch or HRMS not fully installed.")
+							print(
+								f"    ! Warning: {holiday_count_from_record} holidays in record but not saved."
+							)
+							print(
+								"    ! This may indicate a child table field name mismatch or HRMS not fully installed."
+							)
 						else:
 							print("    ! Warning: No holidays found in record")
 			else:
@@ -1874,4 +2043,5 @@ def insert_record(record):
 			print("      - Are holiday items properly formatted with 'holiday_date' and 'description'?")
 
 		import traceback
+
 		traceback.print_exc()

@@ -5,15 +5,10 @@ frappe.ui.form.on('EMP501 Reconciliation', {
             // STEP 1: Fetch EMP201 Submissions
             // Show this button if company and tax_year are set (dates will be auto-populated or validated)
             const hasRequiredFields = frm.doc.company && frm.doc.tax_year;
-            // Check if EMP201 fetch has been completed
-            // We check if emp201_submissions has entries (meaning fetch was run and found results)
-            // Note: If fetch was run but found no results, array will be empty, so we can't distinguish
-            // between "never run" and "run but no results". We'll assume if array is empty, Step 1 hasn't been run.
-            // This is the most reliable approach since Frappe always initializes child tables as empty arrays.
             const hasEMP201Entries = frm.doc.emp201_submissions && frm.doc.emp201_submissions.length > 0;
             
             if (hasRequiredFields && !hasEMP201Entries) {
-                frm.add_custom_button(__('Step 1: Fetch EMP201 Submissions'), function() {
+                frm.add_custom_button(__('Step 1: Fetch Monthly EMP201 Declarations'), function() {
                     // Validate required fields
                     if (!frm.doc.company || !frm.doc.tax_year || !frm.doc.from_date || !frm.doc.to_date) {
                         frappe.msgprint({
@@ -41,19 +36,9 @@ frappe.ui.form.on('EMP501 Reconciliation', {
             }
             
             // STEP 2: Generate IRP5 Certificates
-            // Show this button only after Step 1 has been completed
-            // Step 1 is considered complete if emp201_submissions has entries
-            // OR if document is saved and user wants to proceed (allows proceeding even if no EMP201s found)
-            // But we prioritize showing Step 1 first - Step 2 only shows if Step 1 has entries
             const hasIRP5Certificates = frm.doc.irp5_certificates && frm.doc.irp5_certificates.length > 0;
-            const step2_hasEMP201Entries = frm.doc.emp201_submissions && frm.doc.emp201_submissions.length > 0;
-            const isSaved = !frm.is_new();
-            // Step 2 shows if: has entries (Step 1 found results) OR (saved AND Step 1 button is not showing)
-            // This allows proceeding if Step 1 found no results, but ensures Step 1 is attempted first
-            const step1NotShowing = !hasRequiredFields || step2_hasEMP201Entries;
-            const step1Completed = step2_hasEMP201Entries || (isSaved && step1NotShowing);
             
-            if (step1Completed && !hasIRP5Certificates) {
+            if (hasEMP201Entries && !hasIRP5Certificates) {
                 frm.add_custom_button(__('Step 2: Generate IRP5 Certificates'), function() {
                     // Validate required fields
                     if (!frm.doc.company || !frm.doc.tax_year || !frm.doc.from_date || !frm.doc.to_date) {
@@ -81,40 +66,22 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                 }).addClass('btn-primary');
             }
             
+            if (hasRequiredFields && !hasEMP201Entries) {
+                frm.dashboard.add_indicator(__('EMP201 coverage must be fetched before IRP5 generation'), 'orange');
+                frm.set_intro(__('Compliance flow: submitted salary slips -> monthly EMP201 -> IRP5 certificates -> EMP501 submission.'), 'orange');
+            }
+            
             // STEP 3: Ready to Submit indicator
-            const step3_hasEMP201Entries = frm.doc.emp201_submissions && frm.doc.emp201_submissions.length > 0;
-            if (step3_hasEMP201Entries && hasIRP5Certificates) {
-                frm.dashboard.add_indicator(__('Ready to Submit'), 'green');
+            if (hasEMP201Entries && hasIRP5Certificates) {
+                frm.dashboard.add_indicator(__('Ready for EMP501 Submission'), 'green');
             }
         }
         
         if (frm.doc.docstatus === 1) {
-            // Submitted state - post-submission actions
-            if (frm.doc.status === "Submitted") {
-                frm.add_custom_button(__('Submit to SARS'), function() {
-                    frappe.confirm(
-                        __('Are you sure you want to submit this EMP501 reconciliation to SARS?'),
-                        function() {
-                            frm.call({
-                                doc: frm.doc,
-                                method: 'submit_to_sars',
-                                callback: function(r) {
-                                    if (r.message && r.message.status === 'success') {
-                                        frappe.show_alert({
-                                            message: __(r.message.message),
-                                            indicator: 'green'
-                                        });
-                                        frm.refresh();
-                                    }
-                                }
-                            });
-                        }
-                    );
-                }).addClass('btn-primary');
-            }
+            frm.set_intro(__('Direct SARS electronic submission is not supported in this release. Use the filing export below and complete submission manually in SARS eFiling.'), 'orange');
             
             // Download CSV for SARS e-Filing (available after submission)
-            frm.add_custom_button(__('Download CSV for e-Filing'), function() {
+            frm.add_custom_button(__('Download Filing CSV'), function() {
                 frappe.call({
                     method: 'za_local.utils.emp501_utils.generate_emp501_csv',
                     args: {
@@ -140,11 +107,20 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                     if (r.message) {
                         let count = r.message.count || 0;
                         let message = r.message.message || __('EMP201 submissions fetched');
+                        const missingPeriods = r.message.missing_periods || [];
                         
-                        frappe.show_alert({
-                            message: __(`Step 1 Complete: ${message} You can now proceed to Step 2.`),
-                            indicator: 'green'
-                        }, 5);
+                        if (count > 0 && missingPeriods.length === 0) {
+                            frappe.show_alert({
+                                message: __(`Step 1 Complete: ${message} You can now proceed to Step 2.`),
+                                indicator: 'green'
+                            }, 5);
+                        } else {
+                            frappe.msgprint({
+                                title: __('Incomplete EMP201 Coverage'),
+                                message: __('Step 1 is not complete yet. Missing submitted EMP201 declarations for: {0}').replace('{0}', missingPeriods.join(', ') || __('the selected period')),
+                                indicator: 'orange'
+                            });
+                        }
                         frm.refresh();
                     }
                 },
@@ -269,10 +245,18 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                 },
                 callback: function(r) {
                     if (r.message) {
-                        frm.set_value('paye_reference_number', r.message.tax_id);
+                        frm.set_value('paye_reference_number', r.message.za_paye_reference_number);
                         frm.set_value('sdl_reference_number', r.message.za_sdl_reference_number);
                         frm.set_value('uif_reference_number', r.message.za_uif_reference_number);
 
+                        if (!r.message.za_paye_reference_number && !frm.paye_warning_shown) {
+                            frappe.msgprint({
+                                title: __('Missing PAYE Number'),
+                                indicator: 'orange',
+                                message: __('The PAYE Reference Number is missing for the selected company. Please update it in the Company form.')
+                            });
+                            frm.paye_warning_shown = true;
+                        }
                         if (!r.message.za_sdl_reference_number && !frm.sdl_warning_shown) {
                             frappe.msgprint({
                                 title: __('Missing SDL Number'),

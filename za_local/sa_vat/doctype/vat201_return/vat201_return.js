@@ -6,24 +6,7 @@ frappe.ui.form.on('VAT201 Return', {
     refresh: function(frm) {
         // Add custom buttons
         if (frm.doc.docstatus === 1 && frm.doc.status === "Prepared") {
-            frm.add_custom_button(__('Submit to SARS'), function() {
-                frappe.confirm(
-                    __('Are you sure you want to submit this VAT201 Return to SARS e-Filing?'),
-                    function() {
-                        // Yes - Submit to SARS
-                        frm.call({
-                            method: 'submit_to_sars',
-                            doc: frm.doc,
-                            callback: function(r) {
-                                frm.reload_doc();
-                            }
-                        });
-                    },
-                    function() {
-                        // No - Do nothing
-                    }
-                );
-            }).addClass('btn-primary');
+            frm.set_intro(__('Direct SARS electronic submission is not supported in this release. Review the return, export your working papers, and file manually through SARS eFiling.'), 'orange');
         }
         
         if (frm.doc.docstatus === 0) {
