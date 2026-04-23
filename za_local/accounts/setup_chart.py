@@ -560,7 +560,23 @@ def apply_chart_patches_on_request():
 	need chart discovery), ERPNext's chart loader and financial-report sync
 	understand the ZA chart template name.
 	"""
+	request = getattr(frappe.local, "request", None)
+	path = (getattr(request, "path", "") or "").lower()
+	cmd = (frappe.form_dict or {}).get("cmd", "")
+
+	relevant_commands = {
+		"erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts.get_charts_for_country",
+		"za_local.accounts.setup_chart.get_charts_for_country_with_za",
+		"frappe.desk.page.setup_wizard.setup_wizard.setup_complete",
+	}
+
+	if not (
+		"setup-wizard" in path
+		or "/api/resource/company" in path
+		or cmd in relevant_commands
+	):
+		return
+
 	extend_charts_for_country()
 	extend_chart_loader()
 	patch_financial_report_templates_sync()
-

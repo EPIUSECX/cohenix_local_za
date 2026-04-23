@@ -277,7 +277,7 @@ def test_actual_data_loading():
 	from za_local.sa_setup.install import load_data_from_json
 	from pathlib import Path
 	
-		data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
+	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
 	
 	# Start transaction (will rollback at end)
 	frappe.db.begin()
@@ -339,4 +339,3 @@ def test_actual_data_loading():
 if __name__ == "__main__":
 	# For running outside Frappe context
 	print("Please run with: bench --site your-site.local execute za_local.test_data_loading.run_all_tests")
-

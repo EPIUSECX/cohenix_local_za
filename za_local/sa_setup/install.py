@@ -9,15 +9,10 @@ import copy
 import frappe
 import json
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from frappe.custom.doctype.customize_form.customize_form import (
-	docfield_properties,
-	doctype_properties,
-)
-from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from frappe.utils.fixtures import import_fixtures
 from za_local.sa_setup.custom_fields import setup_custom_fields
-from za_local.sa_setup.property_setters import get_property_setters
 from za_local.sa_setup.monkey_patches import setup_all_monkey_patches
+from za_local.sa_setup.property_setters import apply_property_setters
 from za_local.utils.hrms_detection import is_hrms_installed
 
 
@@ -27,9 +22,11 @@ SDL_FORMULA = "gross_pay * 0.01"
 
 def sync_za_local():
 	"""
-	Unified sync: other fixtures (property setter, print format, app) then setup/custom_fields.
-	Custom fields, cleanup, property setters, and DocType Links all live in custom_fields.py
-	and run in one order via setup_custom_fields().
+	Unified sync: import standard fixtures, then apply centralized custom-field setup.
+
+	Custom fields, cleanup, and custom DocType Links live in ``custom_fields.py``.
+	Property setters are applied separately from ``property_setters.py`` so there is a
+	single authoritative source for standard DocType overrides.
 	"""
 	import_fixtures("za_local")
 	setup_custom_fields()
@@ -75,8 +72,6 @@ def after_install():
 	set_accounts_settings_for_za_vat()
 	migrate_workspace_sa_localisation_to_sa_overview()
 	sync_sa_workspaces()
-	rebuild_za_local_workspace_sidebars()
-	sync_za_local_workspace_sidebar_modules()
 	sync_za_local_desktop_icons()
 	frappe.db.commit()
 	print("\n" + "="*80)
@@ -109,8 +104,6 @@ def after_migrate():
 	set_accounts_settings_for_za_vat()
 	migrate_workspace_sa_localisation_to_sa_overview()
 	sync_sa_workspaces()
-	rebuild_za_local_workspace_sidebars()
-	sync_za_local_workspace_sidebar_modules()
 	sync_za_local_desktop_icons()
 	frappe.db.commit()
 
@@ -1228,58 +1221,8 @@ def setup_default_salary_components():
 
 
 def make_property_setters():
-	"""
-	Create property setters for South African localization.
-	
-	Sets default values and customizations for standard DocTypes:
-	- Default currency to ZAR
-	- Hide irrelevant fields
-	- Protect attachments on compliance documents
-	"""
-	print("Creating property setters...")
-	
-	hrms_installed = is_hrms_installed()
-	hrms_only_doctypes = {
-		"Salary Component",
-		"Salary Slip",
-		"Salary Structure",
-		"Salary Structure Assignment",
-		"Payroll Entry",
-		"Additional Salary",
-	}
-	
-	for doctypes, property_setters in get_property_setters().items():
-		if isinstance(doctypes, str):
-			doctypes = (doctypes,)
-
-		for doctype in doctypes:
-			if doctype in hrms_only_doctypes and not hrms_installed:
-				print(f"  ⊙ Skipping property setters for {doctype} (HRMS not installed)")
-				continue
-
-			if not frappe.db.exists("DocType", doctype):
-				print(f"  ⊙ Skipping property setters for {doctype} (DocType not found)")
-				continue
-
-			for property_setter in property_setters:
-				if property_setter[0]:
-					for_doctype = False
-					property_type = docfield_properties[property_setter[1]]
-				else:
-					for_doctype = True
-					property_type = doctype_properties[property_setter[1]]
-
-				make_property_setter(
-					doctype=doctype,
-					fieldname=property_setter[0],
-					property=property_setter[1],
-					value=property_setter[2],
-					property_type=property_type,
-					for_doctype=for_doctype,
-					validate_fields_for_doctype=False,
-				)
-	
-	print("✓ Property setters created successfully")
+	"""Compatibility wrapper for the centralized property-setter implementation."""
+	apply_property_setters()
 
 
 def apply_statutory_formulas():

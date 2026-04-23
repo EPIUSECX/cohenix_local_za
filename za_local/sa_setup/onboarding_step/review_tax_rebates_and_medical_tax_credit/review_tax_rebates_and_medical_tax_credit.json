@@ -1,0 +1,20 @@
+{
+ "action": "Update Settings",
+ "action_label": "Review Tax Rebates and Medical Tax Credit",
+ "creation": "2026-04-22 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_single": 1,
+ "is_skipped": 0,
+ "modified": "2026-04-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Review Tax Rebates and Medical Tax Credit",
+ "owner": "Administrator",
+ "reference_document": "Tax Rebates and Medical Tax Credit",
+ "show_form_tour": 0,
+ "show_full_form": 0,
+ "title": "Review Tax Rebates and Medical Tax Credit",
+ "validate_action": 0
+}

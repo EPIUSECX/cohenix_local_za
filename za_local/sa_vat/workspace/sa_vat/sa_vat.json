@@ -1,39 +1,26 @@
 {
  "app": "za_local",
  "charts": [],
+ "content": "[{\"id\":\"sa-vat-sp\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"sa-vat-h\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"sa-vat-p\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"text-muted\\\">South African VAT configuration, VAT201, audit reporting, and ERPNext tax templates.</span>\",\"col\":12}},{\"id\":\"sa-vat-c1\",\"type\":\"card\",\"data\":{\"card_name\":\"Organisation\",\"col\":4}},{\"id\":\"sa-vat-c2\",\"type\":\"card\",\"data\":{\"card_name\":\"Configuration\",\"col\":4}},{\"id\":\"sa-vat-c3\",\"type\":\"card\",\"data\":{\"card_name\":\"Returns & reports\",\"col\":4}},{\"id\":\"sa-vat-c4\",\"type\":\"card\",\"data\":{\"card_name\":\"ERPNext \u2014 tax templates\",\"col\":4}}]",
+ "creation": "2026-02-27 11:40:24.605799",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
  "for_user": "",
  "hide_custom": 0,
+ "icon": "sell",
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "link_type": "DocType",
- "number_cards": [],
- "owner": "Administrator",
- "parent_page": "SA Overview",
- "public": 1,
- "quick_lists": [],
- "roles": [],
- "shortcuts": [],
- "type": "Workspace",
- "creation": "2026-02-27 11:40:24.605799",
- "icon": "sell",
  "label": "SA VAT",
- "module": "SA VAT",
- "name": "SA VAT",
- "title": "SA VAT",
- "sequence_id": 24.0,
- "modified": "2026-04-01 14:00:00.000000",
- "modified_by": "Administrator",
- "content": "[{\"id\": \"sa-vat-sp\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sa-vat-h\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"sa-vat-p\", \"type\": \"paragraph\", \"data\": {\"text\": \"<span class=\\\"text-muted\\\">South African VAT configuration, VAT201, audit reporting, and ERPNext tax templates.</span>\", \"col\": 12}}, {\"id\": \"sa-vat-c1\", \"type\": \"card\", \"data\": {\"card_name\": \"Organisation\", \"col\": 4}}, {\"id\": \"sa-vat-c2\", \"type\": \"card\", \"data\": {\"card_name\": \"Configuration\", \"col\": 4}}, {\"id\": \"sa-vat-c3\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns & reports\", \"col\": 4}}, {\"id\": \"sa-vat-c4\", \"type\": \"card\", \"data\": {\"card_name\": \"ERPNext — tax templates\", \"col\": 4}}]",
+ "link_type": "DocType",
  "links": [
   {
    "hidden": 0,
    "is_query_report": 0,
    "label": "Organisation",
    "link_count": 1,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -44,25 +31,7 @@
    "link_count": 0,
    "link_to": "Company",
    "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Configuration",
-   "link_count": 1,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "South Africa VAT Settings",
-   "link_count": 0,
-   "link_to": "South Africa VAT Settings",
-   "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -70,6 +39,7 @@
    "is_query_report": 0,
    "label": "Returns & reports",
    "link_count": 2,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -96,8 +66,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "ERPNext — tax templates",
+   "label": "ERPNext \u2014 tax templates",
    "link_count": 3,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -130,6 +101,39 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Configuration",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "South Africa VAT Settings",
+   "link_count": 0,
+   "link_to": "South Africa VAT Settings",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
   }
- ]
+ ],
+ "modified": "2026-04-23 06:30:36.211885",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "SA VAT",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "SA Overview",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 24.0,
+ "shortcuts": [],
+ "title": "SA VAT",
+ "type": "Workspace"
 }

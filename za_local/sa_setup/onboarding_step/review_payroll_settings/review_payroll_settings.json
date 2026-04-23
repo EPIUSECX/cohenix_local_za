@@ -1,0 +1,20 @@
+{
+ "action": "Update Settings",
+ "action_label": "Review Payroll Settings",
+ "creation": "2026-04-22 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_single": 1,
+ "is_skipped": 0,
+ "modified": "2026-04-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Review Payroll Settings",
+ "owner": "Administrator",
+ "reference_document": "Payroll Settings",
+ "show_form_tour": 0,
+ "show_full_form": 0,
+ "title": "Review Payroll Settings",
+ "validate_action": 0
+}

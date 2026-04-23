@@ -9,6 +9,31 @@ import frappe
 from frappe import _
 
 
+def _require_cleanup_access():
+    """Allow destructive payroll cleanup only for developers on non-production sites."""
+    frappe.only_for("System Manager")
+
+    if frappe.flags.in_test:
+        return
+
+    developer_mode = bool(frappe.conf.get("developer_mode"))
+    site_name = (getattr(frappe.local, "site", "") or "").lower()
+    non_production_site = any(
+        marker in site_name for marker in ("local", "dev", "test", "staging", "sandbox")
+    )
+
+    if developer_mode and non_production_site:
+        return
+
+    frappe.throw(
+        _(
+            "Payroll journal entry force deletion is only available to System Managers "
+            "on developer-mode, non-production sites."
+        ),
+        title=_("Restricted Operation"),
+    )
+
+
 @frappe.whitelist()
 def force_delete_all_cancelled_payroll_journal_entries():
     """
@@ -20,6 +45,8 @@ def force_delete_all_cancelled_payroll_journal_entries():
     Returns:
         dict: List of deleted Journal Entries
     """
+    _require_cleanup_access()
+
     # Find all cancelled payroll Journal Entries
     jes = frappe.db.sql("""
         SELECT DISTINCT je.name, je.docstatus, je.posting_date
@@ -70,6 +97,8 @@ def force_delete_cancelled_payroll_journal_entry(journal_entry_name):
     Returns:
         dict: Success message
     """
+    _require_cleanup_access()
+
     if not journal_entry_name:
         frappe.throw(_("Journal Entry name is required"))
     
@@ -174,4 +203,3 @@ def update_employee_journal_entry_flags(doc):
                     "za_is_company_contribution_created",
                     0
                 )
-

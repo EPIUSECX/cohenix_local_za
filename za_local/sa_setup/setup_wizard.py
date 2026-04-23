@@ -271,7 +271,7 @@ def get_wizard_status(company=None):
 
 
 def setup_sa_print_formats():
-	"""Set SA-compliant print formats as default for South African companies"""
+	"""Set SA-compliant print formats as site defaults for South-Africa-only sites."""
 	import frappe
 	
 	print("\n→ Setting up SA-compliant print formats...")
@@ -327,28 +327,34 @@ def get_sa_localization_stages(args):
 		# If database check fails, assume za_local is installed (we're in za_local code)
 		# This handles cases where database isn't fully initialized yet
 		za_local_installed = True
-	
+
 	# Add stage if:
 	# 1. Country is explicitly set to South Africa, OR
 	# 2. Country is not set (fresh install) and za_local is installed
+	#
+	# ZA Local assumes a South-Africa-only site during setup. Because the
+	# setup wizard runs before company selection is finalized, SA print
+	# formats are configured as site-wide defaults here by design.
 	if country == "South Africa" or (not country and za_local_installed):
 		# Default to using SA print formats
 		if "use_sa_print_formats" not in args:
 			args["use_sa_print_formats"] = True
-	
-	return [
-		{
-			"status": _("Configuring South African Localization"),
-			"fail_msg": _("Failed to configure SA localization"),
-			"tasks": [
-				{
-					"fn": setup_za_localization,
-					"args": args,
-					"fail_msg": _("Failed to setup SA localization")
-				}
-			]
-		}
-	]
+
+		return [
+			{
+				"status": _("Configuring South African Localization"),
+				"fail_msg": _("Failed to configure SA localization"),
+				"tasks": [
+					{
+						"fn": setup_za_localization,
+						"args": args,
+						"fail_msg": _("Failed to setup SA localization")
+					}
+				]
+			}
+		]
+
+	return []
 	
 	# If country is set to something other than South Africa, don't add stage
 	return []
@@ -546,4 +552,3 @@ def setup_za_localization(args):
 		print(f"✗ SA Localization setup encountered errors: {e}")
 		print("  Note: Some features may not be configured. Check error logs for details.")
 		# Don't raise - let setup wizard complete even if some steps failed
-

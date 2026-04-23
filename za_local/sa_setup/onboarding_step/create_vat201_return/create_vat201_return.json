@@ -1,0 +1,21 @@
+{
+ "action": "Create Entry",
+ "action_label": "Create VAT201 Return",
+ "creation": "2026-04-22 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "form_tour": "VAT201 Return Form Tour",
+ "idx": 0,
+ "is_complete": 0,
+ "is_single": 0,
+ "is_skipped": 0,
+ "modified": "2026-04-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Create VAT201 Return",
+ "owner": "Administrator",
+ "reference_document": "VAT201 Return",
+ "show_form_tour": 1,
+ "show_full_form": 1,
+ "title": "Create VAT201 Return",
+ "validate_action": 1
+}

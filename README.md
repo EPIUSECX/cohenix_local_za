@@ -1,242 +1,90 @@
-# ZA Local - South African Localization for ERPNext
+# ZA Local
 
-## Overview
+South African localization for ERPNext, with optional HRMS support.
 
-**ZA Local** is a comprehensive South African localization module for ERPNext and HRMS that provides essential features for businesses operating in South Africa. It covers statutory compliance requirements, tax regulations, payroll localization, and financial reporting specific to the South African context.
+`za_local` is built for South-Africa-only sites that want a guided setup flow, South African statutory defaults, compliant print formats, payroll extensions, VAT tooling, COIDA/Labour modules, and in-app onboarding through workspaces and tours.
 
-This module is built with clean architecture, modular design, and following modern Frappe best practices.
+## Current Scope
 
-### Key Features
+- `SA Overview`: setup, onboarding, help, and cross-module entry point
+- `SA VAT`: VAT settings, VAT201 return flow, audit support, and related reports
+- `SA Payroll`: payroll, SARS tax, ETI, IRP5, and payroll-specific setup
+- `SA Labour`: labour and compliance records
+- `SA COIDA`: injury and compensation workflows
 
-- **🚀 Integrated Setup Wizard**: Automatic activation during ERPNext setup - no bench commands required
-- **📦 Default Data**: Pre-configured salary components, tax slabs, and master data - ready in 15 minutes
-- **🖨️ SA-Compliant Print Formats**: SARS-compliant invoices (Full/Abridged), quotations, orders, and all client-facing documents - automatically set as default
-- **💰 SARS Tax Compliance**: PAYE calculations, EMP201 monthly submissions, EMP501 bi-annual reconciliations, IRP5/IRP5-it3 tax certificates with PDF generation
-- **🎯 Employment Tax Incentive (ETI)**: Automated ETI eligibility checking and calculations
-- **💼 Payroll Management**: UIF, SDL, and frequency-based payroll processing with full automation
-- **🏥 COIDA Management**: Workplace injury tracking, OID claims, annual returns
-- **📊 VAT Management**: VAT201 returns, VAT analysis, vendor classification, VAT-compliant invoicing
-- **🏛️ Employment Equity & BEE**: Complete EE reporting, workforce demographics, BEE scorecard
-- **✈️ Business Trip Management**: SARS-compliant mileage and allowance tracking
-- **⚡ Bulk Generation Tools**: IRP5-it3 Certificate bulk generation with progress tracking
-- **🏗️ Modern Architecture**: Modular structure with 5 focused modules (SA Payroll, SA Tax, SA VAT, COIDA, SA EE)
+HRMS remains optional. When HRMS is not installed, the app keeps its accounting, VAT, setup, print-format, and non-payroll compliance features available.
 
----
+## Supported Stack
 
-## Table of Contents
-
-1. [Installation](#installation)
-2. [Module Structure](#module-structure)
-3. [Features](#features)
-4. [Configuration](#configuration)
-5. [Custom Fields](#custom-fields)
-6. [Development](#development)
-7. [Troubleshooting](#troubleshooting)
-8. [License](#license)
-9. [Support](#support)
-
----
+- ERPNext v15 and v16
+- Frappe Framework v15 and v16
+- Python 3.10+
 
 ## Installation
 
-### Prerequisites
-
-- ERPNext v14 or v15
-- Python 3.10+
-- Frappe Framework v14 or v15
-
-**Note**: HRMS is **optional**. ZA Local works in two modes:
-- **With HRMS**: Full features including payroll processing, leave management, employee features
-- **Without HRMS**: Core features including tax/VAT/COIDA compliance, print formats, business trip management
-
-### Quick Start (New ERPNext Installations)
-
-za_local integrates seamlessly into ERPNext's setup wizard:
-
-1. Install ERPNext and za_local apps
-2. Run ERPNext setup wizard
-3. Select **"South Africa"** as your country
-4. **Automatic**: za_local setup page appears
-5. Select which defaults to load (all recommended options enabled)
-6. Click Save - you're ready to go! ✅
-
-### Manual Installation
-
 ```bash
-# 1. Navigate to your bench directory
-cd /path/to/your/bench
-
-# 2. Get the app
+cd /path/to/bench
 bench get-app https://github.com/your-org/za_local.git
-
-# 3. Install on your site
 bench --site your-site.local install-app za_local
-
-# 4. Restart bench
 bench restart
 ```
 
-### Setup Configuration
+## South Africa Setup Model
 
-**For New Installations:**
-- Setup runs automatically after ERPNext wizard (when country = South Africa)
-- All recommended defaults are pre-selected
-- Just click Save to load default data
+ZA Local assumes the site is intended for South African companies. During the ERPNext setup wizard, selecting `South Africa` loads the ZA Local setup stage and applies South African defaults.
 
-**For Existing Installations:**
-1. Navigate to: **Setup > ZA Local Setup > New**
-2. Select your company
-3. Choose which defaults to load:
+That includes a site-wide default print-format strategy for South African client-facing documents. This is intentional for a South-Africa-only deployment model and should be treated as a site bootstrap decision, not a generic multi-country ERPNext pattern.
 
-**Recommended Selections (All Enabled by Default):**
-- ✅ Create Default Salary Components (PAYE, UIF, SDL, COIDA)
-- ✅ Create Earnings Components (Basic, Housing, Transport, Bonuses, etc.)
-- ✅ Load 2024-2025 Income Tax Slab (8 SARS brackets, including 0% band)
-- ✅ Load Tax Rebates & Medical Credits (linked to 2024-2025 Payroll Period)
-- ✅ Load Business Trip Regions (16 SA cities + 6 international zones)
+For existing sites:
 
-**Optional Selections:**
-- ⬜ Load SETA List (if using Skills Development)
-- ⬜ Load Bargaining Councils (if applicable to your industry)
+1. Open `ZA Local Setup`
+2. Choose the company
+3. Load the recommended defaults
+4. Finish verification from the `SA Overview` workspace and onboarding checklist
 
-### What Gets Loaded
+## What the Setup Loads
 
-The setup automatically creates:
+- statutory payroll components such as PAYE, UIF, SDL, and related earnings defaults
+- South African tax slabs and rebate/medical credit defaults
+- business trip regions and related master data
+- South African print formats and compliance metadata
+- workspace/help/onboarding assets for first-time administrators
 
-1. **Statutory Salary Components** (4 items)
-   - 4102 PAYE
-   - 4141 UIF Employee Contribution (1%, max R177.12)
-   - 4141 UIF Employer Contribution (1%, max R177.12)
-   - 4142 SDL Contribution (1% of gross)
+## Workspace and Onboarding
 
-2. **Earnings Components** (7 items)
-   - Basic Salary
-   - Housing Allowance
-   - Transport Allowance
-   - 13th Cheque
-   - Performance Bonus
-   - Overtime
-   - Commission
+The primary navigation surface is the `SA Overview` workspace.
 
-3. **Tax Configuration**
-   - 8 Income tax slabs for 2024-2025 (0% to 45%)
-   - Tax rebates (Primary: R17,235, Secondary: R9,444, Tertiary: R3,145)
-   - Medical tax credits (Main: R364, Dependants: R246)
+From there, administrators can:
+- launch the native onboarding checklist
+- open `ZA Local Setup`
+- verify `South Africa VAT Settings`
+- review payroll/tax configuration
+- access the in-app help page for setup, VAT201, and tax-invoice checks
 
-4. **Master Data**
-   - 16 Business trip regions (SA cities + international)
-   - Optional: 24 SETAs
-   - Optional: 11 Bargaining councils
+The workspace model complements the setup wizard. The wizard handles fresh-site bootstrap, while onboarding and workspaces guide post-install verification and ongoing administration.
 
-### Post-Installation
+## Architecture Notes
 
-After setup completes:
+- custom fields are centralized in `za_local/sa_setup/custom_fields.py`
+- property setters are centralized in `za_local/sa_setup/property_setters.py`
+- module-scoped standard docs are the canonical source for active print formats
+- legacy root print-format JSONs are archived under `za_local/legacy_standard_docs/` as a non-active compatibility reference
 
-1. **Verify Installation**: Check that modules appear (SA Payroll, SA Tax, SA VAT, COIDA, SA EE)
-2. **Company Details**: Add VAT number, COIDA registration, SDL/UIF reference numbers
-3. **Employee Data**: Start adding employees with SA ID numbers
+## Development
 
----
+- linting uses Ruff via `pyproject.toml`
+- server-side tests use Frappe test cases and can be run with:
 
-## Module Structure
+```bash
+bench --site your-site.local run-tests --app za_local
+```
 
-ZA Local is organized into 4 focused modules:
+- see `TESTING.md` for the current validation flow and repository hygiene checks
 
-### 1. SA Payroll Module
+## Support
 
-Handles payroll processing frequencies and employee classifications.
-
-**DocTypes:**
-- Employee Payroll Frequency
-- Employee Frequency Detail
-- Employee Type
-- Employee Private Benefit
-- Retirement Annuity Slab
-- Medical Tax Credit Rate
-- Tax Rebates and Medical Tax Credit
-
-### 2. SA Tax Module
-
-Manages SARS submissions, PAYE, and ETI calculations.
-
-**DocTypes:**
-- EMP201 Submission (Monthly SARS return)
-- EMP501 Reconciliation (Bi-annual reconciliation)
-- IRP5 Certificate (Employee tax certificates)
-- Employee ETI Log
-- ETI Slab
-- And related child tables
-
-**Reports:**
-- EMP201 Report
-
-### 3. SA VAT Module
-
-Handles VAT compliance and returns.
-
-**DocTypes:**
-- SA VAT Settings
-- VAT201 Return
-- VAT Vendor Type
-- SA VAT Rate (child table)
-
-**Reports:**
-- VAT Analysis
-
-### 4. COIDA Module
-
-Manages workplace injuries and compensation claims.
-
-**DocTypes:**
-- COIDA Settings
-- COIDA Annual Return
-- Workplace Injury
-- OID Claim
-- OID Medical Report
-
----
-
-## Features
-
-### SARS Tax Compliance
-
-#### PAYE (Pay As You Earn)
-- Automatic PAYE calculation based on annual taxable income
-- Age-based tax rebates (Primary, Secondary, Tertiary)
-- Medical aid tax credits
-- Retirement annuity deductions
-
-#### Employment Tax Incentive (ETI)
-- Automated eligibility checking (age 18-29)
-- ETI amount calculation based on remuneration brackets
-- First 12 months and second 12 months differentiation
-- Pro-rating based on hours worked
-- Comprehensive ETI logging for audit trails
-
-#### EMP201 Monthly Submissions
-- Automatic data collection from salary slips
-- PAYE, UIF, SDL, and ETI totals
-- Export functionality for SARS e-Filing
-- Period-based filtering
-
-#### EMP501 Bi-Annual Reconciliations
-- Consolidation of EMP201 submissions
-- IRP5 certificate reconciliation
-- CSV export for SARS e-Filing
-- Validation and discrepancy detection
-
-#### IRP5 Tax Certificates
-- Individual and bulk generation
-- Income and deduction categorization
-- SARS code mapping
-- Print format included
-
-### Payroll Management
-
-#### Frequency-Based Processing
-- Support for Monthly, Quarterly, Half-Yearly, and Yearly frequencies
-- Pay at beginning or end of period
-- Automatic salary slip filtering by frequency
+- review the `SA Overview` workspace help links first
+- then use the repo docs and issue tracker for implementation-specific troubleshooting
 
 #### Statutory Contributions
 - **UIF**: 1% employee + 1% employer (capped at R17,712)

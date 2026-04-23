@@ -35,7 +35,7 @@
    "link_count": 0,
    "link_to": "ZA Local Setup",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -45,7 +45,7 @@
    "link_count": 0,
    "link_to": "EMP201 Submission",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -55,7 +55,7 @@
    "link_count": 0,
    "link_to": "EMP501 Reconciliation",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {

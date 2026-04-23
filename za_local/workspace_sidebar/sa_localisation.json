@@ -1,15 +1,27 @@
 {
  "app": "za_local",
- "creation": "2026-03-10 14:54:24.327455",
+ "creation": "2026-04-23 09:00:00.000000",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
- "header_icon": "cat",
+ "header_icon": "setting",
  "idx": 0,
  "items": [
   {
    "child": 0,
    "collapsible": 1,
-   "icon": "list",
+   "icon": "home",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "SA Overview",
+   "link_to": "SA Overview",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "sell",
    "indent": 0,
    "keep_closed": 0,
    "label": "SA VAT",
@@ -21,11 +33,11 @@
   {
    "child": 0,
    "collapsible": 1,
-   "icon": "\ud83c\uddff\ud83c\udde6",
+   "icon": "accounting",
    "indent": 0,
    "keep_closed": 0,
-   "label": "Setup & Overview",
-   "link_to": "SA Overview",
+   "label": "SA Payroll",
+   "link_to": "SA Payroll",
    "link_type": "Workspace",
    "show_arrow": 0,
    "type": "Link"
@@ -33,7 +45,7 @@
   {
    "child": 0,
    "collapsible": 1,
-   "icon": "list",
+   "icon": "hr",
    "indent": 0,
    "keep_closed": 0,
    "label": "SA Labour",
@@ -45,7 +57,7 @@
   {
    "child": 0,
    "collapsible": 1,
-   "icon": "list",
+   "icon": "support",
    "indent": 0,
    "keep_closed": 0,
    "label": "SA COIDA",
@@ -53,33 +65,9 @@
    "link_type": "Workspace",
    "show_arrow": 0,
    "type": "Link"
-  },
-  {
-   "child": 0,
-   "collapsible": 1,
-   "icon": "list",
-   "indent": 0,
-   "keep_closed": 0,
-   "label": "SA Payroll",
-   "link_to": "SA Payroll",
-   "link_type": "Workspace",
-   "show_arrow": 0,
-   "type": "Link"
-  },
-  {
-   "child": 1,
-   "collapsible": 1,
-   "icon": "accessibility",
-   "indent": 0,
-   "keep_closed": 0,
-   "label": "tester2",
-   "link_to": "Income Tax Slab",
-   "link_type": "DocType",
-   "show_arrow": 0,
-   "type": "Link"
   }
  ],
- "modified": "2026-03-17 13:20:41.101962",
+ "modified": "2026-04-23 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "SA Localisation",
  "name": "SA Localisation",

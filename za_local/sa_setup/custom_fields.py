@@ -1,19 +1,19 @@
 """
-South African Localization: Custom Fields, Property Setters, and DocType Links
+South African Localization: Custom Fields and DocType Links
 
 Single module under setup that defines and applies:
 1. Custom Field fixtures (source of truth; applied on install/migrate)
-2. Cleanup of old custom fields + property setters
+2. Cleanup of old custom fields
 3. Custom records (DocType Links for Connections tab)
 
-All three run together via setup_custom_fields() in the same order every time.
+Property setters are centralized in `sa_setup/property_setters.py` and applied by
+`sa_setup/install.py` so there is a single source of truth.
 """
 
 import json
 
 import frappe
 from za_local.utils.hrms_detection import is_hrms_installed
-from za_local.utils.setup_utils import get_property_type
 
 
 # ---------------------------------------------------------------------------
@@ -190,8 +190,8 @@ CUSTOM_FIELD_FIXTURES_JSON = """
     "fieldtype": "Link",
     "options": "Employee Type",
     "insert_after": "za_id_number",
-    "description": "South African employee classification",
-    "reqd": 1
+    "description": "South African employee classification. Required during payroll processing.",
+    "reqd": 0
   },
   {
     "doctype": "Custom Field",
@@ -673,7 +673,7 @@ def _apply_custom_field_fixtures():
 
 
 # ---------------------------------------------------------------------------
-# Section 2: Cleanup of old custom fields + property setters
+# Section 2: Cleanup of old custom fields
 # ---------------------------------------------------------------------------
 
 FIELDS_TO_DELETE_IF_EXIST = {
@@ -703,50 +703,13 @@ def _cleanup_old_custom_fields():
 			if frappe.db.exists("Custom Field", custom_field_name):
 				try:
 					frappe.delete_doc("Custom Field", custom_field_name, ignore_permissions=True, force=True)
-					frappe.db.commit()
 					deleted_count += 1
 					print(f"  ✓ Deleted old custom field: {custom_field_name}")
 				except Exception as e:
 					print(f"  ! Error deleting custom field {custom_field_name}: {e}")
 	if deleted_count > 0:
+		frappe.db.commit()
 		print(f"  ✓ Cleaned up {deleted_count} old custom field(s)")
-
-
-def setup_property_setters():
-	"""Property setters for standard field behaviours (labels, hidden, read_only)."""
-	hrms_installed = is_hrms_installed()
-	hrms_only_doctypes = {"Salary Structure Assignment", "Salary Slip"}
-	properties = {
-		"Salary Structure Assignment": {
-			"variable": {"hidden": 0, "read_only": 0},
-			"base": {"hidden": 0, "read_only": 0}
-		},
-		"Salary Slip": {"payroll_entry": {"hidden": 0}},
-		"Customer": {
-			"tax_id": {
-				"label": "VAT Registration Number",
-				"description": "South African VAT registration number (format: 4XXXXXXXXXX)"
-			}
-		}
-	}
-	for doctype, field_properties in properties.items():
-		if doctype in hrms_only_doctypes and not hrms_installed:
-			continue
-		if not frappe.db.exists("DocType", doctype):
-			continue
-		for fieldname, props in field_properties.items():
-			for prop, value in props.items():
-				try:
-					frappe.make_property_setter({
-						"doctype": doctype,
-						"fieldname": fieldname,
-						"property": prop,
-						"value": value,
-						"property_type": get_property_type(value)
-					})
-				except Exception as e:
-					print(f"Error setting property {prop} for {doctype}.{fieldname}: {e}")
-	print("✓ Property setters configured")
 
 
 # ---------------------------------------------------------------------------
@@ -804,10 +767,9 @@ def insert_custom_records():
 
 def setup_custom_fields():
 	"""
-	Apply custom fields, cleanup, property setters, and custom records in one order.
+	Apply custom fields, cleanup, and custom records in one order.
 	Called from install.py sync_za_local() on install and migrate.
 	"""
 	_apply_custom_field_fixtures()
 	_cleanup_old_custom_fields()
-	setup_property_setters()
 	insert_custom_records()

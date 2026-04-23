@@ -41,6 +41,26 @@
    "label": "SA COIDA",
    "type": "URL",
    "url": "/desk/sa-coida"
+  },
+  {
+   "label": "User Guide",
+   "type": "URL",
+   "url": "/desk/sa-local-help#user-guide"
+  },
+  {
+   "label": "Setup Checklist",
+   "type": "URL",
+   "url": "/desk/sa-local-help#setup-checklist"
+  },
+  {
+   "label": "VAT 201 Flow",
+   "type": "URL",
+   "url": "/desk/sa-local-help#vat201-flow"
+  },
+  {
+   "label": "Sales Invoice Tax Invoice Checks",
+   "type": "URL",
+   "url": "/desk/sa-local-help#tax-invoice-checks"
   }
  ],
  "type": "Workspace",
@@ -70,7 +90,7 @@
    "link_count": 0,
    "link_to": "ZA Local Setup",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -80,7 +100,7 @@
    "link_count": 0,
    "link_to": "South Africa VAT Settings",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -98,7 +118,7 @@
    "link_count": 0,
    "link_to": "Payroll Settings",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -108,7 +128,7 @@
    "link_count": 0,
    "link_to": "Tax Rebates and Medical Tax Credit",
    "link_type": "DocType",
-   "onboard": 0,
+   "onboard": 1,
    "type": "Link"
   },
   {

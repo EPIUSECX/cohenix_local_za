@@ -29,7 +29,7 @@ add_to_apps_screen = [
 # ------------------
 # Note: HRMS is optional - za_local works with or without HRMS
 # If HRMS is not installed, payroll/HR features will be disabled
-required_apps = ["frappe", "erpnext"]
+required_apps = ["erpnext"]
 
 # Fixtures
 # ------------------
