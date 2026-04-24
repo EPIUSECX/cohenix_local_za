@@ -3,7 +3,7 @@ import frappe
 from za_local.sa_vat.setup import get_default_company
 
 DOCTYPE = "South Africa VAT Settings"
-CHILD_DOCTYPES = ("South Africa VAT Tax Account", "VAT201 Return Transaction")
+CHILD_DOCTYPES = ("South Africa VAT Account", "South Africa VAT Tax Account", "VAT201 Return Transaction")
 
 
 def execute():
@@ -13,6 +13,7 @@ def execute():
 
 
 def reload_vat_docs():
+	frappe.reload_doc("accounts", "doctype", "south_africa_vat_account")
 	frappe.reload_doc("sa_vat", "doctype", "south_africa_vat_tax_account")
 	frappe.reload_doc("sa_vat", "doctype", "vat201_return_transaction")
 	frappe.reload_doc("sa_vat", "doctype", "south_africa_vat_settings")
@@ -127,7 +128,8 @@ def apply_legacy_fallbacks(doc, company):
 	if not getattr(doc, "vat_vendor_type", None):
 		doc.vat_vendor_type = get_default_vat_vendor_type()
 
-	first_tracked_account = next((row.account for row in getattr(doc, "tax_accounts", []) if row.account), None)
+	vat_account_rows = getattr(doc, "vat_accounts", None) or getattr(doc, "tax_accounts", [])
+	first_tracked_account = next((row.account for row in vat_account_rows if row.account), None)
 	fallback_account = (
 		getattr(doc, "output_vat_account", None)
 		or getattr(doc, "input_vat_account", None)

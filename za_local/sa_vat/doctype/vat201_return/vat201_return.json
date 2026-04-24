@@ -61,6 +61,8 @@
   "status",
   "column_break_39",
   "submission_reference",
+  "unresolved_transaction_count",
+  "unresolved_issues_summary",
   "section_break_41",
   "notes"
  ],
@@ -368,6 +370,18 @@
    "fieldname": "submission_reference",
    "fieldtype": "Data",
    "label": "Submission Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unresolved_transaction_count",
+   "fieldtype": "Int",
+   "label": "Unresolved Transaction Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unresolved_issues_summary",
+   "fieldtype": "Small Text",
+   "label": "Unresolved Issues Summary",
    "read_only": 1
   },
   {

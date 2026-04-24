@@ -16,7 +16,11 @@ from frappe.utils.fixtures import import_fixtures
 from za_local.sa_setup.custom_fields import setup_custom_fields
 from za_local.sa_setup.monkey_patches import setup_all_monkey_patches
 from za_local.sa_setup.property_setters import apply_property_setters
-from za_local.sa_vat.setup import ensure_vat_custom_fields, seed_vat_vendor_types
+from za_local.sa_vat.setup import (
+	ensure_vat_custom_fields,
+	migrate_legacy_vat_account_rows,
+	seed_vat_vendor_types,
+)
 from za_local.utils.hrms_detection import is_hrms_installed
 
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
@@ -295,6 +299,7 @@ def after_install():
 	setup_all_monkey_patches()
 	setup_default_data()
 	seed_vat_vendor_types()
+	migrate_legacy_vat_account_rows()
 	apply_statutory_formulas()
 	import_master_data()
 	seed_sars_payroll_codes()
@@ -332,6 +337,7 @@ def after_migrate():
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
 	seed_vat_vendor_types()
+	migrate_legacy_vat_account_rows()
 	seed_sars_payroll_codes()
 	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()

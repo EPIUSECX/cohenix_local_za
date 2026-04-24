@@ -140,6 +140,11 @@ doc_events = {
         "validate": "za_local.custom.customer.validate",
     },
 
+    # Keep ERPNext's zero-rated item contract aligned with za_local VAT categories
+    "Item": {
+        "validate": "za_local.sa_vat.item_sync.sync_item_zero_rated_flag",
+    },
+
     # Purchase document deletion protection (SARS audit trail)
     "Request for Quotation": {
         "on_trash": "za_local.custom.purchase.on_trash",

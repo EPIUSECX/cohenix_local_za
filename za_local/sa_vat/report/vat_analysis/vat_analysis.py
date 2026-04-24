@@ -19,6 +19,8 @@ def get_columns():
 		{"label": _("VAT Amount"), "fieldname": "vat_amount", "fieldtype": "Currency", "width": 120},
 		{"label": _("VAT Account Debit"), "fieldname": "vat_account_debit", "fieldtype": "Currency", "width": 130},
 		{"label": _("VAT Account Credit"), "fieldname": "vat_account_credit", "fieldtype": "Currency", "width": 130},
+		{"label": _("Status"), "fieldname": "classification_status", "fieldtype": "Data", "width": 120},
+		{"label": _("Issue"), "fieldname": "classification_issue", "fieldtype": "Data", "width": 280},
 		{"label": _("Cancelled"), "fieldname": "is_cancelled", "fieldtype": "Check", "width": 80},
 	]
 
@@ -42,6 +44,8 @@ def get_data(filters):
 			row.tax_amount.as_("vat_amount"),
 			row.tax_account_debit,
 			row.tax_account_credit,
+			row.classification_status,
+			row.classification_issue,
 			row.is_cancelled,
 		)
 		.orderby(row.posting_date)

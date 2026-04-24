@@ -17,6 +17,16 @@ INPUT_CAPITAL_IMPORTED = "Input - B Capital goods imported"
 INPUT_OTHER_LOCAL = "Input - C Other goods supplied to you (excl capital goods)"
 INPUT_OTHER_IMPORTED = "Input - D Other goods imported (excl capital goods)"
 SARS_PAYMENT_RECEIPT = "SARS Payment/Receipt"
+CLASSIFIED = "Classified"
+NEEDS_REVIEW = "Needs Review"
+EXCLUDED = "Excluded"
+SALES_STANDARD_CLASSIFICATIONS = {OUTPUT_STANDARD_NON_CAPITAL, OUTPUT_STANDARD_CAPITAL}
+PURCHASE_INPUT_CLASSIFICATIONS = {
+	INPUT_CAPITAL_LOCAL,
+	INPUT_CAPITAL_IMPORTED,
+	INPUT_OTHER_LOCAL,
+	INPUT_OTHER_IMPORTED,
+}
 
 
 class VAT201Return(Document):
@@ -27,6 +37,7 @@ class VAT201Return(Document):
 		self.set_submission_period()
 		self.set_vat_registration_number()
 		self.calculate_totals()
+		self.set_review_summary()
 
 	def validate_dates(self):
 		if getdate(self.submission_date) > getdate(today()):
@@ -74,7 +85,11 @@ class VAT201Return(Document):
 			self.vat_registration_number = frappe.db.get_value("Company", self.company, "za_vat_number") or ""
 
 	def calculate_totals(self):
-		transactions = [row for row in self.transactions if not row.is_cancelled]
+		transactions = [
+			row
+			for row in self.transactions
+			if not row.is_cancelled and row.classification and row.classification_status == CLASSIFIED
+		]
 
 		self.standard_rated_supplies_non_capital = sum(
 			flt(row.incl_tax_amount) for row in transactions if row.classification == OUTPUT_STANDARD_NON_CAPITAL
@@ -151,12 +166,29 @@ class VAT201Return(Document):
 			self.total_amount_payable = 0
 			self.vat_refundable = self.vat_refundable + flt(self.diesel_refund)
 
+	def set_review_summary(self):
+		review_rows = [
+			row
+			for row in self.transactions
+			if not row.is_cancelled and getattr(row, "classification_status", None) == NEEDS_REVIEW
+		]
+		self.unresolved_transaction_count = len(review_rows)
+		self.unresolved_issues_summary = "\n".join(
+			f"{row.voucher_type} {row.voucher_no}: {row.classification_issue}"
+			for row in review_rows[:10]
+			if row.classification_issue
+		)
+
 	def on_submit(self):
-		unclassified = [row for row in self.transactions if not row.classification and not row.is_cancelled]
-		if unclassified:
+		review_rows = [
+			row
+			for row in self.transactions
+			if not row.is_cancelled and getattr(row, "classification_status", None) == NEEDS_REVIEW
+		]
+		if review_rows:
 			frappe.throw(
-				_("Please classify the remaining {0} unclassified transactions before submitting.").format(
-					len(unclassified)
+				_("Please resolve the remaining {0} VAT201 review items before submitting.").format(
+					len(review_rows)
 				)
 			)
 		if self.status == "Draft":
@@ -209,6 +241,8 @@ class VAT201Return(Document):
 					"tax_amount": row.tax_amount,
 					"incl_tax_amount": row.incl_tax_amount,
 					"classification": row.classification,
+					"classification_status": row.classification_status,
+					"classification_issue": row.classification_issue,
 					"is_cancelled": row.is_cancelled,
 				}
 			)
@@ -235,15 +269,21 @@ class VAT201Return(Document):
 			self.append("transactions", row)
 
 		self.calculate_totals()
+		self.set_review_summary()
 		self.set_submission_period()
 		return {
 			"transaction_count": len(rows),
-			"unclassified_count": len([row for row in rows if not row.get("classification") and not row.get("is_cancelled")]),
+			"unclassified_count": len(
+				[
+					row
+					for row in rows
+					if row.get("classification_status") == NEEDS_REVIEW and not row.get("is_cancelled")
+				]
+			),
 		}
 
 	def get_sales_invoice_rows(self, settings):
 		rows = []
-		standard_rate = flt(settings.standard_vat_rate or 15) / 100
 		invoices = frappe.get_all(
 			"Sales Invoice",
 			filters={
@@ -258,93 +298,28 @@ class VAT201Return(Document):
 			default_classification = self.get_template_classification(
 				settings, invoice.taxes_and_charges, "Sales Invoice"
 			)
-			item_groups = {}
-			for item in frappe.get_all(
-				"Sales Invoice Item",
-				filters={"parent": invoice.name},
-				fields=["base_net_amount", "custom_sa_vat_category"],
-			):
-				classification = self.classify_sales_item_category(item.custom_sa_vat_category) or default_classification
-				if not classification:
-					continue
-				item_groups.setdefault(classification, 0)
-				item_groups[classification] += flt(item.base_net_amount) * sign
-
+			item_groups = self.get_invoice_item_groups(
+				invoice.name, "Sales Invoice Item", self.classify_sales_item_category, default_classification, sign
+			)
 			taxes = frappe.get_all(
 				"Sales Taxes and Charges",
 				filters={"parent": invoice.name, "account_head": settings.output_vat_account},
 				fields=["name", "rate", "base_tax_amount as tax_amount", "total"],
 				order_by="idx asc",
 			)
-			if item_groups:
-				for classification, amount in item_groups.items():
-					tax_amount = amount * standard_rate if classification in (
-						OUTPUT_STANDARD_NON_CAPITAL,
-						OUTPUT_STANDARD_CAPITAL,
-					) else 0
-					rows.append(
-						{
-							"gl_entry": None,
-							"voucher_type": "Sales Invoice",
-							"voucher_no": invoice.name,
-							"posting_date": invoice.posting_date,
-							"taxes_and_charges": invoice.taxes_and_charges,
-							"tax_account_debit": 0,
-							"tax_account_credit": abs(flt(tax_amount)) if tax_amount > 0 else 0,
-							"tax_amount": flt(tax_amount),
-							"incl_tax_amount": flt(amount),
-							"classification": classification,
-							"is_cancelled": 0,
-							"classification_debugging": f"Grouped from item VAT categories; template {invoice.taxes_and_charges}",
-						}
-					)
-			elif taxes:
-				for tax in taxes:
-					classification = default_classification
-					if not classification and flt(tax.tax_amount) == 0:
-						classification = OUTPUT_ZERO_LOCAL
-					elif not classification:
-						classification = OUTPUT_STANDARD_NON_CAPITAL
-					rows.append(
-						{
-							"gl_entry": None,
-							"voucher_type": "Sales Invoice",
-							"voucher_no": invoice.name,
-							"posting_date": invoice.posting_date,
-							"taxes_and_charges": invoice.taxes_and_charges,
-							"tax_account_debit": 0,
-							"tax_account_credit": abs(flt(tax.tax_amount) * sign) if flt(tax.tax_amount) * sign > 0 else 0,
-							"tax_amount": flt(tax.tax_amount) * sign,
-							"incl_tax_amount": flt(tax.total or invoice.base_net_total) * sign,
-							"classification": classification,
-							"is_cancelled": 0,
-							"classification_debugging": f"Fallback template classification: {invoice.taxes_and_charges}",
-						}
-					)
-			else:
-				classification = self.classify_sales_invoice_without_tax(invoice)
-				if classification:
-					rows.append(
-						{
-							"gl_entry": None,
-							"voucher_type": "Sales Invoice",
-							"voucher_no": invoice.name,
-							"posting_date": invoice.posting_date,
-							"taxes_and_charges": invoice.taxes_and_charges,
-							"tax_account_debit": 0,
-							"tax_account_credit": 0,
-							"tax_amount": 0,
-							"incl_tax_amount": flt(invoice.base_net_total) * sign,
-							"classification": classification,
-							"is_cancelled": 0,
-							"classification_debugging": "Classified from item VAT categories",
-						}
-					)
+			rows.extend(
+				self.build_sales_invoice_rows(
+					invoice=invoice,
+					item_groups=item_groups,
+					taxes=taxes,
+					default_classification=default_classification,
+					sign=sign,
+				)
+			)
 		return rows
 
 	def get_purchase_invoice_rows(self, settings):
 		rows = []
-		standard_rate = flt(settings.standard_vat_rate or 15) / 100
 		invoices = frappe.get_all(
 			"Purchase Invoice",
 			filters={
@@ -359,92 +334,30 @@ class VAT201Return(Document):
 			default_classification = self.get_template_classification(
 				settings, invoice.taxes_and_charges, "Purchase Invoice"
 			)
-			item_groups = {}
-			for item in frappe.get_all(
-				"Purchase Invoice Item",
-				filters={"parent": invoice.name},
-				fields=["base_net_amount", "custom_sa_vat_category"],
-			):
-				classification = self.classify_purchase_item_category(item.custom_sa_vat_category) or default_classification
-				if not classification:
-					continue
-				item_groups.setdefault(classification, 0)
-				item_groups[classification] += flt(item.base_net_amount) * sign
-
+			item_groups = self.get_invoice_item_groups(
+				invoice.name, "Purchase Invoice Item", self.classify_purchase_item_category, default_classification, sign
+			)
 			taxes = frappe.get_all(
 				"Purchase Taxes and Charges",
 				filters={"parent": invoice.name, "account_head": settings.input_vat_account},
 				fields=["name", "rate", "tax_amount", "total"],
 				order_by="idx asc",
 			)
-			if item_groups:
-				for classification, amount in item_groups.items():
-					tax_amount = amount * standard_rate if classification in (
-						INPUT_CAPITAL_LOCAL,
-						INPUT_CAPITAL_IMPORTED,
-						INPUT_OTHER_LOCAL,
-						INPUT_OTHER_IMPORTED,
-					) else 0
-					rows.append(
-						{
-							"gl_entry": None,
-							"voucher_type": "Purchase Invoice",
-							"voucher_no": invoice.name,
-							"posting_date": invoice.posting_date,
-							"taxes_and_charges": invoice.taxes_and_charges,
-							"tax_account_debit": abs(flt(tax_amount)) if tax_amount > 0 else 0,
-							"tax_account_credit": abs(flt(tax_amount)) if tax_amount < 0 else 0,
-							"tax_amount": flt(tax_amount),
-							"incl_tax_amount": flt(amount),
-							"classification": classification,
-							"is_cancelled": 0,
-							"classification_debugging": f"Grouped from item VAT categories; template {invoice.taxes_and_charges}",
-						}
-					)
-			elif taxes:
-				for tax in taxes:
-					classification = default_classification or INPUT_OTHER_LOCAL
-					signed_tax = flt(tax.tax_amount) * sign
-					rows.append(
-						{
-							"gl_entry": None,
-							"voucher_type": "Purchase Invoice",
-							"voucher_no": invoice.name,
-							"posting_date": invoice.posting_date,
-							"taxes_and_charges": invoice.taxes_and_charges,
-							"tax_account_debit": abs(signed_tax) if signed_tax > 0 else 0,
-							"tax_account_credit": abs(signed_tax) if signed_tax < 0 else 0,
-							"tax_amount": signed_tax,
-							"incl_tax_amount": flt(tax.total or invoice.base_net_total) * sign,
-							"classification": classification,
-							"is_cancelled": 0,
-							"classification_debugging": f"Fallback template classification: {invoice.taxes_and_charges}",
-						}
-					)
-			else:
-				classification = self.classify_purchase_invoice_without_tax(invoice)
-				if classification:
-					rows.append(
-						{
-							"gl_entry": None,
-							"voucher_type": "Purchase Invoice",
-							"voucher_no": invoice.name,
-							"posting_date": invoice.posting_date,
-							"taxes_and_charges": invoice.taxes_and_charges,
-							"tax_account_debit": 0,
-							"tax_account_credit": 0,
-							"tax_amount": 0,
-							"incl_tax_amount": flt(invoice.base_net_total) * sign,
-							"classification": classification,
-							"is_cancelled": 0,
-							"classification_debugging": "Classified from item VAT categories",
-						}
-					)
+			rows.extend(
+				self.build_purchase_invoice_rows(
+					invoice=invoice,
+					item_groups=item_groups,
+					taxes=taxes,
+					default_classification=default_classification,
+					sign=sign,
+				)
+			)
 		return rows
 
 	def get_journal_entry_rows(self, settings):
 		rows = []
-		tax_accounts = {row.account for row in settings.tax_accounts if row.account}
+		vat_account_rows = getattr(settings, "vat_accounts", None) or getattr(settings, "tax_accounts", [])
+		tax_accounts = {row.account for row in vat_account_rows if row.account}
 		classified_accounts = set(
 			frappe.get_all(
 				"Account",
@@ -503,20 +416,21 @@ class VAT201Return(Document):
 							debug.append("Matched bank/cash settlement pattern")
 
 					rows.append(
-						{
-							"gl_entry": entry.name,
-							"voucher_type": "Journal Entry",
-							"voucher_no": voucher_no,
-							"posting_date": entry.posting_date,
-							"taxes_and_charges": "",
-							"tax_account_debit": flt(entry.debit),
-							"tax_account_credit": flt(entry.credit),
-							"tax_amount": tax_amount,
-							"incl_tax_amount": incl_tax_amount,
-							"classification": classification,
-							"is_cancelled": entry.is_cancelled,
-							"classification_debugging": "\n".join(debug),
-						}
+						self.make_transaction_row(
+							voucher_type="Journal Entry",
+							voucher_no=voucher_no,
+							posting_date=entry.posting_date,
+							gl_entry=entry.name,
+							tax_account_debit=flt(entry.debit),
+							tax_account_credit=flt(entry.credit),
+							tax_amount=tax_amount,
+							incl_tax_amount=incl_tax_amount,
+							classification=classification,
+							classification_status=CLASSIFIED if classification else NEEDS_REVIEW,
+							classification_issue=None if classification else _("No valid non-tax classification pair matched this VAT journal leg."),
+							classification_debugging="\n".join(debug),
+							is_cancelled=entry.is_cancelled,
+						)
 					)
 			else:
 				for entry in voucher_rows:
@@ -525,20 +439,20 @@ class VAT201Return(Document):
 					if not classification:
 						continue
 					rows.append(
-						{
-							"gl_entry": entry.name,
-							"voucher_type": "Journal Entry",
-							"voucher_no": voucher_no,
-							"posting_date": entry.posting_date,
-							"taxes_and_charges": "",
-							"tax_account_debit": flt(entry.debit),
-							"tax_account_credit": flt(entry.credit),
-							"tax_amount": 0,
-							"incl_tax_amount": flt(entry.debit) if side == "debit" else -flt(entry.credit),
-							"classification": classification,
-							"is_cancelled": entry.is_cancelled,
-							"classification_debugging": f"Classified directly from account {entry.account}",
-						}
+						self.make_transaction_row(
+							voucher_type="Journal Entry",
+							voucher_no=voucher_no,
+							posting_date=entry.posting_date,
+							gl_entry=entry.name,
+							tax_account_debit=flt(entry.debit),
+							tax_account_credit=flt(entry.credit),
+							tax_amount=0,
+							incl_tax_amount=flt(entry.debit) if side == "debit" else -flt(entry.credit),
+							classification=classification,
+							classification_status=CLASSIFIED,
+							classification_debugging=f"Classified directly from account {entry.account}",
+							is_cancelled=entry.is_cancelled,
+						)
 					)
 
 		return rows
@@ -575,6 +489,352 @@ class VAT201Return(Document):
 			if getattr(settings, entry["field_name"], None) == template:
 				return entry["classification"]
 		return None
+
+	def get_invoice_item_groups(self, parent, item_doctype, classifier, default_classification, sign):
+		item_groups = {}
+		for item in frappe.get_all(
+			item_doctype,
+			filters={"parent": parent},
+			fields=["base_net_amount", "custom_sa_vat_category"],
+		):
+			classification = classifier(item.custom_sa_vat_category) or default_classification
+			if not classification:
+				continue
+			item_groups.setdefault(classification, 0)
+			item_groups[classification] += flt(item.base_net_amount) * sign
+		return item_groups
+
+	def build_sales_invoice_rows(self, invoice, item_groups, taxes, default_classification, sign):
+		rows = []
+		total_tax = sum(flt(tax.tax_amount) for tax in taxes) * sign
+		total_amount = flt(invoice.base_net_total) * sign
+
+		if taxes:
+			if item_groups:
+				invalid_item_classes = [
+					classification
+					for classification in item_groups
+					if classification not in SALES_STANDARD_CLASSIFICATIONS
+					and classification not in {OUTPUT_ZERO_LOCAL, OUTPUT_ZERO_EXPORTED, OUTPUT_EXEMPT}
+				]
+				if invalid_item_classes:
+					return [
+						self.make_transaction_row(
+							voucher_type="Sales Invoice",
+							voucher_no=invoice.name,
+							posting_date=invoice.posting_date,
+							taxes_and_charges=invoice.taxes_and_charges,
+							tax_amount=total_tax,
+							incl_tax_amount=total_amount,
+							classification_status=NEEDS_REVIEW,
+							classification_issue=_("Invoice item VAT categories produced unsupported sales classifications."),
+							classification_debugging=", ".join(invalid_item_classes),
+						)
+					]
+
+				standard_groups = {
+					classification: amount
+					for classification, amount in item_groups.items()
+					if classification in SALES_STANDARD_CLASSIFICATIONS
+				}
+				zero_or_exempt_groups = {
+					classification: amount
+					for classification, amount in item_groups.items()
+					if classification in {OUTPUT_ZERO_LOCAL, OUTPUT_ZERO_EXPORTED, OUTPUT_EXEMPT}
+				}
+
+				if total_tax and not standard_groups:
+					return [
+						self.make_transaction_row(
+							voucher_type="Sales Invoice",
+							voucher_no=invoice.name,
+							posting_date=invoice.posting_date,
+							taxes_and_charges=invoice.taxes_and_charges,
+							tax_amount=total_tax,
+							incl_tax_amount=total_amount,
+							classification_status=NEEDS_REVIEW,
+							classification_issue=_("Posted sales VAT exists, but no standard-rated classification could be derived from mappings or item categories."),
+							classification_debugging=f"Template: {invoice.taxes_and_charges}",
+						)
+					]
+
+				rows.extend(self.allocate_tax_by_group(invoice, standard_groups, total_tax, invoice.taxes_and_charges))
+				for classification, amount in zero_or_exempt_groups.items():
+					rows.append(
+						self.make_transaction_row(
+							voucher_type="Sales Invoice",
+							voucher_no=invoice.name,
+							posting_date=invoice.posting_date,
+							taxes_and_charges=invoice.taxes_and_charges,
+							tax_amount=0,
+							incl_tax_amount=amount,
+							classification=classification,
+							classification_status=CLASSIFIED,
+							classification_debugging="Classified from item VAT category with zero posted VAT.",
+						)
+					)
+				return rows
+
+			if default_classification:
+				return [
+					self.make_transaction_row(
+						voucher_type="Sales Invoice",
+						voucher_no=invoice.name,
+						posting_date=invoice.posting_date,
+						taxes_and_charges=invoice.taxes_and_charges,
+						tax_amount=total_tax,
+						incl_tax_amount=total_amount,
+						classification=default_classification,
+						classification_status=CLASSIFIED,
+						classification_debugging=f"Classified from sales tax template {invoice.taxes_and_charges}",
+					)
+				]
+
+			return [
+				self.make_transaction_row(
+					voucher_type="Sales Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=total_tax,
+					incl_tax_amount=total_amount,
+					classification_status=NEEDS_REVIEW,
+					classification_issue=_("Posted sales VAT exists, but no explicit VAT201 mapping or supported item VAT category was found."),
+				)
+			]
+
+		if item_groups:
+			return [
+				self.make_transaction_row(
+					voucher_type="Sales Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=0,
+					incl_tax_amount=amount,
+					classification=classification,
+					classification_status=CLASSIFIED,
+					classification_debugging="Classified from zero/exempt item VAT category with no posted VAT.",
+				)
+				for classification, amount in item_groups.items()
+				if classification in {OUTPUT_ZERO_LOCAL, OUTPUT_ZERO_EXPORTED, OUTPUT_EXEMPT}
+			] or [
+				self.make_transaction_row(
+					voucher_type="Sales Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=0,
+					incl_tax_amount=total_amount,
+					classification_status=NEEDS_REVIEW,
+					classification_issue=_("Item VAT categories exist, but the invoice has no posted VAT rows and no zero-rated/exempt classification could be derived confidently."),
+				)
+			]
+
+		if default_classification in {OUTPUT_ZERO_LOCAL, OUTPUT_ZERO_EXPORTED, OUTPUT_EXEMPT}:
+			return [
+				self.make_transaction_row(
+					voucher_type="Sales Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=0,
+					incl_tax_amount=total_amount,
+					classification=default_classification,
+					classification_status=CLASSIFIED,
+					classification_debugging=f"Classified from explicit zero/exempt sales template {invoice.taxes_and_charges}",
+				)
+			]
+
+		if default_classification in SALES_STANDARD_CLASSIFICATIONS:
+			return [
+				self.make_transaction_row(
+					voucher_type="Sales Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=0,
+					incl_tax_amount=total_amount,
+					classification_status=NEEDS_REVIEW,
+					classification_issue=_("Sales template maps to a standard-rated VAT201 box, but no posted VAT rows were found on the invoice."),
+				)
+			]
+
+		return []
+
+	def build_purchase_invoice_rows(self, invoice, item_groups, taxes, default_classification, sign):
+		total_tax = sum(flt(tax.tax_amount) for tax in taxes) * sign
+		total_amount = flt(invoice.base_net_total) * sign
+
+		if taxes:
+			if item_groups:
+				input_groups = {
+					classification: amount
+					for classification, amount in item_groups.items()
+					if classification in PURCHASE_INPUT_CLASSIFICATIONS
+				}
+				unsupported_groups = {
+					classification: amount
+					for classification, amount in item_groups.items()
+					if classification not in PURCHASE_INPUT_CLASSIFICATIONS
+				}
+				if total_tax and not input_groups:
+					return [
+						self.make_transaction_row(
+							voucher_type="Purchase Invoice",
+							voucher_no=invoice.name,
+							posting_date=invoice.posting_date,
+							taxes_and_charges=invoice.taxes_and_charges,
+							tax_amount=total_tax,
+							incl_tax_amount=total_amount,
+							classification_status=NEEDS_REVIEW,
+							classification_issue=_("Posted purchase VAT exists, but no deductible input classification could be derived from mappings or item categories."),
+							classification_debugging=f"Template: {invoice.taxes_and_charges}",
+						)
+					]
+
+				rows = self.allocate_tax_by_group(
+					invoice, input_groups, total_tax, invoice.taxes_and_charges, is_purchase=True
+				)
+				for classification, amount in unsupported_groups.items():
+					rows.append(
+						self.make_transaction_row(
+							voucher_type="Purchase Invoice",
+							voucher_no=invoice.name,
+							posting_date=invoice.posting_date,
+							taxes_and_charges=invoice.taxes_and_charges,
+							tax_amount=0,
+							incl_tax_amount=amount,
+							classification_status=EXCLUDED,
+							classification_issue=_("Purchase line is zero-rated/exempt or otherwise non-deductible and is excluded from VAT201 input tax totals."),
+							classification_debugging=f"Excluded item category classification: {classification}",
+						)
+					)
+				return rows
+
+			if default_classification in PURCHASE_INPUT_CLASSIFICATIONS:
+				return [
+					self.make_transaction_row(
+						voucher_type="Purchase Invoice",
+						voucher_no=invoice.name,
+						posting_date=invoice.posting_date,
+						taxes_and_charges=invoice.taxes_and_charges,
+						tax_amount=total_tax,
+						incl_tax_amount=total_amount,
+						classification=default_classification,
+						classification_status=CLASSIFIED,
+						classification_debugging=f"Classified from purchase tax template {invoice.taxes_and_charges}",
+					)
+				]
+
+			return [
+				self.make_transaction_row(
+					voucher_type="Purchase Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=total_tax,
+					incl_tax_amount=total_amount,
+					classification_status=NEEDS_REVIEW,
+					classification_issue=_("Posted purchase VAT exists, but no explicit deductible VAT201 mapping was found."),
+				)
+			]
+
+		if item_groups:
+			return [
+				self.make_transaction_row(
+					voucher_type="Purchase Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=0,
+					incl_tax_amount=amount,
+					classification_status=EXCLUDED,
+					classification_issue=_("Purchase line carries no posted deductible VAT and is excluded from VAT201 input totals."),
+					classification_debugging=f"Excluded item category classification: {classification}",
+				)
+				for classification, amount in item_groups.items()
+			]
+
+		if default_classification in PURCHASE_INPUT_CLASSIFICATIONS:
+			return [
+				self.make_transaction_row(
+					voucher_type="Purchase Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=invoice.taxes_and_charges,
+					tax_amount=0,
+					incl_tax_amount=total_amount,
+					classification_status=NEEDS_REVIEW,
+					classification_issue=_("Purchase template maps to a deductible VAT201 box, but no posted VAT rows were found on the invoice."),
+				)
+			]
+
+		return []
+
+	def allocate_tax_by_group(self, invoice, groups, total_tax, template, is_purchase=False):
+		rows = []
+		if not groups:
+			return rows
+		total_group_amount = sum(flt(amount) for amount in groups.values())
+		allocated_tax = 0
+		group_items = list(groups.items())
+		for idx, (classification, amount) in enumerate(group_items, start=1):
+			if idx == len(group_items):
+				tax_amount = total_tax - allocated_tax
+			else:
+				tax_amount = flt(total_tax * (flt(amount) / total_group_amount)) if total_group_amount else 0
+				allocated_tax += tax_amount
+			rows.append(
+				self.make_transaction_row(
+					voucher_type="Purchase Invoice" if is_purchase else "Sales Invoice",
+					voucher_no=invoice.name,
+					posting_date=invoice.posting_date,
+					taxes_and_charges=template,
+					tax_account_debit=abs(tax_amount) if is_purchase and tax_amount > 0 else 0,
+					tax_account_credit=abs(tax_amount) if (is_purchase and tax_amount < 0) or (not is_purchase and tax_amount > 0) else 0,
+					tax_amount=tax_amount,
+					incl_tax_amount=amount,
+					classification=classification,
+					classification_status=CLASSIFIED,
+					classification_debugging="Allocated from posted tax evidence across mapped invoice item groups.",
+				)
+			)
+		return rows
+
+	def make_transaction_row(
+		self,
+		voucher_type,
+		voucher_no,
+		posting_date,
+		taxes_and_charges="",
+		gl_entry=None,
+		tax_account_debit=0,
+		tax_account_credit=0,
+		tax_amount=0,
+		incl_tax_amount=0,
+		classification=None,
+		classification_status=CLASSIFIED,
+		classification_issue=None,
+		classification_debugging="",
+		is_cancelled=0,
+	):
+		return {
+			"gl_entry": gl_entry,
+			"voucher_type": voucher_type,
+			"voucher_no": voucher_no,
+			"posting_date": posting_date,
+			"taxes_and_charges": taxes_and_charges,
+			"tax_account_debit": flt(tax_account_debit),
+			"tax_account_credit": flt(tax_account_credit),
+			"tax_amount": flt(tax_amount),
+			"incl_tax_amount": flt(incl_tax_amount),
+			"classification": classification,
+			"classification_status": classification_status,
+			"classification_issue": classification_issue,
+			"is_cancelled": is_cancelled,
+			"classification_debugging": classification_debugging,
+		}
 
 	def classify_sales_invoice_without_tax(self, invoice):
 		categories = set(
@@ -629,6 +889,4 @@ class VAT201Return(Document):
 			"Imported Capital Goods": INPUT_CAPITAL_IMPORTED,
 			"Imported Other Goods": INPUT_OTHER_IMPORTED,
 			"Standard Rated": INPUT_OTHER_LOCAL,
-			"Zero Rated": INPUT_OTHER_LOCAL,
-			"Exempt": INPUT_OTHER_LOCAL,
 		}.get(category)

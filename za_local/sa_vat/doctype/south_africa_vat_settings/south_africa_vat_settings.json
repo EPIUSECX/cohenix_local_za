@@ -28,7 +28,7 @@
   "column_break_16",
   "input_vat_account",
   "item_tax_template_account",
-  "tax_accounts",
+  "vat_accounts",
   "classification_settings_section",
   "output_tax_doctype",
   "standard_rate_non_capital",
@@ -194,11 +194,11 @@
    "options": "Account"
   },
   {
-   "description": "Tracked VAT tax accounts included in VAT201 working-paper retrieval.",
-   "fieldname": "tax_accounts",
+   "description": "Tracked VAT tax accounts shared with ERPNext's South Africa VAT settings and VAT Audit Report.",
+   "fieldname": "vat_accounts",
    "fieldtype": "Table",
    "label": "Tracked VAT Accounts",
-   "options": "South Africa VAT Tax Account"
+   "options": "South Africa VAT Account"
   },
   {
    "fieldname": "classification_settings_section",

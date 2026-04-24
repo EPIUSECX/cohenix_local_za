@@ -241,6 +241,13 @@ def ensure_vat_custom_fields():
 			],
 			"Item": [
 				{
+					"fieldname": "is_zero_rated",
+					"fieldtype": "Check",
+					"label": "Is Zero Rated",
+					"insert_after": "item_group",
+					"print_hide": 1,
+				},
+				{
 					"fieldname": "custom_sa_vat_category",
 					"fieldtype": "Select",
 					"label": "South Africa VAT Category",
@@ -250,6 +257,15 @@ def ensure_vat_custom_fields():
 				}
 			],
 			"Sales Invoice Item": [
+				{
+					"fieldname": "is_zero_rated",
+					"fieldtype": "Check",
+					"label": "Is Zero Rated",
+					"insert_after": "description",
+					"fetch_from": "item_code.is_zero_rated",
+					"read_only": 1,
+					"print_hide": 1,
+				},
 				{
 					"fieldname": "custom_sa_vat_category",
 					"fieldtype": "Data",
@@ -261,6 +277,15 @@ def ensure_vat_custom_fields():
 				}
 			],
 			"Purchase Invoice Item": [
+				{
+					"fieldname": "is_zero_rated",
+					"fieldtype": "Check",
+					"label": "Is Zero Rated",
+					"insert_after": "description",
+					"fetch_from": "item_code.is_zero_rated",
+					"read_only": 1,
+					"print_hide": 1,
+				},
 				{
 					"fieldname": "custom_sa_vat_category",
 					"fieldtype": "Data",
@@ -282,9 +307,12 @@ def sync_vat_accounts(settings):
 		if account and account not in tracked:
 			tracked.append(account)
 
-	settings.tax_accounts = []
+	if hasattr(settings, "vat_accounts"):
+		settings.vat_accounts = []
+	if hasattr(settings, "tax_accounts"):
+		settings.tax_accounts = []
 	for account in tracked:
-		settings.append("tax_accounts", {"account": account})
+		settings.append("vat_accounts", {"doctype": "South Africa VAT Account", "account": account})
 	return tracked
 
 
@@ -416,5 +444,46 @@ def bootstrap_company_vat_setup(company: str | None = None):
 		settings.save()
 	return {
 		"settings": settings.name,
-		"tax_accounts": [row.account for row in settings.tax_accounts],
+		"vat_accounts": [row.account for row in settings.vat_accounts],
+		"tax_accounts": [row.account for row in settings.vat_accounts],
 	}
+
+
+def migrate_legacy_vat_account_rows():
+	if not frappe.db.table_exists("South Africa VAT Tax Account"):
+		return 0
+
+	legacy_rows = frappe.get_all(
+		"South Africa VAT Tax Account",
+		fields=["parent", "parenttype", "account", "idx"],
+		filters={"parenttype": "South Africa VAT Settings"},
+		order_by="parent asc, idx asc",
+	)
+
+	migrated = 0
+	for row in legacy_rows:
+		exists = frappe.db.exists(
+			"South Africa VAT Account",
+			{
+				"parent": row.parent,
+				"parenttype": "South Africa VAT Settings",
+				"parentfield": "vat_accounts",
+				"account": row.account,
+			},
+		)
+		if exists:
+			continue
+
+		frappe.get_doc(
+			{
+				"doctype": "South Africa VAT Account",
+				"parent": row.parent,
+				"parenttype": "South Africa VAT Settings",
+				"parentfield": "vat_accounts",
+				"account": row.account,
+				"idx": row.idx,
+			}
+		).insert(ignore_permissions=True)
+		migrated += 1
+
+	return migrated

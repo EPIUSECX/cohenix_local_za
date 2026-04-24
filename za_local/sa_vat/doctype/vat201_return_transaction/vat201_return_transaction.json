@@ -17,6 +17,8 @@
   "tax_amount",
   "incl_tax_amount",
   "classification",
+  "classification_status",
+  "classification_issue",
   "is_cancelled",
   "classification_debugging_section",
   "classification_debugging"
@@ -88,6 +90,20 @@
    "label": "Classification",
    "options": "\nOutput - A Standard rate (excl capital goods)\nOutput - B Standard rate (only capital goods)\nOutput - C Zero Rated (excl goods exported)\nOutput - D Zero Rated (only goods exported)\nOutput - E Exempt\nInput - A Capital goods and/or services supplied to you (local)\nInput - B Capital goods imported\nInput - C Other goods supplied to you (excl capital goods)\nInput - D Other goods imported (excl capital goods)\nSARS Payment/Receipt",
    "read_only_depends_on": "eval: doc.is_cancelled"
+  },
+  {
+   "fieldname": "classification_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Classification Status",
+   "options": "Classified\nNeeds Review\nExcluded",
+   "read_only": 1
+  },
+  {
+   "fieldname": "classification_issue",
+   "fieldtype": "Small Text",
+   "label": "Classification Issue",
+   "read_only": 1
   },
   {
    "default": "0",

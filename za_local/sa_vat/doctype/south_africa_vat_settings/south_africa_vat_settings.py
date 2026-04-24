@@ -375,4 +375,4 @@ class SouthAfricaVATSettings(Document):
 			self.insert()
 		else:
 			self.save()
-		return {"tax_accounts": tracked}
+		return {"vat_accounts": tracked, "tax_accounts": tracked}

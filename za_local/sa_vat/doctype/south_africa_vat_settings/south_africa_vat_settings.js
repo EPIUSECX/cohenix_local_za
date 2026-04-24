@@ -4,11 +4,13 @@ frappe.ui.form.on("South Africa VAT Settings", {
 		sync_company_scope(frm);
 		update_vat_registration_number(frm);
 		set_default_filing_frequency(frm);
+		set_erpnext_vat_queries(frm);
 	},
 	refresh(frm) {
 		ensure_default_vat_rates(frm);
 		sync_company_scope(frm);
 		update_vat_registration_number(frm);
+		set_erpnext_vat_queries(frm);
 
 		frm.add_custom_button(__("Sync VAT Accounts"), function () {
 			frm.call({
@@ -37,6 +39,7 @@ frappe.ui.form.on("South Africa VAT Settings", {
 	company(frm) {
 		sync_company_scope(frm);
 		update_vat_registration_number(frm);
+		set_erpnext_vat_queries(frm);
 	},
 	default_vat_report_company(frm) {
 		sync_company_scope(frm);
@@ -54,6 +57,30 @@ frappe.ui.form.on("South Africa VAT Settings", {
 		ensure_default_vat_rates(frm);
 	},
 });
+
+function set_erpnext_vat_queries(frm) {
+	frm.set_query("company", function () {
+		return {
+			filters: {
+				country: "South Africa",
+			},
+		};
+	});
+
+	const accountFilters = function () {
+		return {
+			filters: {
+				company: frm.doc.company,
+				account_type: "Tax",
+				is_group: 0,
+			},
+		};
+	};
+
+	frm.set_query("account", "vat_accounts", accountFilters);
+	frm.set_query("output_vat_account", accountFilters);
+	frm.set_query("input_vat_account", accountFilters);
+}
 
 function update_vat_registration_number(frm) {
 	const company = frm.doc.company;

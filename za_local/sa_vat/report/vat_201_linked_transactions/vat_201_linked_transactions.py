@@ -19,6 +19,8 @@ def get_columns():
 		{"fieldname": "tax_amount", "label": _("Tax Amount"), "fieldtype": "Currency", "width": 120},
 		{"fieldname": "incl_tax_amount", "label": _("Incl Tax Amount"), "fieldtype": "Currency", "width": 120},
 		{"fieldname": "classification", "label": _("Classification"), "fieldtype": "Data", "width": 240},
+		{"fieldname": "classification_status", "label": _("Status"), "fieldtype": "Data", "width": 120},
+		{"fieldname": "classification_issue", "label": _("Issue"), "fieldtype": "Data", "width": 280},
 		{"fieldname": "is_cancelled", "label": _("Cancelled"), "fieldtype": "Check", "width": 80},
 	]
 
@@ -46,8 +48,9 @@ def get_data(filters):
 			"tax_amount",
 			"incl_tax_amount",
 			"classification",
+			"classification_status",
+			"classification_issue",
 			"is_cancelled",
 		],
 		order_by="posting_date asc, voucher_no asc",
 	)
-

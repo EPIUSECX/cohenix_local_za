@@ -70,6 +70,8 @@ frappe.ui.form.on("VAT201 Return", {
 							"Tax Amount",
 							"Incl Tax Amount",
 							"Classification",
+							"Status",
+							"Issue",
 							"Cancelled",
 						]].concat(
 							r.message.map((row) => [
@@ -83,6 +85,8 @@ frappe.ui.form.on("VAT201 Return", {
 								row.tax_amount || 0,
 								row.incl_tax_amount || 0,
 								row.classification || "",
+								row.classification_status || "",
+								row.classification_issue || "",
 								row.is_cancelled ? "Yes" : "No",
 							]),
 						);
@@ -123,9 +127,11 @@ frappe.ui.form.on("VAT201 Return", {
 
 function set_form_intro(frm) {
 	const rows = frm.doc.transactions || [];
-	const unclassified = rows.filter((entry) => !entry.classification && !entry.is_cancelled);
-	if (unclassified.length > 0) {
-		frm.set_intro(__("{0} linked transactions still need classification.", [unclassified.length]), "orange");
+	const unresolved = rows.filter(
+		(entry) => entry.classification_status === "Needs Review" && !entry.is_cancelled,
+	);
+	if (unresolved.length > 0) {
+		frm.set_intro(__("{0} linked transactions still need practitioner review.", [unresolved.length]), "orange");
 	} else if (rows.length > 0) {
 		frm.set_intro(__("Linked VAT transactions are ready for review and export."), "green");
 	}
