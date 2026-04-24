@@ -1,5 +1,5 @@
 {
- "action": "Update Settings",
+ "action": "Create Entry",
  "action_label": "Review South Africa VAT Settings",
  "creation": "2026-04-22 00:00:00.000000",
  "docstatus": 0,
@@ -7,7 +7,7 @@
  "form_tour": "South Africa VAT Settings Form Tour",
  "idx": 0,
  "is_complete": 0,
- "is_single": 1,
+ "is_single": 0,
  "is_skipped": 0,
  "modified": "2026-04-22 00:00:00.000000",
  "modified_by": "Administrator",
@@ -15,7 +15,7 @@
  "owner": "Administrator",
  "reference_document": "South Africa VAT Settings",
  "show_form_tour": 1,
- "show_full_form": 0,
+ "show_full_form": 1,
  "title": "Review South Africa VAT Settings",
  "validate_action": 0
 }

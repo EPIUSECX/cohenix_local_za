@@ -14,16 +14,26 @@
   "to_date",
   "submission_period",
   "submission_date",
+  "transactions_section",
+  "transactions",
   "section_break_6",
   "standard_rated_supplies_tab",
+  "standard_rated_supplies_non_capital",
+  "standard_rated_supplies_capital",
   "standard_rated_supplies",
+  "zero_rated_supplies_local",
+  "zero_rated_supplies_exported",
   "zero_rated_supplies",
   "exempt_supplies",
   "column_break_11",
   "total_supplies",
   "section_break_13",
   "input_tax_tab",
+  "capital_goods_input_local",
+  "capital_goods_input_imported",
   "capital_goods_input",
+  "other_goods_services_input_local",
+  "other_goods_services_input_imported",
   "other_goods_services_input",
   "change_in_use_input",
   "bad_debts_input",
@@ -31,6 +41,8 @@
   "total_input_tax",
   "section_break_21",
   "output_tax_tab",
+  "standard_rated_output_non_capital",
+  "standard_rated_output_capital",
   "standard_rated_output",
   "change_in_use_output",
   "bad_debts_output",
@@ -106,6 +118,17 @@
    "reqd": 1
   },
   {
+   "fieldname": "transactions_section",
+   "fieldtype": "Section Break",
+   "label": "Linked VAT Transactions"
+  },
+  {
+   "fieldname": "transactions",
+   "fieldtype": "Table",
+   "label": "Transactions",
+   "options": "VAT201 Return Transaction"
+  },
+  {
    "fieldname": "section_break_6",
    "fieldtype": "Section Break"
   },
@@ -115,20 +138,46 @@
    "label": "Supplies"
   },
   {
+   "fieldname": "standard_rated_supplies_non_capital",
+   "fieldtype": "Currency",
+   "label": "Box 1 Standard Rated Supplies (Non-Capital)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "standard_rated_supplies_capital",
+   "fieldtype": "Currency",
+   "label": "Box 1A Standard Rated Supplies (Capital Goods)",
+   "read_only": 1
+  },
+  {
    "fieldname": "standard_rated_supplies",
    "fieldtype": "Currency",
    "label": "Standard Rated Supplies",
-   "reqd": 1
+   "read_only": 1
+  },
+  {
+   "fieldname": "zero_rated_supplies_local",
+   "fieldtype": "Currency",
+   "label": "Box 2 Zero Rated Supplies (Local)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "zero_rated_supplies_exported",
+   "fieldtype": "Currency",
+   "label": "Box 2A Zero Rated Supplies (Exports)",
+   "read_only": 1
   },
   {
    "fieldname": "zero_rated_supplies",
    "fieldtype": "Currency",
-   "label": "Zero Rated Supplies"
+   "label": "Zero Rated Supplies",
+   "read_only": 1
   },
   {
    "fieldname": "exempt_supplies",
    "fieldtype": "Currency",
-   "label": "Exempt Supplies"
+   "label": "Exempt Supplies",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_11",
@@ -150,14 +199,40 @@
    "label": "Input Tax"
   },
   {
+   "fieldname": "capital_goods_input_local",
+   "fieldtype": "Currency",
+   "label": "Box 14 Input Tax on Capital Goods (Local)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "capital_goods_input_imported",
+   "fieldtype": "Currency",
+   "label": "Box 14A Input Tax on Capital Goods (Imported)",
+   "read_only": 1
+  },
+  {
    "fieldname": "capital_goods_input",
    "fieldtype": "Currency",
-   "label": "Capital Goods Input Tax"
+   "label": "Capital Goods Input Tax",
+   "read_only": 1
+  },
+  {
+   "fieldname": "other_goods_services_input_local",
+   "fieldtype": "Currency",
+   "label": "Box 15 Other Goods & Services Input Tax (Local)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "other_goods_services_input_imported",
+   "fieldtype": "Currency",
+   "label": "Box 15A Other Goods & Services Input Tax (Imported)",
+   "read_only": 1
   },
   {
    "fieldname": "other_goods_services_input",
    "fieldtype": "Currency",
-   "label": "Other Goods & Services Input Tax"
+   "label": "Other Goods & Services Input Tax",
+   "read_only": 1
   },
   {
    "fieldname": "change_in_use_input",
@@ -187,6 +262,18 @@
    "fieldname": "output_tax_tab",
    "fieldtype": "Tab Break",
    "label": "Output Tax"
+  },
+  {
+   "fieldname": "standard_rated_output_non_capital",
+   "fieldtype": "Currency",
+   "label": "Box 4 Output Tax on Standard Rated Supplies",
+   "read_only": 1
+  },
+  {
+   "fieldname": "standard_rated_output_capital",
+   "fieldtype": "Currency",
+   "label": "Box 4A Output Tax on Capital Goods",
+   "read_only": 1
   },
   {
    "fieldname": "standard_rated_output",
@@ -295,7 +382,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-06 17:34:00.000000",
+ "modified": "2026-04-24 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SA VAT",
  "name": "VAT201 Return",
@@ -333,7 +420,8 @@
    "read": 1,
    "report": 1,
    "role": "Accounts User",
-   "share": 1
+   "share": 1,
+   "write": 0
   }
  ],
  "sort_field": "modified",

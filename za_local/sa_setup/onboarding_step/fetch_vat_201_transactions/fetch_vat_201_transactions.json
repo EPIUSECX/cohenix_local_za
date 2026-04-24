@@ -1,0 +1,22 @@
+{
+ "action": "Open Form",
+ "action_label": "Fetch transactions for period",
+ "creation": "2026-04-24 12:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "form_tour": "VAT201 Return Form Tour",
+ "idx": 0,
+ "is_complete": 0,
+ "is_single": 0,
+ "is_skipped": 0,
+ "modified": "2026-04-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Fetch VAT 201 Transactions",
+ "owner": "Administrator",
+ "reference_document": "VAT201 Return",
+ "show_form_tour": 1,
+ "show_full_form": 1,
+ "title": "Fetch VAT 201 Transactions",
+ "validate_action": 0
+}
+

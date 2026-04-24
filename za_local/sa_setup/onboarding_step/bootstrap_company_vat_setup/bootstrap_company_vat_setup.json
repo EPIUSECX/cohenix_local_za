@@ -1,0 +1,19 @@
+{
+ "action": "Open Form",
+ "action_label": "Bootstrap company VAT setup",
+ "creation": "2026-04-24 12:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_single": 0,
+ "is_skipped": 0,
+ "modified": "2026-04-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Bootstrap Company VAT Setup",
+ "owner": "Administrator",
+ "reference_document": "South Africa VAT Settings",
+ "show_full_form": 1,
+ "title": "Bootstrap Company VAT Setup",
+ "validate_action": 0
+}

@@ -1,7 +1,7 @@
 {
  "app": "za_local",
  "charts": [],
- "content": "[{\"id\":\"sa-vat-sp\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"sa-vat-h\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"sa-vat-p\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"text-muted\\\">South African VAT configuration, VAT201, audit reporting, and ERPNext tax templates.</span>\",\"col\":12}},{\"id\":\"sa-vat-c1\",\"type\":\"card\",\"data\":{\"card_name\":\"Organisation\",\"col\":4}},{\"id\":\"sa-vat-c2\",\"type\":\"card\",\"data\":{\"card_name\":\"Configuration\",\"col\":4}},{\"id\":\"sa-vat-c3\",\"type\":\"card\",\"data\":{\"card_name\":\"Returns & reports\",\"col\":4}},{\"id\":\"sa-vat-c4\",\"type\":\"card\",\"data\":{\"card_name\":\"ERPNext \u2014 tax templates\",\"col\":4}}]",
+ "content": "[{\"id\":\"sa-vat-sp\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"sa-vat-h\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactions &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"sa-vat-p\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"text-muted\\\">South African VAT configuration, VAT201 working papers, audit reporting, and ERPNext tax templates.</span>\",\"col\":12}},{\"id\":\"sa-vat-c1\",\"type\":\"card\",\"data\":{\"card_name\":\"Organisation\",\"col\":4}},{\"id\":\"sa-vat-c2\",\"type\":\"card\",\"data\":{\"card_name\":\"Configuration\",\"col\":4}},{\"id\":\"sa-vat-c3\",\"type\":\"card\",\"data\":{\"card_name\":\"Returns & reports\",\"col\":4}},{\"id\":\"sa-vat-c4\",\"type\":\"card\",\"data\":{\"card_name\":\"ERPNext \u2014 tax templates\",\"col\":4}}]",
  "creation": "2026-02-27 11:40:24.605799",
  "custom_blocks": [],
  "docstatus": 0,
@@ -51,6 +51,26 @@
    "link_to": "VAT201 Return",
    "link_type": "DocType",
    "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "VAT 201 Linked Transactions",
+   "link_count": 0,
+   "link_to": "VAT 201 Linked Transactions",
+   "link_type": "Report",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "VAT 201 Account Classifications",
+   "link_count": 0,
+   "link_to": "VAT 201 Account Classifications",
+   "link_type": "Report",
+   "onboard": 0,
    "type": "Link"
   },
   {

@@ -21,17 +21,21 @@
 	<section id="vat201-flow" class="mb-6">
 		<h3>{{ __("VAT 201 Flow") }}</h3>
 		<p class="text-muted">
-			Create a <strong>VAT201 Return</strong>, set the company and period dates, review VAT totals, then open
-			the <strong>VAT Audit Report</strong> for the transaction trail before filing.
+			Create a <strong>VAT201 Return</strong>, set the company and period dates, then use
+			<strong>Get VAT Transactions</strong> to build the working paper from invoices and classified journal
+			entries. Review the linked transactions, reconcile the totals against the <strong>VAT Audit Report</strong>,
+			export the summary and linked transactions, and file manually through SARS eFiling.
 		</p>
 	</section>
 
 	<section id="tax-invoice-checks" class="mb-6">
 		<h3>{{ __("Sales Invoice Tax Invoice Checks") }}</h3>
 		<p class="text-muted">
-			On South-Africa-only sites, the setup wizard sets the SA print formats as site defaults. Confirm the
-			company registration numbers, customer tax IDs where required, and VAT ledger mapping before issuing
-			live documents.
+			On South-Africa-only sites, the setup wizard sets the SA print formats as site defaults. Use the
+			<strong>Check SA Tax Invoice</strong> action on Sales Invoice to confirm threshold guidance:
+			<strong>no dedicated tax invoice at or below R50</strong>, <strong>abridged tax invoice up to R5,000</strong>,
+			and <strong>full tax invoice above R5,000</strong>. Confirm company VAT numbers, addresses, item
+			descriptions, quantities, and customer tax details where required before issuing live documents.
 		</p>
 	</section>
 </div>

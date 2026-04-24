@@ -1,6 +1,8 @@
 {
  "actions": [],
+ "autoname": "field:company",
  "creation": "2025-05-06 17:30:00",
+ "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -11,6 +13,10 @@
   "column_break_3",
   "enable_zero_rated_items",
   "enable_exempt_items",
+  "vat_thresholds_section",
+  "vat_registration_threshold",
+  "column_break_thresholds",
+  "vat_voluntary_threshold",
   "vat_registration_section",
   "vat_registration_number",
   "vat_vendor_type",
@@ -21,6 +27,21 @@
   "output_vat_account",
   "column_break_16",
   "input_vat_account",
+  "tax_accounts",
+  "classification_settings_section",
+  "output_tax_doctype",
+  "standard_rate_non_capital",
+  "standard_rate_non_capital_2",
+  "standard_rate_capital",
+  "zero_rate_non_exported",
+  "zero_rate_exported",
+  "exempt",
+  "column_break_output_map",
+  "input_tax_doctype",
+  "input_capital_local",
+  "input_capital_import",
+  "input_goods_local",
+  "input_goods_import",
   "vat_rates_section",
   "vat_rates",
   "sars_efiling_section",
@@ -34,11 +55,13 @@
  ],
  "fields": [
   {
-   "description": "Company for which these VAT settings are being viewed.",
+   "description": "Company for which these VAT settings apply.",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1,
+   "unique": 1
   },
   {
    "fieldname": "vat_settings_section",
@@ -47,7 +70,7 @@
   },
   {
    "default": "15",
-   "description": "Standard VAT rate in South Africa (percentage)",
+   "description": "Standard VAT rate in South Africa (percentage).",
    "fieldname": "standard_vat_rate",
    "fieldtype": "Percent",
    "in_list_view": 1,
@@ -60,17 +83,40 @@
   },
   {
    "default": "1",
-   "description": "Enable zero-rated items (0% VAT)",
+   "description": "Enable zero-rated items (0% VAT).",
    "fieldname": "enable_zero_rated_items",
    "fieldtype": "Check",
    "label": "Enable Zero-Rated Items"
   },
   {
    "default": "1",
-   "description": "Enable VAT exempt items",
+   "description": "Enable VAT exempt items.",
    "fieldname": "enable_exempt_items",
    "fieldtype": "Check",
    "label": "Enable Exempt Items"
+  },
+  {
+   "fieldname": "vat_thresholds_section",
+   "fieldtype": "Section Break",
+   "label": "Registration Thresholds"
+  },
+  {
+   "default": "2300000",
+   "description": "Compulsory VAT registration threshold effective 1 April 2026.",
+   "fieldname": "vat_registration_threshold",
+   "fieldtype": "Currency",
+   "label": "Compulsory Registration Threshold"
+  },
+  {
+   "fieldname": "column_break_thresholds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "120000",
+   "description": "Voluntary VAT registration threshold effective 1 April 2026.",
+   "fieldname": "vat_voluntary_threshold",
+   "fieldtype": "Currency",
+   "label": "Voluntary Registration Threshold"
   },
   {
    "fieldname": "vat_registration_section",
@@ -78,14 +124,14 @@
    "label": "VAT Registration"
   },
   {
-   "description": "VAT Registration Number (e.g., 4111111112) set in Company. Shown from Default VAT Report Company when set.",
+   "description": "VAT Registration Number set on Company. Shown from Default VAT Report Company when set.",
    "fieldname": "vat_registration_number",
    "fieldtype": "Data",
    "label": "VAT Registration Number",
    "read_only": 1
   },
   {
-   "description": "Type of VAT vendor",
+   "description": "Type of VAT vendor.",
    "fieldname": "vat_vendor_type",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -98,7 +144,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "How often VAT returns are filed",
+   "description": "How often VAT returns are filed.",
    "fieldname": "vat_filing_frequency",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -107,7 +153,7 @@
    "reqd": 1
   },
   {
-   "description": "Day of the month when VAT returns are due",
+   "description": "Day of the month when VAT returns are due.",
    "fieldname": "vat_filing_day",
    "fieldtype": "Int",
    "in_list_view": 1,
@@ -120,7 +166,7 @@
    "label": "VAT Accounts"
   },
   {
-   "description": "Account used for Output VAT",
+   "description": "Primary account used for Output VAT.",
    "fieldname": "output_vat_account",
    "fieldtype": "Link",
    "label": "Output VAT Account",
@@ -132,7 +178,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Account used for Input VAT",
+   "description": "Primary account used for Input VAT.",
    "fieldname": "input_vat_account",
    "fieldtype": "Link",
    "label": "Input VAT Account",
@@ -140,12 +186,102 @@
    "reqd": 1
   },
   {
+   "description": "Tracked VAT and classified accounts included in VAT201 working-paper retrieval.",
+   "fieldname": "tax_accounts",
+   "fieldtype": "Table",
+   "label": "Tracked VAT Accounts",
+   "options": "South Africa VAT Tax Account"
+  },
+  {
+   "fieldname": "classification_settings_section",
+   "fieldtype": "Section Break",
+   "label": "VAT201 Classification Mapping"
+  },
+  {
+   "default": "Sales Taxes and Charges Template",
+   "fieldname": "output_tax_doctype",
+   "fieldtype": "Data",
+   "label": "Output Tax Doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "standard_rate_non_capital",
+   "fieldtype": "Link",
+   "label": "Output A. Standard Rate (Non-Capital)",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "standard_rate_non_capital_2",
+   "fieldtype": "Link",
+   "label": "Output A. Standard Rate (Additional Template)",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "standard_rate_capital",
+   "fieldtype": "Link",
+   "label": "Output B. Standard Rate (Capital Goods)",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "zero_rate_non_exported",
+   "fieldtype": "Link",
+   "label": "Output C. Zero Rated (Local)",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "zero_rate_exported",
+   "fieldtype": "Link",
+   "label": "Output D. Zero Rated (Exports)",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "exempt",
+   "fieldtype": "Link",
+   "label": "Output E. Exempt",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "column_break_output_map",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Purchase Taxes and Charges Template",
+   "fieldname": "input_tax_doctype",
+   "fieldtype": "Data",
+   "label": "Input Tax Doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "input_capital_local",
+   "fieldtype": "Link",
+   "label": "Input A. Capital Goods (Local)",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "fieldname": "input_capital_import",
+   "fieldtype": "Link",
+   "label": "Input B. Capital Goods (Imported)",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "fieldname": "input_goods_local",
+   "fieldtype": "Link",
+   "label": "Input C. Other Goods (Local)",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "fieldname": "input_goods_import",
+   "fieldtype": "Link",
+   "label": "Input D. Other Goods (Imported)",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
    "fieldname": "vat_rates_section",
    "fieldtype": "Section Break",
    "label": "VAT Rates"
   },
   {
-   "description": "Configure different VAT rates",
+   "description": "Configure different VAT rates.",
    "fieldname": "vat_rates",
    "fieldtype": "Table",
    "label": "VAT Rates",
@@ -159,7 +295,7 @@
    "label": "SARS e-Filing Integration"
   },
   {
-   "description": "Username for SARS e-Filing",
+   "description": "Inactive placeholder for any future SARS integration.",
    "fieldname": "sars_efiling_username",
    "fieldtype": "Data",
    "label": "SARS e-Filing Username"
@@ -169,7 +305,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Password for SARS e-Filing",
+   "description": "Inactive placeholder for any future SARS integration.",
    "fieldname": "sars_efiling_password",
    "fieldtype": "Password",
    "label": "SARS e-Filing Password"
@@ -180,7 +316,7 @@
    "label": "VAT Report Settings"
   },
   {
-   "description": "Default company for VAT reports",
+   "description": "Default company for VAT reports.",
    "fieldname": "default_vat_report_company",
    "fieldtype": "Link",
    "label": "Default VAT Report Company",
@@ -191,7 +327,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Default period for VAT reports",
+   "description": "Default period for VAT reports.",
    "fieldname": "default_vat_report_period",
    "fieldtype": "Select",
    "label": "Default VAT Report Period",
@@ -199,12 +335,12 @@
   }
  ],
  "index_web_pages_for_search": 1,
- "issingle": 1,
  "links": [],
- "modified": "2026-04-23 11:16:31.369745",
+ "modified": "2026-04-24 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SA VAT",
  "name": "South Africa VAT Settings",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

@@ -16,6 +16,7 @@ from frappe.utils.fixtures import import_fixtures
 from za_local.sa_setup.custom_fields import setup_custom_fields
 from za_local.sa_setup.monkey_patches import setup_all_monkey_patches
 from za_local.sa_setup.property_setters import apply_property_setters
+from za_local.sa_vat.setup import ensure_vat_custom_fields, seed_vat_vendor_types
 from za_local.utils.hrms_detection import is_hrms_installed
 
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
@@ -258,6 +259,7 @@ def sync_za_local():
 	"""
 	import_fixtures("za_local")
 	setup_custom_fields()
+	ensure_vat_custom_fields()
 
 
 def before_install():
@@ -292,6 +294,7 @@ def after_install():
 	make_property_setters()
 	setup_all_monkey_patches()
 	setup_default_data()
+	seed_vat_vendor_types()
 	apply_statutory_formulas()
 	import_master_data()
 	seed_sars_payroll_codes()
@@ -328,6 +331,7 @@ def after_migrate():
 	make_property_setters()
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
+	seed_vat_vendor_types()
 	seed_sars_payroll_codes()
 	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()
@@ -1185,6 +1189,7 @@ def before_migrate():
 	if not frappe.db:
 		return
 	try:
+		stabilize_sa_vat_doctype_metadata()
 		# Update any DocType or Report that still has module "COIDA" to "SA COIDA"
 		for dt in ("DocType", "Report"):
 			if frappe.db.table_exists(dt):
@@ -1197,6 +1202,24 @@ def before_migrate():
 		frappe.log_error(f"before_migrate (za_local): {e}", "ZA Local before_migrate")
 		# Don't fail migrate
 		pass
+
+
+def stabilize_sa_vat_doctype_metadata():
+	"""Ensure the new SA VAT child doctypes stay app-owned and reloadable."""
+	doctypes = (
+		"South Africa VAT Settings",
+		"South Africa VAT Tax Account",
+		"VAT201 Return Transaction",
+	)
+	for doctype in doctypes:
+		if frappe.db.exists("DocType", doctype):
+			frappe.db.set_value("DocType", doctype, {"module": "SA VAT", "custom": 0}, update_modified=False)
+
+	for doctype in ("south_africa_vat_tax_account", "vat201_return_transaction", "south_africa_vat_settings"):
+		try:
+			frappe.reload_doc("sa_vat", "doctype", doctype)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"ZA Local VAT pre-migrate reload failed: {doctype}")
 
 
 def ensure_modules_visible():

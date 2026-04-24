@@ -52,6 +52,7 @@ class TestRepositoryHygiene(FrappeTestCase):
 			PACKAGE_ROOT / "sa_setup" / "form_tour",
 			PACKAGE_ROOT / "workspace_sidebar",
 			PACKAGE_ROOT / "sa_vat" / "workspace",
+			PACKAGE_ROOT / "sa_vat" / "report",
 			PACKAGE_ROOT / "sa_payroll" / "workspace",
 		)
 

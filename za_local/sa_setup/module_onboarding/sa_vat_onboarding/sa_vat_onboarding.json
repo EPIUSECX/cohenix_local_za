@@ -25,6 +25,12 @@
    "step": "Review South Africa VAT Settings"
   },
   {
+   "step": "Sync VAT Accounts"
+  },
+  {
+   "step": "Bootstrap Company VAT Setup"
+  },
+  {
    "step": "Review Sales Tax Templates"
   },
   {
@@ -37,8 +43,14 @@
    "step": "Create VAT201 Return"
   },
   {
+   "step": "Fetch VAT 201 Transactions"
+  },
+  {
+   "step": "Review VAT 201 Linked Transactions"
+  },
+  {
    "step": "View VAT Audit Report"
   }
  ],
- "title": "SA VAT Setup"
+ "title": "SA VAT Compliance Setup"
 }
