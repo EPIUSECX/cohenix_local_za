@@ -297,7 +297,7 @@ def is_valid_item_tax_account(account: str | None, company: str | None) -> bool:
 
 
 def ensure_default_tax_templates(settings):
-	company = settings.default_vat_report_company or settings.company
+	company = settings.company
 	if not company:
 		frappe.throw(_("Select a company before bootstrapping VAT templates."))
 
@@ -328,11 +328,21 @@ def ensure_default_tax_templates(settings):
 
 
 def ensure_item_tax_templates(settings, company):
-	if not is_valid_item_tax_account(settings.output_vat_account, company):
+	item_tax_account = getattr(settings, "item_tax_template_account", None)
+	if not item_tax_account:
 		frappe.msgprint(
 			_(
-				"Skipping automatic Item Tax Template creation because Output VAT Account {0} is not a valid Item Tax account for company {1}. Use an account of type Tax, Chargeable, Income, or Expense if you want item tax templates generated automatically."
-			).format(frappe.bold(settings.output_vat_account or _("(not set)")), frappe.bold(company)),
+				"Automatic Item Tax Template creation is inactive because no Item Tax Template Account is set for company {0}. Select a valid tax, chargeable, income, or expense account if you want the templates generated automatically."
+			).format(frappe.bold(company)),
+			indicator="yellow",
+		)
+		return
+
+	if not is_valid_item_tax_account(item_tax_account, company):
+		frappe.msgprint(
+			_(
+				"Skipping automatic Item Tax Template creation because Item Tax Template Account {0} is not a valid Item Tax account for company {1}. Use an account of type Tax, Chargeable, Income, or Expense if you want item tax templates generated automatically."
+			).format(frappe.bold(item_tax_account), frappe.bold(company)),
 			indicator="yellow",
 		)
 		return
@@ -354,7 +364,7 @@ def ensure_item_tax_templates(settings, company):
 				"taxes": [
 					{
 						"doctype": "Item Tax Template Detail",
-						"tax_type": settings.output_vat_account,
+						"tax_type": item_tax_account,
 						"tax_rate": rate,
 					}
 				],
@@ -393,11 +403,10 @@ def ensure_tax_template(doctype, title, company, account, rate):
 @frappe.whitelist()
 def bootstrap_company_vat_setup(company: str | None = None):
 	settings = get_vat_settings(company, create_if_missing=True)
-	company = company or settings.company or settings.default_vat_report_company
+	company = company or settings.company
 	if company and not settings.company:
 		settings.company = company
-	if company and not settings.default_vat_report_company:
-		settings.default_vat_report_company = company
+	settings.default_vat_report_company = settings.company
 	ensure_default_tax_templates(settings)
 	sync_vat_accounts(settings)
 	settings.flags.ignore_permissions = True

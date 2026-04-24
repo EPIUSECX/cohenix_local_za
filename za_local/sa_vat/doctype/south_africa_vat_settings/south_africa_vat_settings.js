@@ -1,10 +1,13 @@
 frappe.ui.form.on("South Africa VAT Settings", {
 	onload(frm) {
 		ensure_default_vat_rates(frm);
+		sync_company_scope(frm);
 		update_vat_registration_number(frm);
+		set_default_filing_frequency(frm);
 	},
 	refresh(frm) {
 		ensure_default_vat_rates(frm);
+		sync_company_scope(frm);
 		update_vat_registration_number(frm);
 
 		frm.add_custom_button(__("Sync VAT Accounts"), function () {
@@ -32,10 +35,14 @@ frappe.ui.form.on("South Africa VAT Settings", {
 		}, __("South Africa"));
 	},
 	company(frm) {
+		sync_company_scope(frm);
 		update_vat_registration_number(frm);
 	},
 	default_vat_report_company(frm) {
-		update_vat_registration_number(frm);
+		sync_company_scope(frm);
+	},
+	vat_vendor_type(frm) {
+		set_default_filing_frequency(frm);
 	},
 	enable_zero_rated_items(frm) {
 		ensure_default_vat_rates(frm);
@@ -49,7 +56,7 @@ frappe.ui.form.on("South Africa VAT Settings", {
 });
 
 function update_vat_registration_number(frm) {
-	const company = frm.doc.default_vat_report_company || frm.doc.company;
+	const company = frm.doc.company;
 	if (!company) {
 		frm.set_value("vat_registration_number", "");
 		return;
@@ -57,6 +64,24 @@ function update_vat_registration_number(frm) {
 
 	frappe.db.get_value("Company", company, "za_vat_number", function (r) {
 		frm.set_value("vat_registration_number", (r && r.za_vat_number) || "");
+	});
+}
+
+function sync_company_scope(frm) {
+	if (frm.doc.company && frm.doc.default_vat_report_company !== frm.doc.company) {
+		frm.set_value("default_vat_report_company", frm.doc.company);
+	}
+}
+
+function set_default_filing_frequency(frm) {
+	if (!frm.doc.vat_vendor_type || frm.doc.vat_filing_frequency) {
+		return;
+	}
+
+	frappe.db.get_value("VAT Vendor Type", frm.doc.vat_vendor_type, "filing_frequency", (r) => {
+		if (r && r.filing_frequency && !frm.doc.vat_filing_frequency) {
+			frm.set_value("vat_filing_frequency", r.filing_frequency);
+		}
 	});
 }
 

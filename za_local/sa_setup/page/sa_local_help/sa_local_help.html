@@ -13,7 +13,7 @@
 		<ol class="text-muted">
 			<li>{{ __("Create a ZA Local Setup record for the target company.") }}</li>
 			<li>{{ __("Review Payroll Settings and Tax Rebates and Medical Tax Credit.") }}</li>
-			<li>{{ __("Confirm South Africa VAT Settings and the VAT ledgers used for reports.") }}</li>
+			<li>{{ __("Create a separate South Africa VAT Settings record for each South African company and confirm the VAT ledgers used for reports.") }}</li>
 			<li>{{ __("Verify SA print formats and chart augmentation before go-live.") }}</li>
 		</ol>
 	</section>
@@ -25,6 +25,11 @@
 			<strong>Get VAT Transactions</strong> to build the working paper from invoices and classified journal
 			entries. Review the linked transactions, reconcile the totals against the <strong>VAT Audit Report</strong>,
 			export the summary and linked transactions, and file manually through SARS eFiling.
+		</p>
+		<p class="text-muted">
+			Use the VAT control accounts for VAT201 and reporting, and use the optional
+			<strong>Item Tax Template Account</strong> only for ERPNext item tax template automation. These are
+			separate responsibilities and should not be conflated.
 		</p>
 	</section>
 

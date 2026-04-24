@@ -27,6 +27,7 @@
   "output_vat_account",
   "column_break_16",
   "input_vat_account",
+  "item_tax_template_account",
   "tax_accounts",
   "classification_settings_section",
   "output_tax_doctype",
@@ -186,7 +187,14 @@
    "reqd": 1
   },
   {
-   "description": "Tracked VAT and classified accounts included in VAT201 working-paper retrieval.",
+   "description": "Optional ERPNext tax account used when generating Item Tax Templates automatically. This is separate from the VAT control accounts used for VAT201 and reporting.",
+   "fieldname": "item_tax_template_account",
+   "fieldtype": "Link",
+   "label": "Item Tax Template Account",
+   "options": "Account"
+  },
+  {
+   "description": "Tracked VAT tax accounts included in VAT201 working-paper retrieval.",
    "fieldname": "tax_accounts",
    "fieldtype": "Table",
    "label": "Tracked VAT Accounts",
@@ -316,11 +324,12 @@
    "label": "VAT Report Settings"
   },
   {
-   "description": "Default company for VAT reports.",
+   "description": "Compatibility field kept in sync with Company for older report hooks.",
    "fieldname": "default_vat_report_company",
    "fieldtype": "Link",
    "label": "Default VAT Report Company",
-   "options": "Company"
+   "options": "Company",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_29",

@@ -26,8 +26,11 @@ class SouthAfricaVATSettings(Document):
 		self.ensure_company_default()
 		self._set_mapping_doctype_defaults()
 		self._set_vat_registration_number_from_company()
+		self.validate_company_scope()
+		self.validate_vat_filing_day()
 		self.validate_vat_rates()
 		self.validate_vat_accounts()
+		self.validate_item_tax_template_account()
 		self.validate_company_vat_number()
 		self.validate_threshold_configuration()
 		sync_vat_accounts(self)
@@ -47,11 +50,14 @@ class SouthAfricaVATSettings(Document):
 		if not self.company:
 			self.company = get_default_company()
 
-		if self.company and not self.default_vat_report_company:
+		if self.company:
 			self.default_vat_report_company = self.company
 
 		if not self.vat_vendor_type:
 			self.vat_vendor_type = get_default_vat_vendor_type()
+
+		if self.vat_vendor_type and not self.vat_filing_frequency:
+			self.vat_filing_frequency = frappe.db.get_value("VAT Vendor Type", self.vat_vendor_type, "filing_frequency")
 
 		if not self.vat_filing_day:
 			self.vat_filing_day = 25
@@ -61,11 +67,23 @@ class SouthAfricaVATSettings(Document):
 		self.input_tax_doctype = "Purchase Taxes and Charges Template"
 
 	def _set_vat_registration_number_from_company(self):
-		company = self.default_vat_report_company or self.company
+		company = self.company
 		if company:
 			self.vat_registration_number = frappe.db.get_value("Company", company, "za_vat_number") or ""
 		else:
 			self.vat_registration_number = ""
+
+	def validate_company_scope(self):
+		if self.company and self.default_vat_report_company and self.default_vat_report_company != self.company:
+			frappe.throw(
+				_(
+					"Default VAT Report Company is a compatibility field and must match Company. Save the VAT settings against the correct company record instead of pointing to another company."
+				)
+			)
+
+	def validate_vat_filing_day(self):
+		if self.vat_filing_day not in (None, "") and not 1 <= int(self.vat_filing_day) <= 31:
+			frappe.throw(_("VAT Filing Day must be between 1 and 31."))
 
 	def _ensure_default_vat_rates_on_load(self):
 		self._prune_blank_vat_rates()
@@ -186,8 +204,34 @@ class SouthAfricaVATSettings(Document):
 			if account and not frappe.db.exists("Account", account):
 				frappe.throw(_("Account {0} does not exist").format(account))
 
+	def validate_item_tax_template_account(self):
+		if not self.item_tax_template_account:
+			frappe.msgprint(
+				_(
+					"Automatic Item Tax Template creation is inactive until you select a valid Item Tax Template Account for this company."
+				),
+				indicator="yellow",
+			)
+			return
+
+		if not frappe.db.exists("Account", self.item_tax_template_account):
+			frappe.throw(_("Account {0} does not exist").format(self.item_tax_template_account))
+
+		account_company = frappe.db.get_value("Account", self.item_tax_template_account, "company")
+		if account_company != self.company:
+			frappe.throw(
+				_("Item Tax Template Account must belong to company {0}.").format(frappe.bold(self.company))
+			)
+
+		if not is_valid_item_tax_account(self.item_tax_template_account, self.company):
+			frappe.throw(
+				_(
+					"Item Tax Template Account must be an account of type Tax, Chargeable, Income, or Expense for company {0}."
+				).format(frappe.bold(self.company))
+			)
+
 	def validate_company_vat_number(self):
-		company = self.company or self.default_vat_report_company
+		company = self.company
 		if not company:
 			return
 
@@ -227,10 +271,10 @@ class SouthAfricaVATSettings(Document):
 			)
 
 	def update_tax_templates(self):
-		if not self.default_vat_report_company:
+		if not self.company:
 			frappe.msgprint(
 				_(
-					"Default VAT Report Company is not set. Skipping tax template creation until a company is selected."
+					"Company is not set. Skipping tax template creation until a company is selected."
 				),
 				indicator="yellow",
 			)
@@ -247,7 +291,7 @@ class SouthAfricaVATSettings(Document):
 
 		existing_name = frappe.db.get_value(
 			doctype_name,
-			{"title": template_title, "company": self.default_vat_report_company},
+			{"title": template_title, "company": self.company},
 			"name",
 		)
 		if existing_name:
@@ -255,7 +299,7 @@ class SouthAfricaVATSettings(Document):
 		else:
 			tax_template = frappe.new_doc(doctype_name)
 			tax_template.title = template_title
-			tax_template.company = self.default_vat_report_company
+			tax_template.company = self.company
 			tax_template.is_default = 1
 
 		tax_template.taxes = []
@@ -275,12 +319,21 @@ class SouthAfricaVATSettings(Document):
 		return tax_template.name
 
 	def update_item_tax_templates(self):
-		company = self.default_vat_report_company
-		if not is_valid_item_tax_account(self.output_vat_account, company):
+		company = self.company
+		if not self.item_tax_template_account:
 			frappe.msgprint(
 				_(
-					"Skipping automatic Item Tax Template updates because Output VAT Account {0} is not a valid Item Tax account for company {1}. Use an account of type Tax, Chargeable, Income, or Expense if you want item tax templates generated automatically."
-				).format(frappe.bold(self.output_vat_account or _("(not set)")), frappe.bold(company or _("(not set)"))),
+					"Skipping automatic Item Tax Template updates because no Item Tax Template Account is configured for company {0}."
+				).format(frappe.bold(company or _("(not set)"))),
+				indicator="yellow",
+			)
+			return
+
+		if not is_valid_item_tax_account(self.item_tax_template_account, company):
+			frappe.msgprint(
+				_(
+					"Skipping automatic Item Tax Template updates because Item Tax Template Account {0} is not a valid Item Tax account for company {1}. Use an account of type Tax, Chargeable, Income, or Expense if you want item tax templates generated automatically."
+				).format(frappe.bold(self.item_tax_template_account), frappe.bold(company or _("(not set)"))),
 				indicator="yellow",
 			)
 			return
@@ -300,7 +353,7 @@ class SouthAfricaVATSettings(Document):
 			doc.append(
 				"taxes",
 				{
-					"tax_type": self.output_vat_account,
+					"tax_type": self.item_tax_template_account,
 					"tax_rate": rate_value,
 				},
 			)
@@ -312,7 +365,7 @@ class SouthAfricaVATSettings(Document):
 
 	@frappe.whitelist()
 	def bootstrap_defaults(self):
-		return bootstrap_company_vat_setup(self.company or self.default_vat_report_company)
+		return bootstrap_company_vat_setup(self.company)
 
 	@frappe.whitelist()
 	def sync_vat_accounts(self):

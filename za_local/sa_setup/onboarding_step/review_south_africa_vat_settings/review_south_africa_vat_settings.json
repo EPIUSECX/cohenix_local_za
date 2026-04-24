@@ -1,6 +1,6 @@
 {
  "action": "Create Entry",
- "action_label": "Review South Africa VAT Settings",
+ "action_label": "Create or open company VAT settings",
  "creation": "2026-04-22 00:00:00.000000",
  "docstatus": 0,
  "doctype": "Onboarding Step",
@@ -16,6 +16,6 @@
  "reference_document": "South Africa VAT Settings",
  "show_form_tour": 1,
  "show_full_form": 1,
- "title": "Review South Africa VAT Settings",
+ "title": "Create or Open Company VAT Settings",
  "validate_action": 0
 }

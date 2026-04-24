@@ -9,6 +9,8 @@ from za_local.sa_vat.setup import (
 	DEFAULT_VAT_VENDOR_TYPES,
 	ITEM_VAT_CATEGORY_OPTIONS,
 	get_default_vat_vendor_type,
+	get_vat_settings,
+	is_valid_item_tax_account,
 	seed_vat_vendor_types,
 	sync_vat_accounts,
 )
@@ -135,3 +137,60 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 		self.assertIn("Standard Rate", rate_names)
 		self.assertIn("Zero Rate", rate_names)
 		self.assertIn("Exempt", rate_names)
+
+	def test_company_scope_defaults_follow_company(self):
+		doc = frappe.new_doc("South Africa VAT Settings")
+		doc.company = "Test Company"
+		doc.default_vat_report_company = "Another Company"
+
+		with patch("za_local.sa_vat.doctype.south_africa_vat_settings.south_africa_vat_settings.get_default_vat_vendor_type", return_value="Standard"):
+			doc.ensure_company_default()
+
+		self.assertEqual("Test Company", doc.default_vat_report_company)
+
+	def test_vat_filing_day_must_be_between_1_and_31(self):
+		doc = frappe.new_doc("South Africa VAT Settings")
+		doc.vat_filing_day = 0
+
+		with self.assertRaises(frappe.ValidationError):
+			doc.validate_vat_filing_day()
+
+		doc.vat_filing_day = 32
+		with self.assertRaises(frappe.ValidationError):
+			doc.validate_vat_filing_day()
+
+	def test_item_tax_account_validation_helper_accepts_valid_types(self):
+		with (
+			patch("frappe.db.exists", return_value=True),
+			patch("frappe.get_cached_value", return_value=("Tax", "Test Company")),
+		):
+			self.assertTrue(is_valid_item_tax_account("VAT Tax - TC", "Test Company"))
+
+		with (
+			patch("frappe.db.exists", return_value=True),
+			patch("frappe.get_cached_value", return_value=("Bank", "Test Company")),
+		):
+			self.assertFalse(is_valid_item_tax_account("Bank - TC", "Test Company"))
+
+	def test_validate_item_tax_template_account_requires_same_company(self):
+		doc = frappe.new_doc("South Africa VAT Settings")
+		doc.company = "Test Company"
+		doc.item_tax_template_account = "Tax - OTH"
+
+		with (
+			patch("frappe.db.exists", return_value=True),
+			patch("frappe.db.get_value", return_value="Other Company"),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				doc.validate_item_tax_template_account()
+
+	def test_get_vat_settings_uses_company_scoped_lookup(self):
+		expected = frappe._dict(name="Test Settings")
+		with (
+			patch("za_local.sa_vat.setup.get_default_company", return_value="Test Company"),
+			patch("frappe.db.get_value", return_value="Test Settings"),
+			patch("frappe.get_doc", return_value=expected),
+		):
+			result = get_vat_settings()
+
+		self.assertEqual(expected, result)

@@ -18,20 +18,20 @@
  "save_on_complete": 1,
  "steps": [
   {
-   "description": "Set the default reporting company first so VAT registration details and reports resolve correctly.",
-   "fieldname": "default_vat_report_company",
+   "description": "Start by selecting the company these VAT settings belong to. The reporting-company compatibility field will follow automatically.",
+   "fieldname": "company",
    "fieldtype": "Link",
    "has_next_condition": 0,
    "hide_buttons": 0,
    "is_table_field": 0,
-   "label": "Default VAT Report Company",
+   "label": "Company",
    "modal_trigger": 0,
    "next_on_click": 0,
    "offset_x": 0,
    "offset_y": 0,
    "popover_element": 0,
    "position": "Bottom",
-   "title": "Default Company",
+   "title": "Company Scope",
    "ui_tour": 0
   },
   {
@@ -52,7 +52,7 @@
    "ui_tour": 0
   },
   {
-   "description": "Map the input VAT ledger used for deductible South African purchase VAT.",
+   "description": "Map the input VAT ledger used for deductible South African purchase VAT. This can be the same control account in legacy South African setups.",
    "fieldname": "input_vat_account",
    "fieldtype": "Link",
    "has_next_condition": 0,
@@ -66,6 +66,23 @@
    "popover_element": 0,
    "position": "Right",
    "title": "Input VAT",
+   "ui_tour": 0
+  },
+  {
+   "description": "Select an optional ERPNext tax account for automatic Item Tax Template generation. Leave it blank if you do not want the templates created automatically.",
+   "fieldname": "item_tax_template_account",
+   "fieldtype": "Link",
+   "has_next_condition": 0,
+   "hide_buttons": 0,
+   "is_table_field": 0,
+   "label": "Item Tax Template Account",
+   "modal_trigger": 0,
+   "next_on_click": 0,
+   "offset_x": 0,
+   "offset_y": 0,
+   "popover_element": 0,
+   "position": "Left",
+   "title": "Item Tax Templates",
    "ui_tour": 0
   }
  ],
