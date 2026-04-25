@@ -1,2 +1,3 @@
 #patches
 za_local.patches.v3_1.migrate_sa_vat_settings_to_multi_company
+za_local.patches.v3_1.correct_sa_payroll_tax_tables

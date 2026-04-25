@@ -10,6 +10,7 @@ Note: This module only works when HRMS is installed.
 import frappe
 from frappe import _
 from frappe.utils import flt, getdate
+from math import ceil
 
 from za_local.utils.hrms_detection import get_hrms_doctype_class, require_hrms, safe_import_hrms
 
@@ -60,6 +61,8 @@ from za_local.utils.tax_utils import (
     get_tax_rebate,
 )
 
+RETIREMENT_FUND_DEDUCTION_CODES = {"4001", "4003", "4006", "4007"}
+
 
 class ZASalarySlip(SalarySlip):
     """
@@ -84,10 +87,17 @@ class ZASalarySlip(SalarySlip):
         Validate salary slip with SA-specific checks.
         """
         require_hrms("Salary Slip")
+        self.apply_sa_component_classification_defaults()
         super().validate()
 
         # Prevent duplicate salary slips for payroll frequency
         self.validate_payroll_frequency()
+
+    def apply_sa_component_classification_defaults(self):
+        """Apply SA payroll treatment that must be in place before HRMS tax runs."""
+        for deduction in self.get("deductions") or []:
+            if self.is_retirement_fund_component(deduction.salary_component):
+                deduction.exempted_from_income_tax = 1
 
     def before_submit(self):
         """
@@ -179,10 +189,96 @@ class ZASalarySlip(SalarySlip):
         self.annual_bonus = self.get_annual_bonus()
         self.total_taxable_earnings += self.annual_bonus
 
+        self.apply_retirement_fund_deduction_cap()
+
         # Track taxable earnings without full-tax additional components
         self.total_taxable_earnings_without_full_tax_addl_components = (
             self.total_taxable_earnings -
             getattr(self, 'current_additional_earnings_with_full_tax', 0)
+        )
+
+    def apply_retirement_fund_deduction_cap(self):
+        """Add back retirement fund deductions above the SARS annual cap.
+
+        HRMS reduces taxable earnings by deduction rows marked
+        ``exempted_from_income_tax``. For South Africa, pension/provident/RA
+        deductions must still be capped to the lower of actual contributions,
+        27.5% of remuneration/taxable base, and the annual statutory cap.
+        """
+        if not getattr(self, "tax_slab", None) or not self.tax_slab.allow_tax_exemption:
+            return
+
+        annual_contribution = self.get_annual_retirement_fund_contribution()
+        if annual_contribution <= 0:
+            return
+
+        base_before_retirement_deduction = flt(self.total_taxable_earnings) + annual_contribution
+        max_by_percentage = base_before_retirement_deduction * 0.275
+        allowed_deduction = min(annual_contribution, max_by_percentage, 350000)
+        disallowed_deduction = max(0, annual_contribution - allowed_deduction)
+
+        if disallowed_deduction:
+            self.total_taxable_earnings += disallowed_deduction
+            self.za_retirement_fund_taxable_excess = disallowed_deduction
+
+    def get_annual_retirement_fund_contribution(self):
+        """Annualise retirement-fund deduction rows used before PAYE."""
+        current_contribution = 0
+        for deduction in self.get("deductions") or []:
+            if not deduction.get("exempted_from_income_tax"):
+                continue
+            if self.is_retirement_fund_component(deduction.salary_component):
+                current_contribution += flt(deduction.amount)
+
+        if not current_contribution:
+            return 0
+
+        previous_contribution = self.get_previous_retirement_fund_contribution()
+        future_periods = max(ceil(flt(getattr(self, "remaining_sub_periods", 1))) - 1, 0)
+        return previous_contribution + current_contribution + (current_contribution * future_periods)
+
+    def get_previous_retirement_fund_contribution(self):
+        if not self.payroll_period:
+            return 0
+
+        previous_slips = frappe.get_all(
+            "Salary Slip",
+            filters={
+                "employee": self.employee,
+                "company": self.company,
+                "docstatus": 1,
+                "start_date": [">=", self.payroll_period.start_date],
+                "end_date": ["<", self.start_date],
+            },
+            pluck="name",
+        )
+        if not previous_slips:
+            return 0
+
+        total = 0
+        for row in frappe.get_all(
+            "Salary Detail",
+            filters={
+                "parent": ["in", previous_slips],
+                "parentfield": "deductions",
+                "exempted_from_income_tax": 1,
+            },
+            fields=["salary_component", "amount"],
+        ):
+            if self.is_retirement_fund_component(row.salary_component):
+                total += flt(row.amount)
+
+        return total
+
+    def is_retirement_fund_component(self, salary_component):
+        code = frappe.db.get_value("Salary Component", salary_component, "za_sars_payroll_code")
+        if code in RETIREMENT_FUND_DEDUCTION_CODES:
+            return True
+
+        component_name = (salary_component or "").lower()
+        return any(
+            token in component_name
+            for token in ("pension", "provident", "retirement annuity", "retirement fund")
         )
 
     def get_annual_bonus(self):
@@ -359,19 +455,22 @@ class ZASalarySlip(SalarySlip):
         Returns:
             float: Annual medical aid credit amount
         """
-        # Get dependants from Employee Private Benefit
-        dependants = frappe.db.get_value(
+        # Get active medical aid details from Employee Private Benefit. A main
+        # member with zero dependants still qualifies for the main-member credit.
+        benefit = frappe.db.get_value(
             "Employee Private Benefit",
             {
                 "effective_from": ["<=", self.start_date],
                 "disable": 0,
                 "employee": self.employee,
             },
-            "medical_aid_dependant",
+            ["private_medical_aid", "medical_aid_dependant"],
+            as_dict=True,
+            order_by="effective_from desc",
         )
 
-        if dependants:
-            return get_medical_aid_credit(self, dependants)
+        if benefit and (benefit.get("private_medical_aid") or benefit.get("medical_aid_dependant") is not None):
+            return get_medical_aid_credit(self, benefit.get("medical_aid_dependant") or 0)
         return 0
 
     def calculate_net_pay(self, skip_tax_breakup_computation: bool = False):

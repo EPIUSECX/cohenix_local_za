@@ -134,8 +134,8 @@ def test_tax_rebates_structure():
 	med = medical[0]
 	assert med.get("payroll_period") == "2024-2025", "Wrong payroll period"
 	assert med.get("one_dependant") == 364, "Wrong one dependant credit"
-	assert med.get("two_dependant") == 610, "Wrong two dependant credit"
-	assert med.get("additional_dependant") == 410, "Wrong additional dependant credit"
+	assert med.get("two_dependant") == 364, "Wrong two dependant credit"
+	assert med.get("additional_dependant") == 246, "Wrong additional dependant credit"
 
 	print("  ✓ Tax Rebates structure is correct")
 	print(f"    - Primary Rebate: R{rebate['primary']:,}")
@@ -164,7 +164,7 @@ def test_income_tax_slab_structure():
 
 	# Check child table
 	slabs = record.get("slabs", [])
-	assert len(slabs) == 8, f"Should have 8 slabs, found {len(slabs)}"
+	assert len(slabs) == 7, f"Should have 7 slabs, found {len(slabs)}"
 
 	# Validate slab structure
 	for i, slab in enumerate(slabs, 1):
@@ -175,7 +175,7 @@ def test_income_tax_slab_structure():
 	print("  ✓ Income Tax Slab structure is correct")
 	print(f"    - Name: {record['name']}")
 	print(f"    - Currency: {record['currency']}")
-	print(f"    - Slabs: {len(slabs)} brackets (18% to 45%)")
+	print(f"    - Slabs: {len(slabs)} marginal brackets (18% to 45%)")
 
 
 def test_salary_components_structure():
@@ -311,7 +311,7 @@ def test_actual_data_loading():
 
 		assert frappe.db.exists("Income Tax Slab", "South Africa 2024-2025"), "Tax Slab not created"
 		slab = frappe.get_doc("Income Tax Slab", "South Africa 2024-2025")
-		assert len(slab.slabs) == 8, f"Expected 8 slabs, found {len(slab.slabs)}"
+		assert len(slab.slabs) == 7, f"Expected 7 slabs, found {len(slab.slabs)}"
 		print("    ✓ Income Tax Slab loaded")
 
 		# 4. Load Salary Components
@@ -319,7 +319,7 @@ def test_actual_data_loading():
 		load_data_from_json(data_dir / "salary_components.json")
 		load_data_from_json(data_dir / "earnings_components.json")
 
-		assert frappe.db.exists("Salary Component", "4102 PAYE"), "PAYE not created"
+		assert frappe.db.exists("Salary Component", "PAYE"), "PAYE not created"
 		assert frappe.db.exists("Salary Component", "Basic Salary"), "Basic Salary not created"
 		print("    ✓ Salary Components loaded")
 

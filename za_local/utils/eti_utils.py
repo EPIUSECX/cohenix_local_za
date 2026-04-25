@@ -286,7 +286,7 @@ def log_eti_calculation(employee, salary_slip, eti_amount, eligibility_details):
             "Employee ETI Log",
             {
                 "employee": employee,
-                "salary_slip": salary_slip.name
+                "against_salary_slip": salary_slip.name
             }
         )
 
@@ -297,15 +297,12 @@ def log_eti_calculation(employee, salary_slip, eti_amount, eligibility_details):
             # Create new log
             log_doc = frappe.new_doc("Employee ETI Log")
             log_doc.employee = employee
-            log_doc.salary_slip = salary_slip.name
+            log_doc.against_salary_slip = salary_slip.name
 
-        log_doc.posting_date = salary_slip.end_date
-        log_doc.payroll_period = salary_slip.payroll_period
-        log_doc.is_eligible = eligibility_details["eligible"]
-        log_doc.eligibility_reason = eligibility_details["reason"]
-        log_doc.months_employed = eligibility_details["months_employed"]
+        log_doc.employee_name = getattr(salary_slip, "employee_name", None)
+        log_doc.date = salary_slip.end_date
         log_doc.eti_amount = eti_amount
-        log_doc.monthly_remuneration = salary_slip.gross_pay
+        log_doc.carry_forwarding_eti_amount = 0
 
         log_doc.save(ignore_permissions=True)
 

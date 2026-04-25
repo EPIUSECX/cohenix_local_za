@@ -156,6 +156,9 @@ class EMP201Submission(Document):
 
 		for slip in salary_slips:
 			ss = frappe.get_doc("Salary Slip", slip.name)
+			slip_eti_amount = flt(ss.get("za_monthly_eti"))
+			if slip_eti_amount:
+				eti_generated += slip_eti_amount
 
 			for table_name in ("deductions", "company_contribution", "earnings"):
 				for comp in ss.get(table_name) or []:
@@ -171,7 +174,7 @@ class EMP201Submission(Document):
 						uif += amount
 					elif bucket == "sdl":
 						sdl += amount
-					elif bucket == "eti":
+					elif bucket == "eti" and not slip_eti_amount:
 						eti_generated += amount
 					elif _looks_like_legacy_statutory_component(component_name, metadata):
 						unmapped_statutory_components.add(component_name)

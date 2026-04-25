@@ -46,7 +46,7 @@ def calculate_south_african_tax(annual_taxable_income, tax_slab=None):
         require_hrms("Tax Calculation")
 
     # Pass empty dict for eval_locals to avoid NoneType error
-    tax_amount = calculate_tax_by_tax_slab(
+    tax_amount, _other_taxes_and_charges = calculate_tax_by_tax_slab(
         annual_taxable_income,
         tax_slab,
         eval_globals=None,
@@ -106,7 +106,8 @@ def get_tax_rebate(salary_slip, date_of_birth):
 
     # Calculate age as of the end of the tax year
     dob = getdate(date_of_birth)
-    year_end = getdate(salary_slip.end_date)
+    _start_date, tax_year_end = get_tax_year_dates(getdate(salary_slip.end_date))
+    year_end = getdate(tax_year_end)
 
     # Calculate age at end of tax year (Feb 28/29)
     age = year_end.year - dob.year
@@ -146,14 +147,13 @@ def get_medical_aid_credit(salary_slip, number_of_dependants):
     """
     Calculate medical aid tax credits.
 
-    South African medical aid tax credits (2024/2025):
-    - Main member + first dependant: R364 per month each
-    - Additional dependants: R246 per month each
+    South African medical aid tax credits are stored as monthly per-person
+    rates for the main member, first dependant, and additional dependants.
 
     Medical Tax Credit Rate fields:
-    - one_dependant: R364 (main member only OR main + 1 dependant)
-    - two_dependant: R728 (main + first dependant)
-    - additional_dependant: R264 (each additional dependant)
+    - one_dependant: main member rate
+    - two_dependant: first dependant rate
+    - additional_dependant: each additional dependant rate
 
     Args:
         salary_slip: Salary Slip document
@@ -192,10 +192,10 @@ def get_medical_aid_credit(salary_slip, number_of_dependants):
             total_credit = flt(credit.one_dependant) * 12
         elif number_of_dependants == 1:
             # Main member + 1 dependant
-            total_credit = flt(credit.two_dependant) * 12
+            total_credit = (flt(credit.one_dependant) + flt(credit.two_dependant)) * 12
         elif number_of_dependants >= 2:
             # Main member + first dependant + additional dependants
-            total_credit = flt(credit.two_dependant) * 12
+            total_credit = (flt(credit.one_dependant) + flt(credit.two_dependant)) * 12
             additional_deps = number_of_dependants - 1
             total_credit += flt(credit.additional_dependant) * 12 * additional_deps
 

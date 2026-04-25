@@ -435,6 +435,18 @@ CUSTOM_FIELD_FIXTURES_JSON = """
   },
   {
     "doctype": "Custom Field",
+    "name": "Salary Slip-za_retirement_fund_taxable_excess",
+    "dt": "Salary Slip",
+    "module": "SA Payroll",
+    "label": "Retirement Fund Taxable Excess",
+    "fieldname": "za_retirement_fund_taxable_excess",
+    "fieldtype": "Currency",
+    "read_only": 1,
+    "insert_after": "total_company_contribution",
+    "description": "Annual retirement fund deduction amount added back to taxable remuneration after applying the South African retirement contribution cap."
+  },
+  {
+    "doctype": "Custom Field",
     "name": "Company-za_south_african_registration_section",
     "dt": "Company",
     "module": "SA Payroll",
@@ -565,6 +577,19 @@ CUSTOM_FIELD_FIXTURES_JSON = """
     "insert_after": "base",
     "allow_on_submit": 1,
     "description": "Annual bonus amount for tax calculations"
+  },
+  {
+    "doctype": "Custom Field",
+    "name": "Salary Slip-za_monthly_eti",
+    "dt": "Salary Slip",
+    "module": "SA Payroll",
+    "label": "Monthly ETI",
+    "fieldname": "za_monthly_eti",
+    "fieldtype": "Currency",
+    "insert_after": "total_deduction",
+    "read_only": 1,
+    "allow_on_submit": 1,
+    "description": "Employment Tax Incentive calculated for this salary slip and used by EMP201."
   },
   {
     "doctype": "Custom Field",

@@ -48,7 +48,7 @@ class COIDAAnnualReturn(Document):
             frappe.throw(_("Company and date range are required to fetch data"))
 
         # Skip automatic pull if payroll tables are unavailable (HRMS not installed)
-        if not frappe.db.table_exists("tabSalary Slip"):
+        if not frappe.db.table_exists("Salary Slip"):
             frappe.msgprint(
                 _("Salary Slip data not available. Using the figures already entered on the form."),
                 alert=True,

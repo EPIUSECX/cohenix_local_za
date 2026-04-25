@@ -1616,7 +1616,7 @@ def apply_statutory_formulas():
 	"""
 	print("Applying statutory formulas to salary components and company contribution rows...")
 
-	if not frappe.db.table_exists("tabSalary Component"):
+	if not frappe.db.table_exists("Salary Component"):
 		print("  ⊙ Skipping statutory formula updates (Salary Component DocType not available)")
 		return
 
@@ -1651,7 +1651,7 @@ def apply_statutory_formulas():
 
 
 def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict]):
-	if not frappe.db.table_exists("tabCompany Contribution"):
+	if not frappe.db.table_exists("Company Contribution"):
 		print("  ⊙ Skipping Company Contribution child row updates (DocType not available)")
 	else:
 		for name, fields in component_updates.items():
@@ -1666,7 +1666,7 @@ def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict
 				{"name": name, "formula": fields["formula"]},
 			)
 
-	if frappe.db.table_exists("tabSalary Detail"):
+	if frappe.db.table_exists("Salary Detail"):
 		for name, fields in component_updates.items():
 			frappe.db.sql(
 				"""

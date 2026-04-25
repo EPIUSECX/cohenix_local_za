@@ -4,16 +4,11 @@
     "name": "South Africa 2026-2027",
     "effective_from": "2026-03-01",
     "currency": "ZAR",
-    "allow_tax_exemption": 0,
+    "allow_tax_exemption": 1,
     "disabled": 0,
     "slabs": [
       {
-        "from_amount": 0,
-        "to_amount": 95750.99,
-        "percent_deduction": 0
-      },
-      {
-        "from_amount": 95751,
+        "from_amount": 1,
         "to_amount": 245100.99,
         "percent_deduction": 18
       },
@@ -50,4 +45,3 @@
     ]
   }
 ]
-

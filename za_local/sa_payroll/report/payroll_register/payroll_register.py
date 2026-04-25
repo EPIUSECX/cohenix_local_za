@@ -30,12 +30,33 @@ def get_data(filters):
 			ss.employee_name,
 			e.department,
 			e.designation,
-			(SELECT SUM(amount) FROM `tabSalary Detail` WHERE parent = ss.name AND salary_component IN ('Basic', 'Basic Salary') AND parentfield = 'earnings') as basic,
+			(
+				SELECT SUM(sd.amount)
+				FROM `tabSalary Detail` sd
+				LEFT JOIN `tabSalary Component` sc ON sc.name = sd.salary_component
+				WHERE sd.parent = ss.name
+					AND sd.parentfield = 'earnings'
+					AND (sd.salary_component IN ('Basic', 'Basic Salary') OR sc.za_sars_payroll_code = '3601')
+			) as basic,
 			ss.gross_pay,
 			ss.total_deduction,
 			ss.net_pay,
-			(SELECT SUM(amount) FROM `tabSalary Detail` WHERE parent = ss.name AND salary_component = 'PAYE' AND parentfield = 'deductions') as paye,
-			(SELECT SUM(amount) FROM `tabSalary Detail` WHERE parent = ss.name AND salary_component = 'UIF' AND parentfield = 'deductions') as uif
+			(
+				SELECT SUM(sd.amount)
+				FROM `tabSalary Detail` sd
+				LEFT JOIN `tabSalary Component` sc ON sc.name = sd.salary_component
+				WHERE sd.parent = ss.name
+					AND sd.parentfield = 'deductions'
+					AND (sd.salary_component = 'PAYE' OR sc.za_sars_payroll_code = '4102')
+			) as paye,
+			(
+				SELECT SUM(sd.amount)
+				FROM `tabSalary Detail` sd
+				LEFT JOIN `tabSalary Component` sc ON sc.name = sd.salary_component
+				WHERE sd.parent = ss.name
+					AND sd.parentfield = 'deductions'
+					AND (sd.salary_component IN ('UIF', 'UIF Employee Contribution') OR sc.za_sars_payroll_code = '4141')
+			) as uif
 		FROM `tabSalary Slip` ss
 		INNER JOIN `tabEmployee` e ON e.name = ss.employee
 		WHERE ss.company = %(company)s
