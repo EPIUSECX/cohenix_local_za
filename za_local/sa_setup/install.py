@@ -227,6 +227,7 @@ DEFAULT_SALARY_COMPONENT_SARS_CODES = {
 	"Accommodation Allowance": "3702",
 	"Cell Phone Allowance": "3702",
 	"Subsistence Allowance": "3704",
+	"Business Reimbursement": "3704",
 	"Uniform Allowance": "3713",
 	"Company Car Benefit": "3802",
 	"Use of Motor Vehicle": "3802",
@@ -250,6 +251,12 @@ DEFAULT_SALARY_COMPONENT_SARS_CODES = {
 	"Group Life Insurance": "4007",
 	"Disability Insurance": "4008",
 	"Loan Repayment": "4010",
+	"Staff Loan Repayment": "4010",
+}
+
+DEFAULT_IRP5_EXCLUDED_SALARY_COMPONENTS = {
+	"Garnishee Order",
+	"Union Subscription",
 }
 
 
@@ -1427,6 +1434,16 @@ def seed_sars_payroll_codes():
 					code,
 					update_modified=False,
 				)
+		if frappe.db.has_column("Salary Component", "za_exclude_from_irp5"):
+			for salary_component in DEFAULT_IRP5_EXCLUDED_SALARY_COMPONENTS:
+				if frappe.db.exists("Salary Component", salary_component):
+					frappe.db.set_value(
+						"Salary Component",
+						salary_component,
+						"za_exclude_from_irp5",
+						1,
+						update_modified=False,
+					)
 
 	frappe.db.commit()
 	print("  ✓ SARS Payroll Codes seeded")

@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 from collections import defaultdict
 from io import BytesIO
 
@@ -29,7 +30,7 @@ except Exception:  # pragma: no cover - defensive import
 
 
 OFFICIAL_TEMPLATE_PATH = (
-	"za_local/print_format/irp5_certificate/IRP5-it3-Certificate.pdf"
+	"print_format/irp5_certificate/IRP5-it3-Certificate.pdf"
 )
 MEDICAL_SCHEME_TAX_CREDIT_CODE = "4116"
 ADDITIONAL_MEDICAL_EXPENSES_TAX_CREDIT_CODE = "4120"
@@ -521,8 +522,12 @@ class IRP5Certificate(Document):
 			ADDITIONAL_MEDICAL_EXPENSES_TAX_CREDIT_CODE,
 			0.0,
 		)
-		if not self.reason_for_non_deduction and not self.paye and gross_taxable_income <= 0:
-			self.reason_for_non_deduction = _("No taxable remuneration in period")
+		if not self.reason_for_non_deduction and not self.paye:
+			self.reason_for_non_deduction = (
+				_("No taxable remuneration in period")
+				if gross_taxable_income <= 0
+				else _("No PAYE deducted in payroll period - practitioner review required")
+			)
 
 		return {
 			"income_count": len(income_map),
@@ -556,11 +561,17 @@ class IRP5Certificate(Document):
 		return count
 
 	def _get_sars_payroll_code(self, salary_component_name):
-		code = frappe.db.get_value(
+		component = frappe.db.get_value(
 			"Salary Component",
 			salary_component_name,
-			"za_sars_payroll_code",
-		)
+			["za_sars_payroll_code", "za_exclude_from_irp5"],
+			as_dict=True,
+		) or frappe._dict()
+
+		if component.get("za_exclude_from_irp5"):
+			return None
+
+		code = component.get("za_sars_payroll_code")
 		if not code:
 			self._unmapped_salary_components.append(
 				f"Salary Component '{salary_component_name}' has no SARS Payroll Code"
@@ -753,7 +764,7 @@ class IRP5Certificate(Document):
 		if not pdf_generation_available:
 			frappe.throw(_("PDF generation libraries are not installed."))
 
-		template_path = frappe.get_app_path("za_local", *OFFICIAL_TEMPLATE_PATH.split("/"))
+		template_path = os.path.join(frappe.get_app_path("za_local"), *OFFICIAL_TEMPLATE_PATH.split("/"))
 		template = PdfReader(template_path)
 		output = PdfWriter()
 

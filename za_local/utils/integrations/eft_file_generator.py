@@ -126,9 +126,10 @@ class EFTFileGenerator:
 
     def generate_absa(self):
         """Generate ABSA EFT file format"""
-        # Similar structure to Standard Bank with ABSA-specific field positions
-        frappe.msgprint(_("ABSA format generation - To be implemented"))
-        return ""
+        frappe.throw(
+            _("ABSA EFT file generation is not supported yet. Use Standard Bank/FNB export or prepare the bank file manually."),
+            title=_("Manual Bank File Required"),
+        )
 
     def generate_fnb(self):
         """Generate FNB EFT CSV file (Cash Management import).
@@ -172,8 +173,10 @@ class EFTFileGenerator:
 
     def generate_nedbank(self):
         """Generate Nedbank EFT file format"""
-        frappe.msgprint(_("Nedbank format generation - To be implemented"))
-        return ""
+        frappe.throw(
+            _("Nedbank EFT file generation is not supported yet. Use Standard Bank/FNB export or prepare the bank file manually."),
+            title=_("Manual Bank File Required"),
+        )
 
 
 @frappe.whitelist()

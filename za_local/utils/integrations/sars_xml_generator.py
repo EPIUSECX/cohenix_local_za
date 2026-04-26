@@ -23,42 +23,15 @@ class SARSXMLGenerator:
 
     def generate_emp501_xml(self, emp501_doc):
         """
-        Generate EMP501 XML for e-Filing
-
-        Schema: SARS EMP501 XSD (available from SARS eFiling)
+        EMP501 XML is intentionally disabled until SARS BRS validation is implemented.
         """
-        root = ET.Element("EMP501")
-        root.set("xmlns", "http://sars.gov.za/payroll")
-        root.set("version", "1.0")
-
-        # Employer details
-        employer = ET.SubElement(root, "Employer")
-        ET.SubElement(employer, "RegistrationNumber").text = self.company.get("za_paye_reference_number", "")
-        ET.SubElement(employer, "TradingName").text = self.company.get("za_trading_name") or self.company.company_name
-
-        # Tax year
-        ET.SubElement(root, "TaxYear").text = emp501_doc.tax_year
-
-        # Certificate totals
-        totals = ET.SubElement(root, "CertificateTotals")
-        ET.SubElement(totals, "TotalPAYE").text = str(flt(emp501_doc.total_paye, 2))
-        ET.SubElement(totals, "TotalUIF").text = str(flt(emp501_doc.total_uif, 2))
-        ET.SubElement(totals, "TotalSDL").text = str(flt(emp501_doc.total_sdl, 2))
-
-        # Employee certificates (IRP5s)
-        certificates = ET.SubElement(root, "EmployeeCertificates")
-
-        irp5_list = frappe.get_all(
-            "IRP5 Certificate",
-            filters={"tax_year": emp501_doc.tax_year, "company": self.company.name},
-            fields=["name"]
+        frappe.throw(
+            _(
+                "SARS EMP501 XML/BRS export is not supported in this release. "
+                "Use the EMP501 working paper and CSV review export, then file manually through SARS eFiling."
+            ),
+            title=_("Manual Filing Required"),
         )
-
-        for irp5_name in irp5_list:
-            irp5 = frappe.get_doc("IRP5 Certificate", irp5_name.name)
-            self._add_irp5_to_xml(certificates, irp5)
-
-        return self._prettify_xml(root)
 
     def _add_irp5_to_xml(self, parent, irp5):
         """Add IRP5 certificate to XML"""
@@ -82,8 +55,10 @@ class SARSXMLGenerator:
 
     def generate_irp5_bulk_xml(self, tax_year):
         """Generate IRP5 bulk submission XML"""
-        frappe.msgprint(_("IRP5 bulk XML generation - To be implemented"))
-        return ""
+        frappe.throw(
+            _("SARS IRP5 bulk XML/BRS export is not supported in this release."),
+            title=_("Manual Filing Required"),
+        )
 
     def _prettify_xml(self, elem):
         """Return a pretty-printed XML string"""

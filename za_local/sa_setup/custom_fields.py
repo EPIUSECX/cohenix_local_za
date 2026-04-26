@@ -706,6 +706,18 @@ def _get_irp5_custom_field_fixtures():
 		},
 		{
 			"doctype": "Custom Field",
+			"name": "Salary Component-za_exclude_from_irp5",
+			"dt": "Salary Component",
+			"module": "SA Payroll",
+			"label": "Exclude from IRP5 / IT3(a)",
+			"fieldname": "za_exclude_from_irp5",
+			"fieldtype": "Check",
+			"insert_after": "za_sars_payroll_code",
+			"default": 0,
+			"description": "Use only for payroll-only deductions or reimbursements that must not be reported on the employee tax certificate.",
+		},
+		{
+			"doctype": "Custom Field",
 			"name": "Employee-za_tax_certificate_section",
 			"dt": "Employee",
 			"module": "SA Payroll",

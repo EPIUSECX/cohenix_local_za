@@ -70,5 +70,5 @@
  "sort_order": "DESC",
  "states": [],
  "track_changes": 1,
- "autoname": "field:name"
+ "autoname": "format:CO2-{effective_from}-{co2_grams_per_km_from}-{co2_grams_per_km_to}"
 }

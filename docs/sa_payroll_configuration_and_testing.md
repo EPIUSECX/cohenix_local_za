@@ -114,6 +114,49 @@ EMP201 result:
 - SDL payable: `R445.00`
 - Total payable in EMP201 report: `R5,085.25`
 
+## EMP501 and IRP5 / IT3(a) Certificate Evidence
+
+The interim EMP501 flow was tested end-to-end for the 2026/2027 tax year using submitted salary slips from March to August 2026.
+
+Monthly EMP201 submissions were submitted for the full interim period:
+
+| Month | EMP201 | Net PAYE | UIF | SDL |
+| --- | --- | ---: | ---: | ---: |
+| March 2026 | `EMP201-00001` | R3,996.01 | R644.24 | R445.00 |
+| April 2026 | `EMP201-00004` | R426,502.52 | R1,062.72 | R10,878.00 |
+| May 2026 | `EMP201-00005` | R403,076.27 | R1,062.72 | R10,878.00 |
+| June 2026 | `EMP201-00006` | R403,076.27 | R1,062.72 | R10,878.00 |
+| July 2026 | `EMP201-00002` | R403,076.27 | R1,062.72 | R10,878.00 |
+| August 2026 | `EMP201-00003` | R403,076.27 | R1,062.72 | R10,878.00 |
+
+EMP501 reconciliation `EMP501-2026-04-00005` fetched all six EMP201 declarations with no missing periods and submitted successfully.
+
+EMP501 totals:
+
+- Total PAYE: `R2,042,803.61`
+- Total SDL: `R54,835.00`
+- Total UIF: `R5,957.84`
+- Total ETI: `R1,000.00`
+- Total tax payable: `R2,102,596.45`
+
+IRP5 / IT3(a) certificate generation created or reused certificates for all six employees with submitted salary slips in the interim period. The coverage gate now blocks EMP501 submission unless every employee in the reconciliation period has a valid certificate reference.
+
+Certificate evidence:
+
+- Six submitted IRP5 certificates exist for `Cohenix`, tax year `2026-2027`.
+- High-income stress employees generated income, deduction, and employer-contribution certificate rows.
+- Low-income ETI employee generated a certificate with zero PAYE and a reason for non-deduction for practitioner review.
+- `EMP501_2026-2027_Interim.csv` generation succeeded.
+- IRP5 official PDF generation succeeded for a submitted certificate.
+- SARS XML / BRS export is intentionally blocked with a manual-filing message because direct SARS BRS submission is not supported in this release.
+
+Additional certificate-control fixes validated during testing:
+
+- EMP501 IRP5 generation now works on Frappe v16 without unsafe `distinct employee` select syntax.
+- Submitted existing IRP5 certificates are reused instead of being treated as generation errors.
+- Payroll-only deductions can be explicitly excluded from IRP5 / IT3(a) with `Exclude from IRP5 / IT3(a)`.
+- Default mappings now include `Business Reimbursement` as non-taxable subsistence-style income and `Staff Loan Repayment` as loan repayment; `Garnishee Order` and `Union Subscription` are excluded from certificate export by default.
+
 ## High-Income and Complex Deduction Stress Test
 
 Additional staging was run for higher salary and complex deduction scenarios to prove the payroll engine beyond the basic monthly examples.
@@ -189,6 +232,17 @@ Final report sweep on `development.cohenix`:
 - HRMS reports exposed in ZA Payroll passed: `Salary Register`, `Bank Remittance`, `Salary Payments Based On Payment Mode`, `Salary Payments via ECS`, `Income Tax Deductions`, `Income Tax Computation`.
 - Financial reports passed: `General Ledger`, `Accounts Receivable`, `Accounts Payable`, `Trial Balance`, `Profit and Loss Statement`, `Balance Sheet`.
 - India-specific HRMS reports `Provident Fund Deductions` and `Professional Tax Deductions` are intentionally not exposed in the ZA Payroll workspace because they require India-only HRMS fields and are not South African payroll reports. ZA Local exposes `Retirement Fund Deductions` for South African pension/provident/retirement-annuity deduction review.
+
+Additional payroll statutory workflow smoke tests passed:
+
+- `Company Car Benefit`, `Housing Benefit`, `Low Interest Loan Benefit`, `Cellphone Benefit`, `Fuel Card Benefit`, and `Bursary Benefit` records were created and calculated.
+- `Fringe Benefit` was submitted and generated a monthly taxable-value breakdown.
+- `Tax Directive` was submitted and the active-directive lookup returned the expected record.
+- `Employee Final Settlement` calculated gross, PAYE, UIF, and net settlement; automatic payslip/IRP5 actions are now explicitly gated as manual processes instead of showing placeholder success messages.
+- `UIF U19 Declaration` calculated employee UIF contributions using SARS code mapping and generated U19 form data.
+- `Leave Encashment SA` calculated tax/net values and created an HRMS `Additional Salary` record.
+- `Payroll Payment Batch` calculated employee count and net-pay total from a submitted Payroll Entry and marked EFT evidence as generated.
+- `Travel Allowance Rate` and `Sars Vehicle Emissions Rate` records were created and current-rate lookups succeeded.
 
 ## Verification Commands
 

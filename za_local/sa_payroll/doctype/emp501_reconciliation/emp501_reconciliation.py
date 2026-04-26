@@ -116,6 +116,76 @@ class EMP501Reconciliation(Document):
 				title=_("Missing Employer References"),
 			)
 
+	def _get_salary_slip_employees(self):
+		if not self.company or not self.from_date or not self.to_date:
+			return {}
+
+		salary_slips = frappe.get_all(
+			"Salary Slip",
+			filters={
+				"company": self.company,
+				"start_date": ["<=", self.to_date],
+				"end_date": [">=", self.from_date],
+				"docstatus": 1,
+			},
+			fields=["employee", "employee_name"],
+		)
+		return {slip.employee: slip.employee_name for slip in salary_slips if slip.employee}
+
+	def validate_irp5_coverage(self):
+		expected_employees = self._get_salary_slip_employees()
+		if not expected_employees:
+			frappe.throw(
+				_("No submitted salary slips were found for this reconciliation period."),
+				title=_("Salary Slips Required"),
+			)
+
+		linked_certificates = {}
+		draft_or_missing_status = []
+		for row in self.irp5_certificates or []:
+			if not row.employee or not row.irp5_certificate:
+				continue
+			if not frappe.db.exists("IRP5 Certificate", row.irp5_certificate):
+				draft_or_missing_status.append(row.employee_name or row.employee)
+				continue
+			certificate_status = frappe.db.get_value(
+				"IRP5 Certificate",
+				row.irp5_certificate,
+				["docstatus", "status"],
+				as_dict=True,
+			)
+			if certificate_status.docstatus == 2 or certificate_status.status in {"Cancelled", "Rejected"}:
+				draft_or_missing_status.append(row.employee_name or row.employee)
+				continue
+			linked_certificates[row.employee] = row.irp5_certificate
+
+		missing_employees = [
+			employee_name
+			for employee, employee_name in expected_employees.items()
+			if employee not in linked_certificates
+		]
+
+		if missing_employees or draft_or_missing_status:
+			details = []
+			if missing_employees:
+				details.append(
+					_("Missing IRP5/IT3(a) certificate references for: {0}").format(
+						", ".join(sorted(missing_employees))
+					)
+				)
+			if draft_or_missing_status:
+				details.append(
+					_("Invalid or cancelled certificate references for: {0}").format(
+						", ".join(sorted(set(draft_or_missing_status)))
+					)
+				)
+			frappe.throw(
+				_(
+					"EMP501 cannot be submitted until every employee with submitted salary slips in the period has a valid IRP5/IT3(a) certificate.<br><br>{0}"
+				).format("<br>".join(details)),
+				title=_("Incomplete IRP5 Coverage"),
+			)
+
 	def validate_dates(self):
 		"""
 		Validate date ranges for EMP501 Reconciliation based on selected Tax Year and Period.
@@ -223,6 +293,7 @@ class EMP501Reconciliation(Document):
 
 		self.validate_submission_readiness()
 		self.validate_emp201_period_coverage(throw=True)
+		self.validate_irp5_coverage()
 
 	def on_submit(self):
 		self.status = "Submitted"
@@ -344,32 +415,21 @@ class EMP501Reconciliation(Document):
 			self.save(ignore_permissions=True)
 			frappe.db.commit()  # Commit to ensure name is available
 
-		# Get all unique employees with salary slips in the period
-		salary_slips = frappe.get_all(
-			"Salary Slip",
-			filters={
-				"company": self.company,
-				"start_date": ["<=", self.to_date],
-				"end_date": [">=", self.from_date],
-				"docstatus": 1,
-			},
-			fields=["distinct employee", "employee_name"],
-		)
+		unique_employees = self._get_salary_slip_employees()
 
-		if not salary_slips:
+		if not unique_employees:
 			frappe.msgprint(
 				_("No salary slips found for the selected period. Cannot generate IRP5 certificates."),
 				indicator="orange",
 			)
 			return {"created": 0, "updated": 0, "errors": 0, "message": "No salary slips found"}
 
-		unique_employees = {sl.employee: sl.employee_name for sl in salary_slips}
-
 		# Clear existing references (will be regenerated)
 		self.irp5_certificates = []
 
 		created_count = 0
 		updated_count = 0
+		reused_count = 0
 		errors = []
 
 		for emp_id, emp_name in unique_employees.items():
@@ -392,14 +452,6 @@ class EMP501Reconciliation(Document):
 
 					# Only update if certificate is not submitted
 					if cert.docstatus == 1:
-						# Certificate is submitted, cannot modify
-						errors.append(
-							{
-								"employee": emp_name,
-								"error": f"IRP5 Certificate {existing_cert_name} is already submitted and cannot be updated.",
-							}
-						)
-						# Still add to child table for reference
 						self.append(
 							"irp5_certificates",
 							{
@@ -409,6 +461,7 @@ class EMP501Reconciliation(Document):
 								"status": cert.status,
 							},
 						)
+						reused_count += 1
 						continue
 
 					# Update certificate fields
@@ -489,9 +542,11 @@ class EMP501Reconciliation(Document):
 		self.save(ignore_permissions=True)
 
 		# Prepare summary message
-		total_processed = created_count + updated_count
-		message = _("{0} IRP5 certificates processed. {1} newly created, {2} updated.").format(
-			total_processed, created_count, updated_count
+		total_processed = created_count + updated_count + reused_count
+		message = _(
+			"{0} IRP5 certificates processed. {1} newly created, {2} updated, {3} already submitted and reused."
+		).format(
+			total_processed, created_count, updated_count, reused_count
 		)
 
 		if errors:
@@ -513,6 +568,7 @@ class EMP501Reconciliation(Document):
 			"updated": updated_count,
 			"errors": errors,  # Return full error details, not just count
 			"error_count": len(errors),
+			"reused": reused_count,
 			"total": total_processed,
 			"message": message,
 		}

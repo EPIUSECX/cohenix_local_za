@@ -79,7 +79,7 @@ def generate_emp501_csv(emp501_name):
                     emp501.sdl_reference_number,
                     emp501.uif_reference_number,
                     frappe.db.get_value("Company", emp501.company, "company_name"),
-                    format_date(emp201.submission_date),
+                    format_date(emp201_ref.submission_date or emp201.submission_period_start_date),
                     f"{emp201_ref.paye:.2f}",
                     f"{emp201_ref.sdl:.2f}",
                     f"{emp201_ref.uif:.2f}",

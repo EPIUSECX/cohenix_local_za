@@ -93,6 +93,8 @@ Available SA Payroll reports:
 - HRMS payroll reports exposed in the ZA workspace: `Salary Register`, `Bank Remittance`, `Salary Payments Based On Payment Mode`, `Salary Payments via ECS`, `Income Tax Deductions`, `Income Tax Computation`
 - Accounting reports exposed in the ZA Payroll workspace: `General Ledger`, `Accounts Payable`, `Accounts Receivable`
 
+EMP501 and IRP5 / IT3(a) testing now covers the March-August 2026 interim cycle with six submitted EMP201 declarations, six submitted certificates, EMP501 CSV export, and IRP5 PDF generation. SARS BRS/XML export and direct SARS electronic submission remain intentionally blocked; practitioners should use the working papers, CSV, and PDF outputs for manual SARS eFiling review.
+
 India-specific HRMS reports such as `Provident Fund Deductions` and `Professional Tax Deductions` are not exposed in ZA Payroll. ZA Local provides `Retirement Fund Deductions` for South African pension/provident/retirement-annuity deduction review instead.
 
 Detailed payroll setup and sandbox payslip/EMP201 evidence are documented in [`docs/sa_payroll_configuration_and_testing.md`](docs/sa_payroll_configuration_and_testing.md).

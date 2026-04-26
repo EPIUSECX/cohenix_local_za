@@ -21,14 +21,15 @@ class UifU19Declaration(Document):
 		if not self.employee:
 			return
 
-		# Get total UIF from salary slips
+		# Get total employee UIF from salary slips using SARS code mapping.
 		uif_total = frappe.db.sql("""
 			SELECT SUM(sd.amount)
 			FROM `tabSalary Detail` sd
 			INNER JOIN `tabSalary Slip` ss ON ss.name = sd.parent
+			INNER JOIN `tabSalary Component` sc ON sc.name = sd.salary_component
 			WHERE ss.employee = %(employee)s
 				AND ss.docstatus = 1
-				AND sd.salary_component = 'UIF'
+				AND sc.za_sars_payroll_code = '4141'
 				AND sd.parentfield = 'deductions'
 		""", {"employee": self.employee})
 
@@ -66,5 +67,7 @@ class UifU19Declaration(Document):
 		"""
 		Export U19 declaration as PDF.
 		"""
-		# TODO: Implement PDF export with proper U19 template
-		frappe.msgprint(_("PDF export - To be implemented"))
+		frappe.throw(
+			_("UIF U19 PDF export is not available yet. Use the generated form data for manual UIF preparation."),
+			title=_("Manual Preparation Required"),
+		)

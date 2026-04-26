@@ -85,9 +85,13 @@ class EmployeeFinalSettlement(Document):
 		if existing:
 			frappe.throw(_("Salary Slip already generated: {0}").format(existing))
 
-		# Create salary slip
-		# TODO: Implement salary slip creation
-		frappe.msgprint(_("Final payslip generation - To be implemented"))
+		frappe.throw(
+			_(
+				"Automatic final payslip generation is not available yet. "
+				"Use the calculated settlement values to create the final payroll entry or Additional Salary manually."
+			),
+			title=_("Manual Payroll Processing Required"),
+		)
 
 	@frappe.whitelist()
 	def create_final_irp5(self):
@@ -100,5 +104,10 @@ class EmployeeFinalSettlement(Document):
 		if self.docstatus != 1:
 			frappe.throw(_("Settlement must be submitted first"))
 
-		# TODO: Implement IRP5 creation
-		frappe.msgprint(_("Final IRP5 creation - To be implemented"))
+		frappe.throw(
+			_(
+				"Automatic final IRP5 creation from settlement is not available yet. "
+				"Generate the IRP5/IT3(a) certificate from the EMP501 process after the final payroll is posted."
+			),
+			title=_("Use EMP501 Certificate Flow"),
+		)
