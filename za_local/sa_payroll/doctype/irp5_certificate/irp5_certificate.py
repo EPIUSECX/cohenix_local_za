@@ -1,6 +1,5 @@
 import base64
 import json
-import os
 from collections import defaultdict
 from io import BytesIO
 
@@ -11,7 +10,6 @@ from frappe.utils import add_months, cint, flt, get_first_day, getdate, today
 
 pdf_generation_available = False
 try:
-	from PyPDF2 import PdfReader, PdfWriter
 	from reportlab.lib.colors import black
 	from reportlab.pdfbase import pdfmetrics
 	from reportlab.pdfbase.ttfonts import TTFont
@@ -29,9 +27,6 @@ except Exception:  # pragma: no cover - defensive import
 	get_active_directive = None
 
 
-OFFICIAL_TEMPLATE_PATH = (
-	"print_format/irp5_certificate/IRP5-it3-Certificate.pdf"
-)
 MEDICAL_SCHEME_TAX_CREDIT_CODE = "4116"
 ADDITIONAL_MEDICAL_EXPENSES_TAX_CREDIT_CODE = "4120"
 
@@ -764,213 +759,318 @@ class IRP5Certificate(Document):
 		if not pdf_generation_available:
 			frappe.throw(_("PDF generation libraries are not installed."))
 
-		template_path = os.path.join(frappe.get_app_path("za_local"), *OFFICIAL_TEMPLATE_PATH.split("/"))
-		template = PdfReader(template_path)
-		output = PdfWriter()
+		return self.generate_certificate_pdf()
 
-		for page_index, template_page in enumerate(template.pages, start=1):
-			width = float(template_page.mediabox.width)
-			height = float(template_page.mediabox.height)
-			overlay_buffer = BytesIO()
-			can = canvas.Canvas(overlay_buffer, pagesize=(width, height))
+	def generate_certificate_pdf(self):
+		"""
+		Generate a clean practitioner review certificate PDF.
+
+		The bundled SARS PDF is a flat template with no AcroForm fields, so drawing
+		against it by approximate coordinates produces overlapping output. This
+		generator intentionally uses the IRP5 Certificate snapshot as the source of
+		truth and creates a readable certificate PDF for review and filing support.
+		"""
+		from reportlab.lib.pagesizes import A4
+
+		buffer = BytesIO()
+		can = canvas.Canvas(buffer, pagesize=A4)
+		width, height = A4
+		margin = 42
+		line_gap = 13
+		bottom = 54
+
+		_try_set_pdf_font(can)
+
+		def clean(value):
+			return "" if value in (None, "") else str(value)
+
+		def money(value):
+			return f"R {flt(value):,.2f}"
+
+		def draw_header(page_title):
 			can.setFillColor(black)
-			_try_set_pdf_font(can)
-			self._draw_official_template_page(can, page_index, width, height)
-			can.save()
-			overlay_buffer.seek(0)
-			overlay_reader = PdfReader(overlay_buffer)
-			template_page.merge_page(overlay_reader.pages[0])
-			output.add_page(template_page)
+			can.setFont("Helvetica-Bold", 16)
+			can.drawString(margin, height - 44, page_title)
+			can.setFont("Helvetica", 9)
+			can.drawRightString(width - margin, height - 36, clean(self.certificate_number or self.name))
+			can.drawRightString(width - margin, height - 50, f"Tax Year: {clean(self.tax_year)}")
+			can.line(margin, height - 62, width - margin, height - 62)
 
-		result = BytesIO()
-		output.write(result)
-		result.seek(0)
-		return result.getvalue()
+		def draw_section_title(title, y):
+			can.setFont("Helvetica-Bold", 10)
+			can.drawString(margin, y, title)
+			can.line(margin, y - 3, width - margin, y - 3)
+			return y - 16
 
-	def _draw_official_template_page(self, can, page_index, width, height):
-		if page_index == 1:
-			self._draw_page_one(can, width, height)
-		elif page_index == 2:
-			self._draw_page_two(can, width, height)
-		else:
-			self._draw_page_three(can, width, height)
+		def draw_kv_block(items, x, y, label_width=118, value_width=165):
+			for label, value in items:
+				value = clean(value)
+				can.setFont("Helvetica-Bold", 8.5)
+				can.drawString(x, y, f"{label}:")
+				can.setFont("Helvetica", 8.5)
+				lines = _wrap_pdf_text(value, value_width, "Helvetica", 8.5)
+				if not lines:
+					lines = [""]
+				for index, line in enumerate(lines):
+					can.drawString(x + label_width, y - (index * line_gap), line)
+				y -= max(1, len(lines)) * line_gap
+			return y
 
-	def _draw_page_one(self, can, width, height):
-		left = 42
-		right = width * 0.56
-		top = height - 48
-		line_gap = 14
+		def draw_table(title, rows, columns, y):
+			if y < bottom + 90:
+				can.showPage()
+				draw_header("IRP5 / IT3(a) Employee Tax Certificate")
+				y = height - 86
 
-		can.setFont("Helvetica-Bold", 11)
-		can.drawString(left, top, self.certificate_type or "IRP5")
-		can.setFont("Helvetica", 9)
-		can.drawString(left, top - line_gap, f"Certificate No: {self.certificate_number or ''}")
-		can.drawString(left, top - (2 * line_gap), f"Year of Assessment: {self.year_of_assessment or ''}")
-		can.drawString(left, top - (3 * line_gap), f"Transaction Year: {self.transaction_year or ''}")
-		can.drawString(
-			left,
-			top - (4 * line_gap),
-			f"Reconciliation Period: {self.reconciliation_period or ''} ({self.reconciliation_period_yyyymm or ''})",
+			y = draw_section_title(title, y)
+			can.setFont("Helvetica-Bold", 8)
+			x = margin
+			for label, _, col_width, align in columns:
+				if align == "right":
+					can.drawRightString(x + col_width, y, label)
+				else:
+					can.drawString(x, y, label)
+				x += col_width
+			y -= 8
+			can.line(margin, y, width - margin, y)
+			y -= 12
+
+			can.setFont("Helvetica", 8)
+			if not rows:
+				can.drawString(margin, y, "No rows captured.")
+				return y - line_gap
+
+			for row in rows:
+				if y < bottom:
+					can.showPage()
+					draw_header("IRP5 / IT3(a) Employee Tax Certificate")
+					y = height - 86
+				x = margin
+				for _, fieldname, col_width, align in columns:
+					value = row.get(fieldname) if hasattr(row, "get") else getattr(row, fieldname, "")
+					if fieldname == "amount":
+						value = money(value)
+					else:
+						value = clean(value)
+					if align == "right":
+						can.drawRightString(x + col_width, y, value[:24])
+					else:
+						can.drawString(x, y, value[:42])
+					x += col_width
+				y -= line_gap
+			return y - 10
+
+		draw_header("IRP5 / IT3(a) Employee Tax Certificate")
+		y = height - 86
+
+		y = draw_section_title("Certificate Details", y)
+		left_y = draw_kv_block(
+			[
+				("Certificate Type", self.certificate_type),
+				("Certificate Number", self.certificate_number or self.name),
+				("Year of Assessment", self.year_of_assessment),
+				("Transaction Year", self.transaction_year),
+				("Reconciliation", f"{clean(self.reconciliation_period)} {clean(self.reconciliation_period_yyyymm)}"),
+				("Period", f"{clean(self.from_date)} to {clean(self.to_date)}"),
+				("Issue Date", self.issue_date),
+				("Status", self.status),
+			],
+			margin,
+			y,
+			value_width=(width / 2) - margin - 126,
+		)
+		right_y = draw_kv_block(
+			[
+				("Company", self.company),
+				("EMP501", self.emp501_reconciliation),
+				("Generation Mode", self.generation_mode),
+			],
+			width / 2 + 12,
+			y,
+			value_width=width - margin - (width / 2 + 12) - 118,
+		)
+		y = min(left_y, right_y) - 10
+
+		y = draw_section_title("Employer Details", y)
+		left_y = draw_kv_block(
+			[
+				("Legal Name", self.employer_legal_name),
+				("Trading Name", self.employer_trading_name),
+				("Employer Tax ID", self.employer_tax_id),
+			],
+			margin,
+			y,
+			value_width=(width / 2) - margin - 126,
+		)
+		right_y = draw_kv_block(
+			[
+				("PAYE Ref", self.employer_paye_reference_number),
+				("SDL Ref", self.employer_sdl_reference_number),
+				("UIF Ref", self.employer_uif_reference_number),
+			],
+			width / 2 + 12,
+			y,
+			value_width=width - margin - (width / 2 + 12) - 118,
+		)
+		y = min(left_y, right_y) - 10
+
+		y = draw_section_title("Employee Details", y)
+		left_y = draw_kv_block(
+			[
+				("Employee", self.employee),
+				("Employee Name", self.employee_name),
+				("Surname", self.employee_surname),
+				("First Names", self.employee_first_names),
+				("Initials", self.employee_initials),
+				("Gender", self.employee_gender),
+			],
+			margin,
+			y,
+			value_width=(width / 2) - margin - 126,
+		)
+		right_y = draw_kv_block(
+			[
+				("Identity Type", self.identity_type),
+				("ID Number", self.employee_id_number),
+				("Passport No", self.passport_number),
+				("Passport Country", self.passport_country_of_issue),
+				("Tax Ref", self.income_tax_reference_number),
+				("Date of Birth", self.date_of_birth),
+				("Nature of Person", self.nature_of_person),
+			],
+			width / 2 + 12,
+			y,
+			value_width=width - margin - (width / 2 + 12) - 118,
+		)
+		y = min(left_y, right_y) - 10
+
+		if y < 160:
+			can.showPage()
+			draw_header("IRP5 / IT3(a) Employee Tax Certificate")
+			y = height - 86
+
+		y = draw_section_title("Address, Employment and Bank Details", y)
+		left_y = draw_kv_block(
+			[
+				("Residential", self.res_address_line_1),
+				("Residential 2", self.res_address_line_2),
+				("Residential 3", self.res_address_line_3),
+				("Residential 4", self.res_address_line_4),
+				("Residential Code", self.res_postal_code),
+				("Postal", self.post_address_line_1),
+				("Postal 2", self.post_address_line_2),
+				("Postal 3", self.post_address_line_3),
+				("Postal 4", self.post_address_line_4),
+				("Postal Code", self.post_postal_code),
+			],
+			margin,
+			y,
+			value_width=(width / 2) - margin - 126,
+		)
+		right_y = draw_kv_block(
+			[
+				("Bank Name", self.bank_name),
+				("Account No", self.bank_account_no),
+				("Account Type", self.bank_account_type),
+				("Account Holder", self.bank_account_holder_name),
+				("Relationship", self.bank_account_holder_relationship),
+				("Paid Electronically", "No" if self.not_paid_electronically else "Yes"),
+				("Employed From", self.employed_from),
+				("Employed To", self.employed_to),
+				("Periods in Year", self.periods_in_year),
+				("Periods Worked", self.periods_worked),
+			],
+			width / 2 + 12,
+			y,
+			value_width=width - margin - (width / 2 + 12) - 118,
+		)
+		y = min(left_y, right_y) - 10
+
+		y = draw_section_title("Certificate Totals", y)
+		left_y = draw_kv_block(
+			[
+				("Gross Taxable Income", money(self.gross_taxable_income)),
+				("Non-Taxable Income", money(self.non_taxable_income)),
+				("Deductions & Contributions", money(self.total_deductions_contributions)),
+				("Medical Tax Credit", money(self.medical_scheme_fees_tax_credit)),
+			],
+			margin,
+			y,
+			value_width=(width / 2) - margin - 126,
+		)
+		right_y = draw_kv_block(
+			[
+				("PAYE", money(self.paye)),
+				("UIF", money(self.uif)),
+				("SDL", money(self.sdl)),
+				("ETI", money(self.eti)),
+				("Total Tax Payable", money(self.total_tax_payable)),
+			],
+			width / 2 + 12,
+			y,
+			value_width=width - margin - (width / 2 + 12) - 118,
+		)
+		y = min(left_y, right_y) - 10
+
+		if self.reason_for_non_deduction:
+			y = draw_section_title("Practitioner Review Notes", y)
+			can.setFont("Helvetica", 8.5)
+			can.drawString(margin, y, clean(self.reason_for_non_deduction)[:110])
+
+		can.showPage()
+		draw_header("IRP5 / IT3(a) Employee Tax Certificate - SARS Code Detail")
+		y = height - 86
+
+		y = draw_table(
+			"Income Lines",
+			self.income_details,
+			[
+				("Code", "income_code", 55, "left"),
+				("Description", "description", 330, "left"),
+				("Amount", "amount", 125, "right"),
+			],
+			y,
+		)
+		y = draw_table(
+			"Deductions and Tax Credits",
+			self.deduction_details,
+			[
+				("Code", "deduction_code", 55, "left"),
+				("Description", "description", 330, "left"),
+				("Amount", "amount", 125, "right"),
+			],
+			y,
+		)
+		y = draw_table(
+			"Employer Contributions",
+			self.company_contribution_details,
+			[
+				("Code", "contribution_code", 55, "left"),
+				("Description", "description", 330, "left"),
+				("Amount", "amount", 125, "right"),
+			],
+			y,
 		)
 
-		y = top - (6 * line_gap)
-		for label, value in [
-			("Employer Legal Name", self.employer_legal_name),
-			("Employer Trading Name", self.employer_trading_name),
-			("PAYE Reference", self.employer_paye_reference_number),
-			("SDL Reference", self.employer_sdl_reference_number),
-			("UIF Reference", self.employer_uif_reference_number),
-			("Employer Tax ID", self.employer_tax_id),
-		]:
-			can.drawString(left, y, f"{label}: {value or ''}")
-			y -= line_gap
-
-		y = top - (6 * line_gap)
-		for label, value in [
-			("Employee", self.employee_name),
-			("Surname", self.employee_surname),
-			("First Names", self.employee_first_names),
-			("Initials", self.employee_initials),
-			("Identity Type", self.identity_type),
-			("Identity Number", self.employee_id_number),
-			("Passport Number", self.passport_number),
-			("Passport Country", self.passport_country_of_issue),
-			("Tax Reference", self.income_tax_reference_number),
-			("Nature of Person", self.nature_of_person),
-			("Date of Birth", str(self.date_of_birth) if self.date_of_birth else ""),
-		]:
-			can.drawString(right, y, f"{label}: {value or ''}")
-			y -= line_gap
-
-	def _draw_page_two(self, can, width, height):
-		left = 42
-		mid = width * 0.52
-		top = height - 52
-		line_gap = 14
-
-		can.setFont("Helvetica-Bold", 10)
-		can.drawString(left, top, "Residential Address")
-		can.drawString(mid, top, "Postal Address")
-		can.setFont("Helvetica", 9)
-
-		for index, value in enumerate(
-			[
-				self.res_address_line_1,
-				self.res_address_line_2,
-				self.res_address_line_3,
-				self.res_address_line_4,
-				self.res_postal_code,
-			],
-			start=1,
-		):
-			can.drawString(left, top - (index * line_gap), value or "")
-
-		for index, value in enumerate(
-			[
-				self.post_address_line_1,
-				self.post_address_line_2,
-				self.post_address_line_3,
-				self.post_address_line_4,
-				self.post_postal_code,
-			],
-			start=1,
-		):
-			can.drawString(mid, top - (index * line_gap), value or "")
-
-		business_top = top - (8 * line_gap)
-		can.setFont("Helvetica-Bold", 10)
-		can.drawString(left, business_top, "Business Address")
-		can.drawString(mid, business_top, "Bank Account Detail")
-		can.setFont("Helvetica", 9)
-
-		for index, value in enumerate(
-			[
-				self.biz_address_line_1,
-				self.biz_address_line_2,
-				self.biz_address_line_3,
-				self.biz_address_line_4,
-				self.biz_postal_code,
-			],
-			start=1,
-		):
-			can.drawString(left, business_top - (index * line_gap), value or "")
-
-		for index, value in enumerate(
-			[
-				f"Bank Name: {self.bank_name or ''}",
-				f"Account No: {self.bank_account_no or ''}",
-				f"Account Type: {self.bank_account_type or ''}",
-				f"Account Holder: {self.bank_account_holder_name or ''}",
-				f"Relationship: {self.bank_account_holder_relationship or ''}",
-				f"Not Paid Electronically: {'Yes' if self.not_paid_electronically else 'No'}",
-			],
-			start=1,
-		):
-			can.drawString(mid, business_top - (index * line_gap), value)
-
-		detail_top = business_top - (9 * line_gap)
-		can.setFont("Helvetica-Bold", 10)
-		can.drawString(left, detail_top, "Employment & Directive Detail")
-		can.setFont("Helvetica", 9)
-		for index, value in enumerate(
-			[
-				f"Employed From: {self.employed_from or ''}",
-				f"Employed To: {self.employed_to or ''}",
-				f"Periods in Year: {self.periods_in_year or ''}",
-				f"Periods Worked: {self.periods_worked or ''}",
-				f"Directive Numbers: {self.directive_numbers or ''}",
-				f"Reason for Non-Deduction: {self.reason_for_non_deduction or ''}",
-			],
-			start=1,
-		):
-			can.drawString(left, detail_top - (index * line_gap), value)
-
-	def _draw_page_three(self, can, width, height):
-		left = 42
-		top = height - 52
-		line_gap = 12
-
-		can.setFont("Helvetica-Bold", 10)
-		can.drawString(left, top, "Income Codes")
-		can.drawString(left + 250, top, "Deductions / Tax Credits")
-		can.drawString(left + 470, top, "Employer Contributions")
+		if y < bottom + 40:
+			can.showPage()
+			draw_header("IRP5 / IT3(a) Employee Tax Certificate")
+			y = height - 86
 		can.setFont("Helvetica", 8)
+		can.drawString(
+			margin,
+			y,
+			"This PDF is generated from the ERPNext IRP5 Certificate snapshot for practitioner review.",
+		)
+		can.drawString(
+			margin,
+			y - line_gap,
+			"It is not a direct SARS eFiling submission. Validate all statutory values before filing.",
+		)
 
-		max_rows = max(len(self.income_details), len(self.deduction_details), len(self.company_contribution_details), 1)
-		for idx in range(max_rows):
-			y = top - ((idx + 1) * line_gap)
-			if idx < len(self.income_details):
-				row = self.income_details[idx]
-				can.drawString(left, y, f"{row.income_code} {row.description[:24]}")
-				can.drawRightString(left + 235, y, f"{flt(row.amount):,.2f}")
-			if idx < len(self.deduction_details):
-				row = self.deduction_details[idx]
-				can.drawString(left + 250, y, f"{row.deduction_code} {row.description[:22]}")
-				can.drawRightString(left + 455, y, f"{flt(row.amount):,.2f}")
-			if idx < len(self.company_contribution_details):
-				row = self.company_contribution_details[idx]
-				can.drawString(left + 470, y, f"{row.contribution_code} {row.description[:18]}")
-				can.drawRightString(width - 42, y, f"{flt(row.amount):,.2f}")
-
-		summary_top = top - ((max_rows + 4) * line_gap)
-		can.setFont("Helvetica-Bold", 10)
-		can.drawString(left, summary_top, "Certificate Totals")
-		can.setFont("Helvetica", 9)
-		for index, value in enumerate(
-			[
-				f"Gross Taxable Income: {flt(self.gross_taxable_income):,.2f}",
-				f"Non-Taxable Income: {flt(self.non_taxable_income):,.2f}",
-				f"PAYE: {flt(self.paye):,.2f}",
-				f"UIF: {flt(self.uif):,.2f}",
-				f"SDL: {flt(self.sdl):,.2f}",
-				f"Medical Scheme Fees Tax Credit: {flt(self.medical_scheme_fees_tax_credit):,.2f}",
-				f"Additional Medical Expenses Tax Credit: {flt(self.additional_medical_expenses_tax_credit):,.2f}",
-				f"Total Deductions & Contributions: {flt(self.total_deductions_contributions):,.2f}",
-				f"Total Tax Payable: {flt(self.total_tax_payable):,.2f}",
-			],
-			start=1,
-		):
-			can.drawString(left, summary_top - (index * 14), value)
+		can.save()
+		buffer.seek(0)
+		return buffer.getvalue()
 
 	def _sum_child_table(self, rows, code_field, codes):
 		return sum(flt(getattr(row, "amount", 0)) for row in rows if getattr(row, code_field, None) in codes)
@@ -1070,6 +1170,38 @@ def _try_set_pdf_font(can):
 		can.setFont("Helvetica", 9)
 
 
+def _wrap_pdf_text(value, max_width, font_name="Helvetica", font_size=8.5):
+	"""Wrap text to fit inside a ReportLab column, including long IDs without spaces."""
+	value = str(value or "")
+	if not value:
+		return [""]
+
+	lines = []
+	for paragraph in value.splitlines() or [""]:
+		words = paragraph.split(" ") if paragraph else [""]
+		current = ""
+		for word in words:
+			candidate = f"{current} {word}".strip()
+			if pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
+				current = candidate
+				continue
+			if current:
+				lines.append(current)
+			current = ""
+			while word and pdfmetrics.stringWidth(word, font_name, font_size) > max_width:
+				chunk = ""
+				for char in word:
+					if pdfmetrics.stringWidth(chunk + char, font_name, font_size) > max_width:
+						break
+					chunk += char
+				lines.append(chunk)
+				word = word[len(chunk):]
+			current = word
+		if current:
+			lines.append(current)
+	return lines or [""]
+
+
 @frappe.whitelist()
 def get_it3_pdf(docname):
 	"""Backward-compatible endpoint retained for existing buttons and integrations."""
@@ -1159,6 +1291,4 @@ def bulk_generate_certificates(filters_json=None):
 def save_file(file_name, content, dt, dn, is_private=False):
 	from frappe.utils.file_manager import save_file as _save_file
 
-	if isinstance(content, bytes):
-		content = base64.b64encode(content).decode("utf-8")
 	return _save_file(file_name, content, dt, dn, is_private=is_private)

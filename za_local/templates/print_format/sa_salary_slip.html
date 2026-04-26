@@ -1,0 +1,251 @@
+{# South African Salary Slip print format for HRMS Salary Slip. #}
+<style>
+.za-slip {
+  color: #111827;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.za-slip__header {
+  border-bottom: 2px solid #111827;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+}
+.za-slip__title {
+  font-size: 20px;
+  font-weight: 700;
+}
+.za-slip__meta {
+  text-align: right;
+}
+.za-slip__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+.za-slip__section {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+.za-slip__section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.za-slip__row {
+  display: grid;
+  grid-template-columns: 145px 1fr;
+  margin-bottom: 3px;
+}
+.za-slip__label {
+  color: #4b5563;
+  font-weight: 600;
+}
+.za-slip table {
+  border-collapse: collapse;
+  margin-top: 4px;
+  width: 100%;
+}
+.za-slip th,
+.za-slip td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 4px 5px;
+  vertical-align: top;
+}
+.za-slip th {
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 700;
+  text-align: left;
+}
+.za-slip .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.za-slip__total {
+  background: #f9fafb;
+  font-weight: 700;
+}
+.za-slip__net {
+  border: 2px solid #111827;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 8px;
+  padding: 8px 10px;
+  text-align: right;
+}
+.za-slip__note {
+  color: #6b7280;
+  font-size: 9.5px;
+  margin-top: 10px;
+}
+</style>
+
+{% macro money(value) -%}
+  {{ frappe.format(value or 0, {"fieldtype": "Currency", "options": doc.get("currency") or "ZAR"}) }}
+{%- endmacro %}
+
+{% macro date_value(value) -%}
+  {{ frappe.format(value, {"fieldtype": "Date"}) if value else "" }}
+{%- endmacro %}
+
+{% macro field(label, value) -%}
+  <div class="za-slip__row">
+    <div class="za-slip__label">{{ label }}</div>
+    <div>{{ value if value is not none else "" }}</div>
+  </div>
+{%- endmacro %}
+
+<div class="za-slip">
+  <div class="za-slip__header">
+    <div>
+      <div class="za-slip__title">South African Salary Slip</div>
+      <div>{{ doc.company }}</div>
+    </div>
+    <div class="za-slip__meta">
+      <div><strong>Salary Slip</strong> {{ doc.name }}</div>
+      <div><strong>Status</strong> {{ "Submitted" if doc.docstatus == 1 else "Draft" }}</div>
+      <div><strong>Currency</strong> {{ doc.currency or "ZAR" }}</div>
+    </div>
+  </div>
+
+  <div class="za-slip__grid">
+    <div class="za-slip__section">
+      <div class="za-slip__section-title">Employee</div>
+      {{ field("Employee", doc.employee) }}
+      {{ field("Employee Name", doc.employee_name) }}
+      {{ field("Department", doc.department) }}
+      {{ field("Designation", doc.designation) }}
+      {{ field("Branch", doc.branch) }}
+    </div>
+
+    <div class="za-slip__section">
+      <div class="za-slip__section-title">Payroll Period</div>
+      {{ field("Payroll Entry", doc.payroll_entry) }}
+      {{ field("Posting Date", date_value(doc.posting_date)) }}
+      {{ field("Start Date", date_value(doc.start_date)) }}
+      {{ field("End Date", date_value(doc.end_date)) }}
+      {{ field("Frequency", doc.payroll_frequency) }}
+    </div>
+  </div>
+
+  <div class="za-slip__grid">
+    <div class="za-slip__section">
+      <div class="za-slip__section-title">Attendance Basis</div>
+      {{ field("Total Working Days", doc.total_working_days) }}
+      {{ field("Payment Days", doc.payment_days) }}
+      {{ field("Leave Without Pay", doc.leave_without_pay or doc.lop_days) }}
+      {{ field("Absent Days", doc.absent_days) }}
+    </div>
+
+    <div class="za-slip__section">
+      <div class="za-slip__section-title">South African Statutory Snapshot</div>
+      {{ field("PAYE", money(doc.total_income_tax)) }}
+      {{ field("Monthly ETI", money(doc.za_monthly_eti)) }}
+      {{ field("Retirement Fund Taxable Excess", money(doc.za_retirement_fund_taxable_excess)) }}
+      {{ field("Employer Contributions", money(doc.total_company_contribution)) }}
+    </div>
+  </div>
+
+  <div class="za-slip__grid">
+    <div class="za-slip__section">
+      <div class="za-slip__section-title">Earnings</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th class="num">Amount</th>
+            <th class="num">YTD</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in doc.earnings %}
+          <tr>
+            <td>{{ row.salary_component }}</td>
+            <td class="num">{{ money(row.amount) }}</td>
+            <td class="num">{{ money(row.year_to_date) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3">No earnings captured.</td></tr>
+          {% endfor %}
+          <tr class="za-slip__total">
+            <td>Gross Pay</td>
+            <td class="num">{{ money(doc.gross_pay) }}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="za-slip__section">
+      <div class="za-slip__section-title">Deductions</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th class="num">Amount</th>
+            <th class="num">YTD</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in doc.deductions %}
+          <tr>
+            <td>{{ row.salary_component }}</td>
+            <td class="num">{{ money(row.amount) }}</td>
+            <td class="num">{{ money(row.year_to_date) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3">No deductions captured.</td></tr>
+          {% endfor %}
+          <tr class="za-slip__total">
+            <td>Total Deduction</td>
+            <td class="num">{{ money(doc.total_deduction) }}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if doc.company_contribution %}
+  <div class="za-slip__section">
+    <div class="za-slip__section-title">Employer Contributions</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in doc.company_contribution %}
+        <tr>
+          <td>{{ row.salary_component }}</td>
+          <td class="num">{{ money(row.amount) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="za-slip__total">
+          <td>Total Employer Contribution</td>
+          <td class="num">{{ money(doc.total_company_contribution) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="za-slip__net">
+    Net Pay: {{ money(doc.net_pay or doc.rounded_total) }}
+  </div>
+
+  <div class="za-slip__note">
+    This salary slip includes South African payroll localisation fields where configured, including PAYE, UIF, SDL,
+    ETI, retirement-fund treatment, and employer contribution visibility. Payroll practitioners remain responsible
+    for validating statutory calculations and configuration before payment or filing.
+  </div>
+</div>

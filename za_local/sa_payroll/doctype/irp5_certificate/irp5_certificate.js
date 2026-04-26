@@ -89,14 +89,14 @@ frappe.ui.form.on('IRP5 Certificate', {
             }).addClass('btn-primary');
         }
         
-        // Export the official SARS certificate PDF once the snapshot is ready
-        if (frm.doc.docstatus === 0 && frm.doc.status !== "Draft" && frm.doc.status) {
-            frm.add_custom_button(__('Export Official Certificate PDF'), function() {
+        // Export a clean practitioner review certificate PDF once the snapshot is ready.
+        if (frm.doc.status && frm.doc.status !== "Draft" && frm.doc.docstatus !== 2) {
+            frm.add_custom_button(__('Download IRP5 Certificate PDF'), function() {
                 frappe.call({
                     method: 'za_local.sa_payroll.doctype.irp5_certificate.irp5_certificate.get_official_pdf',
                     args: { docname: frm.doc.name },
                     freeze: true,
-                    freeze_message: __('Generating official SARS certificate PDF...'),
+                    freeze_message: __('Generating IRP5 certificate PDF...'),
                     callback: function(r) {
                         if (r.message) {
                             // Decode base64 and create blob for download
@@ -115,7 +115,7 @@ frappe.ui.form.on('IRP5 Certificate', {
                             window.URL.revokeObjectURL(url);
                             document.body.removeChild(a);
                             frappe.show_alert({
-                                message: __('Official SARS certificate PDF generated successfully'),
+                                message: __('IRP5 certificate PDF generated successfully'),
                                 indicator: 'green'
                             }, 3);
                         }
@@ -123,7 +123,7 @@ frappe.ui.form.on('IRP5 Certificate', {
                     error: function(r) {
                         frappe.msgprint({
                             title: __('Error'),
-                            message: __('Failed to generate the official certificate PDF. Please check the error logs.'),
+                            message: __('Failed to generate the IRP5 certificate PDF. Please check the error logs.'),
                             indicator: 'red'
                         });
                     }

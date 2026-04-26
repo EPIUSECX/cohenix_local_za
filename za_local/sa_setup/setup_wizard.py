@@ -285,7 +285,9 @@ def setup_sa_print_formats():
 		"Delivery Note": "SA Delivery Note",
 		"Purchase Invoice": "SA Purchase Invoice",
 		"Purchase Order": "SA Purchase Order",
-		"Payment Entry": "SA Payment Entry"
+		"Payment Entry": "SA Payment Entry",
+		"Salary Slip": "SA Salary Slip",
+		"IRP5 Certificate": "IRP5 Employee Certificate",
 	}
 
 	for doctype, print_format in print_format_mapping.items():

@@ -43,6 +43,8 @@ fixtures = [
         "filters": [
             ["name", "in", [
                 "SA Sales Invoice",
+                "SA Full Tax Invoice",
+                "SA Abridged Tax Invoice",
                 "SA Quotation",
                 "SA Sales Order",
                 "SA Delivery Note",
@@ -50,7 +52,10 @@ fixtures = [
                 "SA Purchase Order",
                 "SA Payment Entry",
                 "SA Credit Note",
-                "SA Debit Note"
+                "SA Debit Note",
+                "IRP5 Employee Certificate",
+                "IRP5-it3 Certificate",
+                "SA Salary Slip"
             ]]
         ]
     },

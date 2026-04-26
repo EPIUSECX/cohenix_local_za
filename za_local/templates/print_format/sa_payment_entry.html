@@ -1,0 +1,94 @@
+{# South African Payment Entry receipt print format. #}
+{% set company_exists = frappe.db.exists("Company", doc.company) if doc.get("company") else None %}
+{% set company_doc = frappe.get_doc("Company", doc.company) if company_exists else None %}
+{% set party_doctype = doc.get("party_type") %}
+{% set party_exists = frappe.db.exists(party_doctype, doc.party) if doc.get("party_type") and doc.get("party") else None %}
+{% set party_doc = frappe.get_doc(party_doctype, doc.party) if party_exists else None %}
+
+<style>
+.za-pay { color: #111827; font-size: 9px; line-height: 1.35; }
+.za-pay__header { border-bottom: 2px solid #111827; display: grid; gap: 16px; grid-template-columns: 1fr 210px; margin-bottom: 12px; padding-bottom: 10px; }
+.za-pay__company { font-size: 18px; font-weight: 700; }
+.za-pay__title { font-size: 22px; font-weight: 700; letter-spacing: .08em; margin: 10px 0 12px; text-align: center; text-transform: uppercase; }
+.za-pay__grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-bottom: 12px; }
+.za-pay__box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
+.za-pay__box-title { color: #4b5563; font-size: 8px; font-weight: 700; letter-spacing: .05em; margin-bottom: 6px; text-transform: uppercase; }
+.za-pay__row { display: grid; gap: 8px; grid-template-columns: 130px 1fr; margin-bottom: 3px; }
+.za-pay__label { color: #4b5563; font-weight: 600; }
+.za-pay__value { font-weight: 600; overflow-wrap: anywhere; }
+.za-pay table { border-collapse: collapse; margin-top: 8px; width: 100%; }
+.za-pay th { background: #111827; color: #fff !important; font-size: 8px; padding: 7px 6px; text-align: left; text-transform: uppercase; }
+.za-pay td { border-bottom: 1px solid #e5e7eb; padding: 7px 6px; vertical-align: top; }
+.za-pay .num { text-align: right; white-space: nowrap; }
+.za-pay__total { background: #111827; color: #fff; font-weight: 700; margin-left: auto; margin-top: 12px; padding: 9px 12px; text-align: right; width: 300px; }
+.za-pay__footer { border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 8px; margin-top: 18px; padding-top: 8px; text-align: center; }
+@media print { @page { margin: 8mm; } }
+</style>
+
+<div class="za-pay">
+  <div class="za-pay__header">
+    <div>
+      <div class="za-pay__company">{{ company_doc.get("company_name") if company_doc else doc.get("company") }}</div>
+      <div style="color:#4b5563;">
+        VAT Registration No. {{ company_doc.get("tax_id") if company_doc else "Not configured" }}
+        {% if company_doc and company_doc.get("company_registration") %}<br>Company Reg. {{ company_doc.get("company_registration") }}{% endif %}
+      </div>
+    </div>
+    <div class="za-pay__box">
+      <div class="za-pay__box-title">Receipt Details</div>
+      <div class="za-pay__row"><div class="za-pay__label">Number</div><div class="za-pay__value">{{ doc.name }}</div></div>
+      <div class="za-pay__row"><div class="za-pay__label">Date</div><div>{{ doc.get_formatted("posting_date") }}</div></div>
+      <div class="za-pay__row"><div class="za-pay__label">Type</div><div>{{ doc.get("payment_type") }}</div></div>
+    </div>
+  </div>
+
+  <div class="za-pay__title">Payment Receipt</div>
+
+  <div class="za-pay__grid">
+    <div class="za-pay__box">
+      <div class="za-pay__box-title">Party</div>
+      <div class="za-pay__row"><div class="za-pay__label">Type</div><div>{{ doc.get("party_type") }}</div></div>
+      <div class="za-pay__row"><div class="za-pay__label">Name</div><div class="za-pay__value">{{ doc.get("party_name") or doc.get("party") }}</div></div>
+      {% if party_doc and party_doc.get("tax_id") %}
+      <div class="za-pay__row"><div class="za-pay__label">VAT No.</div><div>{{ party_doc.get("tax_id") }}</div></div>
+      {% endif %}
+    </div>
+    <div class="za-pay__box">
+      <div class="za-pay__box-title">Payment Accounts</div>
+      <div class="za-pay__row"><div class="za-pay__label">Paid From</div><div class="za-pay__value">{{ doc.get("paid_from") }}</div></div>
+      <div class="za-pay__row"><div class="za-pay__label">Paid To</div><div class="za-pay__value">{{ doc.get("paid_to") }}</div></div>
+      <div class="za-pay__row"><div class="za-pay__label">Reference No.</div><div>{{ doc.get("reference_no") or "" }}</div></div>
+      <div class="za-pay__row"><div class="za-pay__label">Reference Date</div><div>{{ doc.get_formatted("reference_date") if doc.get("reference_date") else "" }}</div></div>
+    </div>
+  </div>
+
+  {% if doc.get("references") %}
+  <table>
+    <thead>
+      <tr>
+        <th>Reference Type</th>
+        <th>Reference Name</th>
+        <th class="num">Allocated Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in doc.get("references") %}
+      <tr>
+        <td>{{ row.reference_doctype }}</td>
+        <td>{{ row.reference_name }}</td>
+        <td class="num">{{ row.get_formatted("allocated_amount") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div class="za-pay__total">
+    Paid Amount: {{ doc.get_formatted("paid_amount") }}<br>
+    Received Amount: {{ doc.get_formatted("received_amount") }}
+  </div>
+
+  <div class="za-pay__footer">
+    South African payment receipt generated from ERPNext. Retain supporting payment and allocation records for the statutory retention period.
+  </div>
+</div>
