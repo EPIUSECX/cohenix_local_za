@@ -1,5 +1,6 @@
 import frappe
 from frappe.model.document import Document
+from frappe.utils import flt
 
 
 class COIDAIndustryRate(Document):
@@ -8,10 +9,11 @@ class COIDAIndustryRate(Document):
 
     def validate_rate(self):
         """Validate that the rate is within acceptable range"""
-        if self.rate < 0:
+        rate = flt(self.assessment_rate)
+        if rate < 0:
             frappe.throw("COIDA Industry Rate cannot be negative")
 
-        if self.rate > 10:
+        if rate > 10:
             # Rates are typically less than 10%, so warn if higher
             frappe.msgprint(
                 "COIDA Industry Rate is unusually high (>10%). Please verify this is correct.",

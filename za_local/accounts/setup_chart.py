@@ -217,6 +217,36 @@ def _add_sa_tax_accounts(company):
 			is_group=0,
 		)
 
+	expense_root = _get_root_account(company, "Expense")
+	if not expense_root:
+		return
+
+	indirect_expenses = _get_child_account_under(
+		company, expense_root, ["Indirect Expenses", "Expenses"]
+	) or expense_root
+
+	employer_contribution_group = _get_or_create_account(
+		company,
+		"Employer Payroll Contributions",
+		"Expense Account",
+		parent=indirect_expenses.name,
+		is_group=1,
+	)
+
+	for account_name in (
+		"UIF Employer Expense",
+		"SDL Expense",
+		"Pension Fund Employer Expense",
+		"Medical Aid Employer Expense",
+	):
+		_get_or_create_account(
+			company,
+			account_name,
+			"Expense Account",
+			parent=employer_contribution_group.name,
+			is_group=0,
+		)
+
 
 def _extract_tax_accounts(chart_tree):
 	"""

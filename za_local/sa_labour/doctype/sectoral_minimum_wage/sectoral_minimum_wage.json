@@ -75,5 +75,5 @@
  "sort_order": "DESC",
  "states": [],
  "track_changes": 1,
- "autoname": "field:name"
+ "autoname": "format:{sector}-{position_category}-{effective_from}"
 }

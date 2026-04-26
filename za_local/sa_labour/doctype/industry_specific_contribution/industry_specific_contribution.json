@@ -82,5 +82,5 @@
  "sort_order": "DESC",
  "states": [],
  "track_changes": 1,
- "autoname": "field:name"
+ "autoname": "format:{contribution_name}"
 }

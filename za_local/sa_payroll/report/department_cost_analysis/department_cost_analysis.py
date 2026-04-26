@@ -29,9 +29,38 @@ def get_data(filters):
 			SUM(ss.gross_pay) as total_gross,
 			SUM(ss.total_deduction) as total_deductions,
 			SUM(ss.net_pay) as total_net,
-			SUM((SELECT IFNULL(SUM(amount), 0) FROM `tabSalary Detail` WHERE parent = ss.name AND salary_component = 'PAYE' AND parentfield = 'deductions')) as total_paye,
-			SUM((SELECT IFNULL(SUM(amount), 0) FROM `tabSalary Detail` WHERE parent = ss.name AND salary_component = 'UIF' AND parentfield = 'deductions')) as total_uif,
-			SUM((SELECT IFNULL(SUM(amount), 0) FROM `tabSalary Detail` WHERE parent = ss.name AND salary_component = 'SDL' AND parentfield = 'deductions')) as total_sdl
+			SUM((
+				SELECT IFNULL(SUM(sd.amount), 0)
+				FROM `tabSalary Detail` sd
+				LEFT JOIN `tabSalary Component` sc ON sc.name = sd.salary_component
+				WHERE sd.parent = ss.name
+					AND sd.parentfield = 'deductions'
+					AND (sd.salary_component = 'PAYE' OR sc.za_sars_payroll_code = '4102')
+			)) as total_paye,
+			SUM((
+				SELECT IFNULL(SUM(sd.amount), 0)
+				FROM `tabSalary Detail` sd
+				LEFT JOIN `tabSalary Component` sc ON sc.name = sd.salary_component
+				WHERE sd.parent = ss.name
+					AND sd.parentfield = 'deductions'
+					AND (sd.salary_component IN ('UIF', 'UIF Employee Contribution')
+						OR sc.za_sars_payroll_code = '4141')
+			) + (
+				SELECT IFNULL(SUM(cc.amount), 0)
+				FROM `tabCompany Contribution` cc
+				LEFT JOIN `tabSalary Component` sc ON sc.name = cc.salary_component
+				WHERE cc.parent = ss.name
+					AND (cc.salary_component = 'UIF Employer Contribution'
+						OR sc.za_sars_payroll_code = '4141')
+			)) as total_uif,
+			SUM((
+				SELECT IFNULL(SUM(cc.amount), 0)
+				FROM `tabCompany Contribution` cc
+				LEFT JOIN `tabSalary Component` sc ON sc.name = cc.salary_component
+				WHERE cc.parent = ss.name
+					AND (cc.salary_component IN ('SDL', 'SDL Contribution', 'Skills Development Levy')
+						OR sc.za_sars_payroll_code = '4142')
+			)) as total_sdl
 		FROM `tabSalary Slip` ss
 		INNER JOIN `tabEmployee` e ON e.name = ss.employee
 		WHERE ss.company = %(company)s

@@ -221,7 +221,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Deduction Reports",
-   "link_count": 3,
+   "link_count": 2,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -229,19 +229,9 @@
   {
    "hidden": 0,
    "is_query_report": 1,
-   "label": "Provident Fund Deductions",
+   "label": "Retirement Fund Deductions",
    "link_count": 0,
-   "link_to": "Provident Fund Deductions",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Professional Tax Deductions",
-   "link_count": 0,
-   "link_to": "Professional Tax Deductions",
+   "link_to": "Retirement Fund Deductions",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"

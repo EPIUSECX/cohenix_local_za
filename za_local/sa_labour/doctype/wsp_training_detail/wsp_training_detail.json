@@ -22,7 +22,7 @@
   },
   {
    "fieldname": "number_of_employees",
-   "fieldtype": "Data",
+   "fieldtype": "Int",
    "label": "Number Of Employees"
   },
   {

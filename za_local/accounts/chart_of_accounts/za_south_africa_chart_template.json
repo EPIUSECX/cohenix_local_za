@@ -278,6 +278,22 @@
                 "Salary": {
                     "account_type": "Expense Account"
                 },
+                "Employer Payroll Contributions": {
+                    "account_type": "Expense Account",
+                    "is_group": 1,
+                    "UIF Employer Expense": {
+                        "account_type": "Expense Account"
+                    },
+                    "SDL Expense": {
+                        "account_type": "Expense Account"
+                    },
+                    "Pension Fund Employer Expense": {
+                        "account_type": "Expense Account"
+                    },
+                    "Medical Aid Employer Expense": {
+                        "account_type": "Expense Account"
+                    }
+                },
                 "Sales Expenses": {
                     "account_type": "Expense Account",
                     "is_group": 1
@@ -307,4 +323,3 @@
         }
     }
 }
-

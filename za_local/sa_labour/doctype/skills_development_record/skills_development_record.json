@@ -68,7 +68,7 @@
   },
   {
    "fieldname": "bec_points",
-   "fieldtype": "Data",
+   "fieldtype": "Float",
    "label": "Bec Points"
   }
  ],

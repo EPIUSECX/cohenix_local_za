@@ -310,6 +310,7 @@ def after_install():
 	set_accounts_settings_for_za_vat()
 	migrate_workspace_sa_localisation_to_sa_overview()
 	sync_sa_workspaces()
+	rebuild_za_local_workspace_sidebars()
 	sync_za_local_desktop_icons()
 	frappe.db.commit()
 	print("\n" + "=" * 80)
@@ -346,6 +347,7 @@ def after_migrate():
 	set_accounts_settings_for_za_vat()
 	migrate_workspace_sa_localisation_to_sa_overview()
 	sync_sa_workspaces()
+	rebuild_za_local_workspace_sidebars()
 	sync_za_local_desktop_icons()
 	frappe.db.commit()
 
@@ -673,8 +675,7 @@ _SIDEBAR_REPORT_ICONS = {
 	"Department Cost Analysis": "chart-column",
 	"Salary Payments Based On Payment Mode": "wallet",
 	"Salary Payments via ECS": "landmark",
-	"Provident Fund Deductions": "piggy-bank",
-	"Professional Tax Deductions": "percent",
+	"Retirement Fund Deductions": "piggy-bank",
 	"Income Tax Deductions": "percent",
 	"General Ledger": "book-open",
 	"Accounts Payable": "circle-arrow-down",

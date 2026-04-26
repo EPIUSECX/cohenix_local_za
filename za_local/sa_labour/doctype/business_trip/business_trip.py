@@ -98,7 +98,7 @@ class BusinessTrip(Document):
 
 	def on_submit(self):
 		"""On submit, create expense claim if configured"""
-		self.status = "Submitted"
+		self.db_set("status", "Submitted", update_modified=False)
 
 		settings = frappe.get_cached_doc("Business Trip Settings")
 		if settings.auto_create_expense_claim_on_submit:
@@ -106,7 +106,7 @@ class BusinessTrip(Document):
 
 	def on_cancel(self):
 		"""On cancel, update status"""
-		self.status = "Cancelled"
+		self.db_set("status", "Cancelled", update_modified=False)
 
 		# Cancel linked expense claim if it exists and is not submitted
 		if self.expense_claim:
@@ -265,4 +265,3 @@ def generate_allowances_for_date_range(business_trip_name):
 	)
 
 	return trip.allowances
-

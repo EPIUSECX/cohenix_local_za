@@ -106,8 +106,10 @@ class WorkplaceInjury(Document):
         oid_claim = frappe.new_doc("OID Claim")
         oid_claim.workplace_injury = self.name
         oid_claim.employee = self.employee
+        oid_claim.company = self.company
         oid_claim.injury_date = self.injury_date
         oid_claim.injury_type = self.injury_type
+        oid_claim.injury_location = self.injury_location
         oid_claim.injury_description = self.injury_description
 
         try:

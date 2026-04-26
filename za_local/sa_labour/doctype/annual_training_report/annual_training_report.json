@@ -45,7 +45,7 @@
   },
   {
    "fieldname": "actual_training_spend",
-   "fieldtype": "Data",
+   "fieldtype": "Currency",
    "label": "Actual Training Spend"
   },
   {
@@ -57,7 +57,9 @@
   {
    "fieldname": "status",
    "fieldtype": "Select",
-   "label": "Status"
+   "label": "Status",
+   "options": "Draft\nPrepared\nSubmitted",
+   "default": "Draft"
   }
  ],
  "index_web_pages_for_search": 1,

@@ -17,13 +17,12 @@
   },
   {
    "fieldname": "training_completed",
-   "fieldtype": "Table",
-   "label": "Training Completed",
-   "options": "Atr Training Completed"
+   "fieldtype": "Data",
+   "label": "Training Completed"
   },
   {
    "fieldname": "number_trained",
-   "fieldtype": "Data",
+   "fieldtype": "Int",
    "label": "Number Trained"
   },
   {

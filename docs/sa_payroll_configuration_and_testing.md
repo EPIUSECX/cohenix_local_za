@@ -52,7 +52,7 @@ SA Payroll extends HRMS payroll instead of replacing it.
    - Earnings to salary expense accounts.
    - PAYE to a SARS/PAYE liability account.
    - UIF employee to a UIF liability account.
-   - UIF employer and SDL to liability accounts used for employer statutory accruals.
+   - UIF employer and SDL to employer contribution expense accounts. The Payroll Entry company-contribution journal credits Payroll Payable separately.
 6. Confirm the seeded Salary Components:
    - Statutory: `PAYE`, `UIF Employee Contribution`, `UIF Employer Contribution`, `SDL Contribution`.
    - Earnings: `Basic Salary`, `Housing Allowance`, `Transport Allowance`, `13th Cheque`, `Performance Bonus`, `Overtime`, `Commission`.
@@ -164,6 +164,31 @@ Payroll Register result:
 - The report returned all three August stress payslips.
 - Basic salary, gross pay, PAYE, UIF employee, total deductions, and net pay matched the submitted Salary Slips.
 - EMP201 UIF included both employee and employer UIF, while Payroll Register showed the employee UIF line only, as expected.
+
+## Accounting and Report Sweep Evidence
+
+April 2026 payroll was reposted through Payroll Entry `HR-PRUN-2026-00002` to prove the payroll data reaches Accounting correctly.
+
+Payroll accrual journal `ACC-JV-2026-00003`:
+
+- Debit `Salary - CX`: `R1,087,800.00`
+- Credit `PAYE Payable - SARS - CX`: `R426,502.52`
+- Credit `UIF Employee Contribution - CX`: `R531.36`
+- Credit payroll deduction liabilities for pension, medical aid, staff loans, garnishee, and union fees.
+- Credit `Payroll Payable - CX`: `R391,091.12`
+
+Company contribution journal `ACC-JV-2026-00004`:
+
+- Debit `SDL Expense - CX`: `R10,878.00`
+- Debit `UIF Employer Expense - CX`: `R531.36`
+- Credit `Payroll Payable - CX`: `R11,409.36`
+
+Final report sweep on `development.cohenix`:
+
+- SA Payroll reports passed: `Payroll Register`, `Department Cost Analysis`, `Statutory Submissions Summary`, `EMP201 Report`, `Retirement Fund Deductions`.
+- HRMS reports exposed in ZA Payroll passed: `Salary Register`, `Bank Remittance`, `Salary Payments Based On Payment Mode`, `Salary Payments via ECS`, `Income Tax Deductions`, `Income Tax Computation`.
+- Financial reports passed: `General Ledger`, `Accounts Receivable`, `Accounts Payable`, `Trial Balance`, `Profit and Loss Statement`, `Balance Sheet`.
+- India-specific HRMS reports `Provident Fund Deductions` and `Professional Tax Deductions` are intentionally not exposed in the ZA Payroll workspace because they require India-only HRMS fields and are not South African payroll reports. ZA Local exposes `Retirement Fund Deductions` for South African pension/provident/retirement-annuity deduction review.
 
 ## Verification Commands
 

@@ -25,7 +25,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "Organisation",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -49,7 +48,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "Returns & reports",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -109,7 +107,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "ERPNext \u2014 tax templates",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -163,7 +160,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-04-23 17:17:22.814007",
+ "modified": "2026-04-26 04:25:12.738245",
  "modified_by": "Administrator",
  "module": "SA Localisation",
  "module_onboarding": "SA VAT Onboarding",

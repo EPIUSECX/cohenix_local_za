@@ -4,15 +4,21 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_months, date_diff, flt, getdate, today
+from frappe.utils import flt
 
 
 class SectoralMinimumWage(Document):
 	def validate(self):
-		"""Validate SectoralMinimumWage"""
-		pass
+		if flt(self.hourly_rate) <= 0 and flt(self.monthly_rate) <= 0:
+			frappe.throw(_("Set at least an hourly or monthly minimum wage rate."))
+
+		if flt(self.hourly_rate) < 0 or flt(self.monthly_rate) < 0:
+			frappe.throw(_("Minimum wage rates cannot be negative."))
 
 	def validate_employee_salary(self):
-		"""TODO: Implement validate_employee_salary"""
-		pass
-
+		return {
+			"sector": self.sector,
+			"position_category": self.position_category,
+			"hourly_rate": flt(self.hourly_rate),
+			"monthly_rate": flt(self.monthly_rate),
+		}

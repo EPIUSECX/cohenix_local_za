@@ -34,12 +34,12 @@ class COIDAAnnualReturn(Document):
             self.assessment_fee = flt(self.total_annual_earnings) * flt(self.assessment_rate) / 100
 
     def on_submit(self):
-        self.status = "Submitted"
-        self.submission_date = frappe.utils.today()
+        self.db_set("status", "Submitted", update_modified=False)
+        self.db_set("submission_date", frappe.utils.today(), update_modified=False)
 
     def on_cancel(self):
-        self.status = "Draft"
-        self.submission_date = None
+        self.db_set("status", "Draft", update_modified=False)
+        self.db_set("submission_date", None, update_modified=False)
 
     @frappe.whitelist()
     def fetch_employee_data(self):

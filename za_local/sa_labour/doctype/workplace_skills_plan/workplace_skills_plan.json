@@ -52,12 +52,14 @@
    "fieldname": "training_details",
    "fieldtype": "Table",
    "label": "Training Details",
-   "options": "Wsp Training Details"
+   "options": "Wsp Training Detail"
   },
   {
    "fieldname": "status",
    "fieldtype": "Select",
-   "label": "Status"
+   "label": "Status",
+   "options": "Draft\nPrepared\nSubmitted",
+   "default": "Draft"
   }
  ],
  "index_web_pages_for_search": 1,

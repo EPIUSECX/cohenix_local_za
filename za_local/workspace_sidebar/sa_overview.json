@@ -129,7 +129,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "ZA setup",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -165,7 +164,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "Payroll configuration",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -213,7 +211,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "Labour setup",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -249,7 +246,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "COIDA setup",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -273,7 +269,6 @@
    "indent": 1,
    "keep_closed": 1,
    "label": "Tax templates (ERPNext)",
-   "link_to": "",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Section Break"
@@ -315,7 +310,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-04-23 17:17:53.601638",
+ "modified": "2026-04-26 04:25:12.717890",
  "modified_by": "Administrator",
  "module": "SA Localisation",
  "module_onboarding": "SA Overview Onboarding",

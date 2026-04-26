@@ -132,11 +132,13 @@
    "label": "Claim Reference"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "claim_date",
    "fieldtype": "Date",
    "label": "Claim Date"
   },
   {
+   "allow_on_submit": 1,
    "default": "Pending",
    "fieldname": "claim_status",
    "fieldtype": "Select",
@@ -150,11 +152,13 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "compensation_amount",
    "fieldtype": "Currency",
    "label": "Compensation Amount"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "payment_date",
    "fieldtype": "Date",
    "label": "Payment Date"
