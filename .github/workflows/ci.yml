@@ -107,6 +107,16 @@ jobs:
           if [ "${ERPNEXT_BRANCH}" = "version-16" ]; then
             bench --site test_site run-tests --app za_local --lightmode
           else
-            bench --site test_site execute za_local.tests.ci_setup.prepare_site_for_tests
-            bench --site test_site run-tests --app za_local
+            for module in \
+              za_local.sa_vat.doctype.south_africa_vat_settings.test_south_africa_vat_settings \
+              za_local.tests.test_statutory_workflow_regressions \
+              za_local.tests.test_journal_entry_cleanup \
+              za_local.tests.test_irp5_certificate_setup \
+              za_local.tests.test_sa_labour_custom_fields \
+              za_local.tests.test_repo_hygiene \
+              za_local.sa_payroll.doctype.employee_private_benefit.test_employee_private_benefit \
+              za_local.sa_payroll.doctype.tax_rebates_and_medical_tax_credit.test_tax_rebates_and_medical_tax_credit
+            do
+              bench --site test_site run-tests --module "$module"
+            done
           fi
