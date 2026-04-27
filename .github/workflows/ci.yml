@@ -104,4 +104,9 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app za_local --lightmode
+          if [ "${ERPNEXT_BRANCH}" = "version-16" ]; then
+            bench --site test_site run-tests --app za_local --lightmode
+          else
+            bench --site test_site execute za_local.tests.ci_setup.prepare_site_for_tests
+            bench --site test_site run-tests --app za_local
+          fi
