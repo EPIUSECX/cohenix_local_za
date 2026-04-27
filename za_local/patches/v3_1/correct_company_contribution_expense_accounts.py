@@ -1,6 +1,5 @@
 import frappe
 
-
 COMPONENT_EXPENSE_ACCOUNTS = {
 	"UIF Employer Contribution": "UIF Employer Expense",
 	"SDL Contribution": "SDL Expense",

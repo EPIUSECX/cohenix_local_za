@@ -1,7 +1,6 @@
 import frappe
 from frappe import _
 
-
 RETIREMENT_FUND_CODES = {"4001", "4003", "4006", "4007"}
 
 

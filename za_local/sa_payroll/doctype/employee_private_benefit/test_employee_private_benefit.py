@@ -1,8 +1,8 @@
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import UnitTestCase
 
 
-class TestEmployeePrivateBenefit(FrappeTestCase):
+class TestEmployeePrivateBenefit(UnitTestCase):
 	def test_doctype_metadata(self):
 		meta = frappe.get_meta("Employee Private Benefit")
 

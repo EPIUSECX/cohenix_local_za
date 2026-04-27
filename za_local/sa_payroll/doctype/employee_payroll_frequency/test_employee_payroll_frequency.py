@@ -1,6 +1,6 @@
 #
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import UnitTestCase
 
 
-class TestEmployeePayrollFrequency(FrappeTestCase):
+class TestEmployeePayrollFrequency(UnitTestCase):
 	pass

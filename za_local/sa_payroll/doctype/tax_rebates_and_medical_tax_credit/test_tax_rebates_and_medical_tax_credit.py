@@ -1,8 +1,8 @@
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import UnitTestCase
 
 
-class TestTaxRebatesandMedicalTaxCredit(FrappeTestCase):
+class TestTaxRebatesandMedicalTaxCredit(UnitTestCase):
 	def test_singleton_doctype_metadata(self):
 		meta = frappe.get_meta("Tax Rebates and Medical Tax Credit")
 

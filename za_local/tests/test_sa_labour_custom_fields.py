@@ -1,8 +1,8 @@
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import UnitTestCase
 
 
-class TestSALabourCustomFields(FrappeTestCase):
+class TestSALabourCustomFields(UnitTestCase):
 	def test_employee_employment_equity_fields_exist(self):
 		meta = frappe.get_meta("Employee")
 		fieldnames = {field.fieldname for field in meta.fields if field.fieldname}

@@ -11,6 +11,7 @@ from pathlib import Path
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.utils import now
 from frappe.utils.fixtures import import_fixtures
 
 from za_local.sa_setup.custom_fields import setup_custom_fields
@@ -543,11 +544,40 @@ def ensure_sa_vat_print_format_field_templates():
 		if frappe.db.exists("Print Format Field Template", name):
 			frappe.db.set_value("Print Format Field Template", name, payload)
 		else:
-			doc = frappe.get_doc({"doctype": "Print Format Field Template", "name": name, **payload})
-			doc.flags.ignore_permissions = True
-			doc.insert(ignore_permissions=True)
+			_insert_print_format_field_template(name, payload)
 
 	print("  ✓ South African print format field templates are available")
+
+
+def _insert_print_format_field_template(name, payload):
+	"""Insert packaged standard templates without requiring developer mode.
+
+	Frappe Cloud runs migrations with developer mode disabled. The
+	Print Format Field Template controller blocks normal inserts for
+	standard records outside patches because it tries to export standard
+	JSON. These templates are already shipped in the app, so migration only
+	needs the database row.
+	"""
+	timestamp = now()
+	record = {
+		"name": name,
+		"creation": timestamp,
+		"modified": timestamp,
+		"modified_by": frappe.session.user or "Administrator",
+		"owner": frappe.session.user or "Administrator",
+		"docstatus": 0,
+		"idx": 0,
+		**payload,
+	}
+	columns = set(frappe.db.get_table_columns("Print Format Field Template"))
+	record = {field: value for field, value in record.items() if field in columns}
+
+	fields = ", ".join(f"`{field}`" for field in record)
+	placeholders = ", ".join(["%s"] * len(record))
+	frappe.db.sql(
+		f"INSERT INTO `tabPrint Format Field Template` ({fields}) VALUES ({placeholders})",
+		tuple(record.values()),
+	)
 
 
 def cleanup_orphaned_workspace_records():

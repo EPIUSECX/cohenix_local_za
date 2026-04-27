@@ -1,119 +1,382 @@
-# South Africa Labour Configuration and Testing
+# SA Labour Configuration and Testing Practitioner Guide
 
-This guide documents the current `za_local` SA Labour setup flow and the sandbox evidence captured on `development.cohenix`.
+This guide explains how to configure, test, and validate the SA Labour module in ZA Local.
 
-SA Labour is a practitioner support module for labour masters, travel/allowance working papers, skills planning, training records, sectoral wage references, and employment-equity reports. It does not submit WSP, ATR, or EE reports electronically to a SETA or the Department of Employment and Labour.
+## Purpose And Scope
 
-## Statutory Context
+SA Labour provides practitioner support for South African labour administration. It covers SETA records, bargaining council references, sectoral wage references, industry-specific contributions, business trip calculations, Workplace Skills Plan records, Annual Training Report records, skills development records, and Employment Equity reports.
 
-- The Department of Employment and Labour announced the 2026 National Minimum Wage as R30.23 per ordinary hour from 1 March 2026.
-- The NMW flyer for 2026 gives monthly equivalents of R5,239.46 for a 40-hour week and R5,894.40 for a 45-hour week.
-- SETAs approve Workplace Skills Plans and Annual Training Reports as part of skills development grant processes.
-- Employment Equity reporting depends on correct employee demographic and occupational-level data.
+SA Labour does not submit WSP, ATR, Employment Equity, or bargaining council returns electronically. It provides structured data, working papers, and review reports for practitioner use.
 
-Reference sources:
+## Prerequisites
 
-- Department announcement: https://www.labour.gov.za/Media-Desk/Media-Statements/Pages/Minister-of-Employment-and-Labour%2C-Meth-increases-the-statutory-National-Minimum-Wage-to-R30%2C23-per-hour.aspx
-- 2026 NMW flyer: https://www.labour.gov.za/DocumentCenter/Publications/Basic%20Conditions%20of%20Employment/National%20Minimum%20Wage%20flyer%202026.pdf
-- SETA guide: https://www.labour.gov.za/DocumentCenter/Pages/Basic-Guide-to-Sector-Education-and-Training-Authorities-%28SETAs%29.aspx
-- Employment Equity reporting notice: https://www.labour.gov.za/department-of-employment-and-labour-calls-on-designated-employers-to-submit-their-annual-employment-equity-%28ee%29-reports-in
+Before configuring SA Labour:
 
-## Setup Flow
+- Company, departments, designations, and employees exist.
+- Employee demographic and Employment Equity fields are available.
+- HRMS is installed if employee, leave, or expense workflows will be used.
+- Expense Claim Types exist if Business Trip expense claim automation will be enabled.
+- The practitioner has access to Employee, Labour masters, Business Trip, WSP, ATR, Skills Development Record, and Employment Equity reports.
 
-1. Confirm the company, fiscal year, employees, departments, and designations are correct in ERPNext/HRMS.
-2. Populate the ZA employee custom fields used by labour reports:
-   - `za_race`
-   - `za_occupational_level`
-   - `za_is_disabled`
-3. Create or review `SETA` records for the company's sector.
-4. Create or review `Bargaining Council` records where the employer falls under a council.
-5. Configure `Business Trip Settings`:
-   - mileage allowance rate
-   - mileage expense claim type
-   - meal expense claim type
-   - incidental expense claim type
-   - whether submitted business trips should create Expense Claims automatically
-6. Configure `Business Trip Region` rows with local travel allowance and incidental rates.
-7. Create `Sectoral Minimum Wage` reference rows for sectors and position categories.
-8. Create `Industry Specific Contribution` rows for sector-specific provident fund, union, levy, or bargaining council deductions.
-9. Capture `Workplace Skills Plan` rows before training is delivered.
-10. Capture `Annual Training Report` rows after training is completed.
-11. Capture `Skills Development Record` rows for employee-level training and B-BBEE skills-development evidence.
-12. Run the Employment Equity reports and reconcile against employee master data:
-   - `EE Workforce Profile`
-   - `EEA2 Income Differentials`
-   - `EEA4 Employment Equity Plan`
+## Required Master Data And Settings
 
-## Sandbox Evidence
+Review or create:
 
-The sandbox test configured company `Cohenix` for fiscal year `2026-2027`.
+- SETA records.
+- Bargaining Council records.
+- Sectoral Minimum Wage records.
+- Industry Specific Contribution records.
+- Business Trip Settings.
+- Business Trip Regions.
+- Employee Employment Equity fields.
+- Workplace Skills Plan records.
+- Annual Training Report records.
+- Skills Development Records.
 
-Master data staged:
+## Configuration Tutorial
 
-- SETA: `Services SETA Sandbox`
-- Bargaining Council: `Sandbox Services Bargaining Council`
-- Industry Specific Contribution: `Sandbox Provident Fund Levy`
-- Sectoral Minimum Wage reference: `Hospitality-General Worker-2026-03-01`
-- Business Trip Regions: `Johannesburg`, `Durban`
-- Employees updated with race, disability, occupational level, department, and designation values
+### 1. Configure Employee Labour Fields
 
-Business Trip result:
+Open each Employee and review:
 
-- Business Trip: `BTR-2026-00002`
-- Status after submit: `Submitted`
-- Allowances: R1,400.00
-- Incidentals: R150.00
-- Mileage: R2,821.50
-- Receipt claims: R3,200.00
-- Accommodation: R2,400.00
-- Other expenses: R180.00
-- Grand total: R10,151.50
+- Race.
+- Gender.
+- Disability status.
+- Occupational level.
+- Department.
+- Designation.
+- Employment status.
 
-Skills and training results:
+Validation:
 
-- Workplace Skills Plan budget: R147,000.00 across 3 planned interventions
-- Annual Training Report actual spend: R94,000.00 across 3 completed interventions
-- Skills Development Record BEE points: 25.83 for a disabled-learner training scenario
+- Employment Equity reports can group employees by occupational level and race.
+- Missing employee fields are corrected before report submission.
 
-Employment Equity reports:
+### 2. Configure SETA Records
 
-- `EE Workforce Profile`: 4 rows returned
-- `EEA2 Income Differentials`: 5 rows returned
-- `EEA4 Employment Equity Plan`: 4 rows returned
+1. Open `SETA`.
+2. Create the SETA applicable to the company.
+3. Capture SETA name, code, and description.
+4. Save.
 
-## What Was Fixed During Testing
+Validation:
 
-- `Workplace Skills Plan` now points to the correct child table, `Wsp Training Detail`.
-- WSP and ATR now calculate budget/spend from child rows and expose a `Prepared` status.
-- ATR training rows now use ordinary fields instead of an accidental self-referencing table field.
-- `Sectoral Minimum Wage` and `Industry Specific Contribution` now have deterministic autoname rules.
-- Skills development records now validate dates, reject negative cost values, and calculate BEE points as a practitioner-support metric.
-- Submitted Business Trips now persist their lifecycle status as `Submitted`.
+- SETA can be referenced in skills planning and practitioner working papers.
 
-## Verification Commands
+### 3. Configure Bargaining Council Records
 
-Compile Labour code:
+1. Open `Bargaining Council`.
+2. Create the applicable bargaining council.
+3. Capture registration or reference details where available.
+4. Save.
 
-```bash
-python -m compileall za_local/sa_labour
-```
+Validation:
 
-Run migration after metadata changes:
+- The record is available for sector or employee review.
 
-```bash
-bench --site development.cohenix migrate
-```
+### 4. Configure Sectoral Minimum Wage
 
-The sandbox staging script asserted:
+1. Open `Sectoral Minimum Wage`.
+2. Create the sector, role, or category.
+3. Capture effective date.
+4. Capture hourly, weekly, or monthly rate as applicable.
+5. Save.
 
-- Business Trip total equals R10,151.50.
-- WSP budget equals R147,000.00.
-- ATR actual spend equals R94,000.00.
-- Employment Equity reports return rows from the staged employee data.
+Validation:
 
-## Practitioner Notes
+- The effective date and sector are clear.
+- The practitioner has confirmed current statutory or bargaining council rates.
 
-- Keep statutory rates current. The sandbox sectoral minimum wage record is test data; practitioners should configure the applicable current statutory, sectoral, or bargaining-council rate.
-- WSP and ATR are working-paper/supporting-record doctypes. They do not replace SETA portal submissions.
-- Employment Equity reports depend entirely on the correctness of employee demographic and occupational-level fields.
-- Business Trip expense-claim automation is optional. If enabled, ERPNext Expense Claim Types must exist before submission.
+### 5. Configure Industry Specific Contributions
+
+1. Open `Industry Specific Contribution`.
+2. Create contribution records for sector-specific deductions or employer contributions.
+3. Capture contribution type, rate, and effective dates.
+4. Save.
+
+Validation:
+
+- The record supports payroll or practitioner review where applicable.
+
+### 6. Configure Business Trip Settings
+
+1. Open `Business Trip Settings`.
+2. Set mileage allowance rate.
+3. Set mileage expense claim type.
+4. Set meal or allowance expense claim type.
+5. Set incidental expense claim type.
+6. Decide whether submitted Business Trips should create Expense Claims automatically.
+7. Save.
+
+Validation:
+
+- Mileage calculations use the configured rate.
+- Expense Claim automation is enabled only when expense types and approvers are ready.
+
+### 7. Configure Business Trip Regions
+
+1. Open `Business Trip Region`.
+2. Create local and foreign travel regions where required.
+3. Capture daily allowance rate.
+4. Capture incidental allowance rate.
+5. Save.
+
+Validation:
+
+- Regions can be selected on Business Trip allowance rows.
+
+### 8. Configure Workplace Skills Plan
+
+1. Open `Workplace Skills Plan`.
+2. Create a plan for the company and year.
+3. Add planned training rows.
+4. Capture planned learners, intervention type, and budget.
+5. Save.
+
+Validation:
+
+- Total planned training budget agrees with row values.
+- The plan status is suitable for practitioner review.
+
+### 9. Configure Annual Training Report
+
+1. Open `Annual Training Report`.
+2. Create a report for the company and year.
+3. Add completed training rows.
+4. Capture actual learners, training dates, and actual spend.
+5. Save.
+
+Validation:
+
+- Actual spend agrees with row values.
+- Completed training can be compared to the Workplace Skills Plan.
+
+### 10. Configure Skills Development Records
+
+1. Open `Skills Development Record`.
+2. Select employee.
+3. Capture training intervention details.
+4. Capture training cost.
+5. Capture disability or B-BBEE support details where applicable.
+6. Save.
+
+Validation:
+
+- Training cost cannot be negative.
+- Date ranges are valid.
+- Any B-BBEE support metric is treated as practitioner-support evidence, not a certified score.
+
+## Desk Test Cases
+
+### Test 1: SETA Master Setup
+
+Steps:
+
+1. Create a SETA record.
+2. Save.
+3. Reopen the record.
+
+Expected result:
+
+- SETA record saves and remains searchable.
+
+### Test 2: Bargaining Council Setup
+
+Steps:
+
+1. Create a Bargaining Council record.
+2. Save.
+3. Reopen the record.
+
+Expected result:
+
+- Bargaining Council record saves and can be referenced for labour review.
+
+### Test 3: Sectoral Minimum Wage Setup
+
+Steps:
+
+1. Create a Sectoral Minimum Wage record.
+2. Enter sector, role, effective date, and rate.
+3. Save.
+
+Expected result:
+
+- The record has a clear effective date and rate.
+- The practitioner can compare employee pay against the reference.
+
+### Test 4: Industry Specific Contribution Setup
+
+Steps:
+
+1. Create an Industry Specific Contribution.
+2. Enter contribution type, rate, and effective dates.
+3. Save.
+
+Expected result:
+
+- Contribution record is available for practitioner review.
+
+### Test 5: Business Trip Allowance Calculation
+
+Steps:
+
+1. Configure Business Trip Settings.
+2. Configure a Business Trip Region.
+3. Create a Business Trip.
+4. Add allowance rows.
+5. Save.
+
+Expected result:
+
+- Daily allowance and incidental totals calculate correctly.
+- Grand total includes allowances.
+
+### Test 6: Business Trip Mileage Calculation
+
+Steps:
+
+1. Add a journey using private car.
+2. Enter distance.
+3. Save.
+
+Expected result:
+
+- Mileage rate is fetched from settings.
+- Mileage claim equals distance multiplied by mileage rate.
+
+### Test 7: Accommodation And Other Expenses
+
+Steps:
+
+1. Add accommodation rows.
+2. Add other expense rows.
+3. Save.
+
+Expected result:
+
+- Accommodation total equals accommodation rows.
+- Other expense total equals other expense rows.
+- Grand total includes both.
+
+### Test 8: Optional Expense Claim Creation
+
+Steps:
+
+1. Enable auto-create Expense Claim if the company uses it.
+2. Ensure Expense Claim Types exist.
+3. Submit Business Trip.
+
+Expected result:
+
+- Expense Claim is created only when settings and ERPNext master data allow it.
+- If not enabled, Business Trip remains a working paper.
+
+### Test 9: Workplace Skills Plan
+
+Steps:
+
+1. Create a Workplace Skills Plan.
+2. Add planned training rows.
+3. Save.
+
+Expected result:
+
+- Planned budget total is calculated.
+- Plan can be reviewed before training delivery.
+
+### Test 10: Annual Training Report
+
+Steps:
+
+1. Create an Annual Training Report.
+2. Add completed training rows.
+3. Save.
+
+Expected result:
+
+- Actual spend total is calculated.
+- Completed training can be compared to planned training.
+
+### Test 11: Skills Development Record
+
+Steps:
+
+1. Create a Skills Development Record for an employee.
+2. Enter date, intervention, provider, and cost.
+3. Save.
+
+Expected result:
+
+- Record saves when dates and costs are valid.
+- Negative costs or invalid date ranges are rejected where validation applies.
+
+### Test 12: Employee Employment Equity Fields
+
+Steps:
+
+1. Open Employee.
+2. Complete Employment Equity fields.
+3. Save.
+
+Expected result:
+
+- Employee can be included in Employment Equity reports.
+
+### Test 13: EE Workforce Profile
+
+Steps:
+
+1. Open `EE Workforce Profile`.
+2. Filter by company.
+3. Run.
+
+Expected result:
+
+- Report opens without errors.
+- Rows group employees according to available Employment Equity fields.
+
+### Test 14: EEA2 Income Differentials
+
+Steps:
+
+1. Open `EEA2 Income Differentials`.
+2. Filter by company.
+3. Run.
+
+Expected result:
+
+- Report opens without errors.
+- Income differential values are based on available payroll and employee data.
+
+### Test 15: EEA4 Employment Equity Plan
+
+Steps:
+
+1. Open `EEA4 Employment Equity Plan`.
+2. Filter by company.
+3. Run.
+
+Expected result:
+
+- Report opens without errors.
+- Missing setup is clearly indicated if Employee custom fields are not available.
+
+## Reports To Review
+
+- EE Workforce Profile
+- EEA2 Income Differentials
+- EEA4 Employment Equity Plan
+
+## Common Mistakes And Troubleshooting
+
+- If Employment Equity reports are empty, review Employee race, occupational level, disability, gender, and status fields.
+- If Business Trip totals are zero, confirm allowance, journey, accommodation, and expense rows were entered.
+- If mileage does not calculate, confirm transport mode is private car and mileage settings exist.
+- If Expense Claim creation fails, confirm HRMS/ERPNext expense claim setup, expense types, approver, and permissions.
+- If WSP or ATR totals do not agree, review child table rows and saved values.
+
+## Practitioner Responsibility
+
+Practitioners must confirm current labour rates, SETA requirements, bargaining council rules, Employment Equity classifications, and submission rules before using the data externally. ZA Local provides structured records and reports, not external portal submission or statutory certification.
+

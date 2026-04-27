@@ -1,205 +1,403 @@
-# South Africa VAT Configuration and Testing
+# SA VAT Configuration and Testing Practitioner Guide
 
-This guide documents the practitioner setup flow for the `za_local` SA VAT module and the sandbox evidence captured on `development.cohenix`.
+This guide explains how to configure, test, and validate the SA VAT module in ZA Local.
 
-## Current SARS Baseline
+## Purpose And Scope
 
-Use the official SARS references before changing production defaults:
+SA VAT helps practitioners configure South African VAT in ERPNext, prepare VAT201 working papers, review linked VAT transactions, and validate South African tax-invoice readiness.
 
-- VAT is currently levied at the standard rate of 15%.
-- From 1 April 2026, compulsory VAT registration is R2.3 million and voluntary VAT registration is R120,000.
-- VAT201 is a declaration that must be supported by reviewable source records and working papers.
-- Tax records must be retained for the statutory record-keeping period.
-- Tax invoice treatment is threshold-aware: no tax invoice is required at R50 or less, an abridged tax invoice may be used at R5,000 or less, and a full tax invoice is required above R5,000.
+SA VAT does not replace ERPNext Accounting. Sales Invoices, Purchase Invoices, tax templates, GL Entries, and ERPNext VAT accounts remain the accounting source. ZA Local adds South African setup, classification, working-paper, report, and print-format support.
 
-References:
+Direct SARS electronic submission is not supported. The supported process is prepare, review, export, and file manually through SARS eFiling.
 
-- SARS VAT overview: https://www.sars.gov.za/types-of-tax/value-added-tax/
-- SARS VAT rates and thresholds: https://www.sars.gov.za/tax-rates/other-taxes/
-- SARS VAT201 guide: https://www.sars.gov.za/guide-to-completing-the-value-added-tax-vat201-return/
-- SARS tax invoices: https://www.sars.gov.za/businesses-and-employers/government/tax-invoices/
-- SARS record keeping: https://www.sars.gov.za/client-segments/record-keeping/
+## Prerequisites
 
-## ERPNext Integration Model
+Before configuring SA VAT:
 
-`za_local` intentionally integrates with ERPNext instead of replacing its accounting model.
+- ERPNext Accounting is configured.
+- A South African company exists.
+- The company has a VAT registration number if it is VAT registered.
+- The chart of accounts contains VAT output and VAT input accounts.
+- Sales and purchase tax templates can be created for the company.
+- Items, customers, suppliers, and accounts are configured well enough to post test invoices.
+- The practitioner has permission to access Company, Accounts, Tax Templates, Sales Invoice, Purchase Invoice, VAT201 Return, and Reports.
 
-- `South Africa VAT Settings` is company-scoped. Create one record per South African company.
-- `company` is the authoritative company field. `default_vat_report_company` is compatibility-only and must match `company`.
-- `vat_accounts` uses ERPNext's `South Africa VAT Account` child DocType. ERPNext's `VAT Audit Report` reads these rows with `parent = company`.
-- Sales and Purchase Invoices remain standard ERPNext documents. VAT201 uses posted tax rows and explicit mappings as evidence.
-- Item VAT categories help classification, but they do not replace posted tax evidence for taxable VAT amounts.
-- Direct SARS electronic submission is not supported. The supported flow is prepare, review, export, and file manually through SARS eFiling.
+## Required Master Data And Settings
 
-## Company Setup Procedure
+Review or create:
 
-1. Open the `Company` record and confirm the company is South African.
-2. Add the company's 10-digit VAT registration number on the Company record.
-3. Confirm the chart of accounts has actual VAT tax accounts, for example:
-   - Output VAT: `VAT Collected - Sales - CX`
-   - Input VAT: `VAT Paid - Purchases - CX`
-4. Open or create `South Africa VAT Settings` for the company.
-5. Set:
-   - VAT Vendor Type: `Standard`, `Voluntary`, or the practitioner-confirmed category.
-   - VAT Filing Frequency: normally `Bi-Monthly` unless SARS allocated another category.
-   - VAT Filing Day: integer day of month, normally `25`.
-   - Standard VAT Rate: `15`.
-   - Output VAT Account: the sales/output VAT tax account.
-   - Input VAT Account: the purchase/input VAT tax account.
-   - Item Tax Template Account: optional, but if set it must be a valid ERPNext tax/template account for the same company.
-6. Save the settings. This seeds VAT vendor types, VAT rates, ERPNext VAT tracking rows, and the default sales/purchase tax templates.
-7. Review the VAT201 mapping fields and confirm each template maps to the intended VAT201 box.
-8. Configure items with `South Africa VAT Category` where helpful:
-   - `Standard Rated`
-   - `Zero Rated`
-   - `Export Zero Rated`
-   - `Exempt`
-   - `Capital Goods`
-   - `Imported Capital Goods`
-   - `Imported Other Goods`
+- Company VAT registration number.
+- Output VAT account for VAT charged on sales.
+- Input VAT account for VAT paid on purchases.
+- `South Africa VAT Settings` for each VAT registered company.
+- VAT Vendor Type.
+- VAT rates.
+- Sales Taxes and Charges Templates.
+- Purchase Taxes and Charges Templates.
+- Item Tax Templates where used.
+- Item VAT categories.
+- VAT201 classification mappings.
+
+## Configuration Tutorial
+
+### 1. Configure Company VAT Details
+
+1. Open `Company`.
+2. Select the South African company.
+3. Confirm the country and company abbreviation.
+4. Capture the VAT registration number.
+5. Save.
+
+Validation:
+
+- The VAT number appears on South African sales print formats where applicable.
+- The same company is used for VAT settings and VAT201 returns.
+
+### 2. Confirm VAT Accounts
+
+1. Open `Chart of Accounts`.
+2. Confirm or create an output VAT account.
+3. Confirm or create an input VAT account.
+4. Ensure both accounts belong to the same company.
+5. Ensure both accounts are appropriate tax/control accounts for VAT reporting.
+
+Validation:
+
+- The accounts can be selected in `South Africa VAT Settings`.
+- Posted invoice tax rows use these accounts.
+
+### 3. Create Company VAT Settings
+
+1. Open `South Africa VAT Settings`.
+2. Create a record for the company.
+3. Set `Company`.
+4. Set `VAT Vendor Type`.
+5. Set `VAT Filing Frequency`.
+6. Set `VAT Filing Day`, normally the due day allocated by SARS.
+7. Confirm `Standard VAT Rate` is the current standard VAT rate.
+8. Set `Output VAT Account`.
+9. Set `Input VAT Account`.
+10. Optionally set `Item Tax Template Account` if item tax template automation is required.
+11. Save.
+
+Validation:
+
+- `default_vat_report_company` matches `company`.
+- VAT rates are present.
+- VAT accounts are tracked.
+- Saving does not create invalid item tax templates when no valid item tax account is selected.
+
+### 4. Review VAT Rates
+
+Open the VAT Rates table and confirm:
+
+- Standard Rate exists.
+- Zero Rate exists.
+- Exempt exists.
+- Rates match current practitioner-confirmed statutory treatment.
+
+Validation:
+
+- No blank VAT rate rows remain.
+- Standard rate is not confused with zero-rated or exempt treatment.
+
+### 5. Review Tax Templates
+
+Open and review:
+
+- `Sales Taxes and Charges Template`
+- `Purchase Taxes and Charges Template`
+- `Item Tax Template`
+
+Minimum templates to validate:
+
+- Standard-rated sales.
+- Zero-rated local sales.
+- Export zero-rated sales.
+- Exempt sales.
+- Standard-rated purchases.
+- Capital goods purchases.
+- Purchase cases with no deductible VAT.
+
+Validation:
+
+- Template accounts point to the company VAT accounts.
+- Template rates match the intended VAT treatment.
+- Templates used for VAT201 mapping are selected in `South Africa VAT Settings`.
+
+### 6. Configure Item VAT Categories
+
+Open each test item and set the relevant South African VAT category:
+
+- Standard Rated
+- Zero Rated
+- Export Zero Rated
+- Exempt
+- Capital Goods
+- Imported Capital Goods
+- Imported Other Goods
+
+Validation:
+
+- Item categories support classification.
+- Posted tax rows still remain the source of VAT amounts.
 
 ## Transaction Workflow
 
-Use standard ERPNext Selling and Buying documents:
+1. Create standard ERPNext Sales Invoices and Purchase Invoices.
+2. Use the correct tax template for each transaction.
+3. Submit the invoices.
+4. Create `VAT201 Return` for the company and period.
+5. Click `Get VAT Transactions`.
+6. Review every linked transaction row.
+7. Resolve any row with `Needs Review`.
+8. Review VAT201 totals.
+9. Run VAT reports.
+10. Export or print working papers for manual filing.
 
-1. Create Sales Invoices with the correct sales tax template:
-   - Standard-rated local sales use 15% output VAT.
-   - Zero-rated local sales use a zero-rated sales template and zero-rated item category.
-   - Export zero-rated sales use the export zero-rated sales template and export item category.
-   - Exempt supplies use the exempt sales template and exempt item category.
-2. Create Purchase Invoices with the correct purchase tax template:
-   - Standard local purchases use 15% input VAT.
-   - Capital purchases use the capital input VAT template and capital item category.
-   - Purchases without posted deductible VAT must not create input VAT totals.
-3. Create a `VAT201 Return` for the company and VAT period.
-4. Click `Get VAT Transactions`.
-5. Review linked transactions:
-   - `Classified` rows are included in VAT201 totals.
-   - `Needs Review` rows block finalisation.
-   - Rows without deductible VAT evidence must not inflate input tax.
-6. Reconcile:
-   - `VAT201 Return`
-   - `VAT 201 Linked Transactions`
-   - `VAT Analysis`
-   - ERPNext `VAT Audit Report`
-7. Export working papers and file manually on SARS eFiling.
+## Desk Test Cases
 
-## Sandbox Evidence
+### Test 1: Company VAT Registration Setup
 
-The following live staging was run through Docker against site `development.cohenix` using company `Cohenix`.
+Steps:
 
-Configuration staged:
-
-- Company: `Cohenix`
-- VAT registration number: `4123456789`
-- VAT settings: `Cohenix`
-- Output VAT account: `VAT Collected - Sales - CX`
-- Input VAT account: `VAT Paid - Purchases - CX`
-- Tracked ERPNext VAT accounts: `VAT Collected - Sales - CX`, `VAT Paid - Purchases - CX`
-- Period tested: `2026-04-24` to `2026-04-24`
-- VAT201 Return: `VAT201-26-04-0002`
-
-Submitted ERPNext documents:
-
-- Standard-rated Sales Invoice: `ACC-SINV-2026-00001`
-- Zero-rated local Sales Invoice: `ACC-SINV-2026-00002`
-- Export zero-rated Sales Invoice: `ACC-SINV-2026-00003`
-- Exempt Sales Invoice: `ACC-SINV-2026-00004`
-- Standard-rated Purchase Invoice: `ACC-PINV-2026-00001`
-- Capital goods Purchase Invoice: `ACC-PINV-2026-00002`
-- Zero-rated Purchase Invoice without deductible VAT: `ACC-PINV-2026-00003`
-
-VAT201 result:
-
-- Linked transaction rows: `6`
-- Classified rows: `6`
-- Needs Review rows: `0`
-- Standard-rated supplies: `R1,000.00`
-- Zero-rated supplies: `R1,200.00`
-- Exempt supplies: `R300.00`
-- Standard-rated output VAT: `R150.00`
-- Capital goods input VAT: `R150.00`
-- Other goods/services input VAT: `R60.00`
-- VAT payable: `R0.00`
-- VAT refundable: `R60.00`
-
-Report reconciliation:
-
-- ERPNext `VAT Audit Report` returned rows for the same company and period.
-- `VAT 201 Linked Transactions` returned `6` rows.
-- `VAT Analysis` returned `6` rows.
-- `VAT 201 Linked Transactions` VAT movement total: `R360.00`.
-- `VAT Analysis` VAT movement total: `R360.00`.
-
-Control check:
-
-- `submit_to_sars()` is blocked with the expected manual filing message.
-
-## Verification Commands
-
-Run the focused settings and VAT behaviour tests:
-
-```bash
-docker exec 8afddd0cf4e4 bash -lc 'cd /workspace/development-bench && bench --site development.cohenix run-tests --app za_local --module za_local.sa_vat.doctype.south_africa_vat_settings.test_south_africa_vat_settings'
-```
+1. Open Company.
+2. Enter a valid test VAT registration number.
+3. Save.
 
 Expected result:
 
-```text
-Ran 20 tests
-OK
-```
+- Company saves successfully.
+- VAT registration number is available for VAT settings and print formats.
 
-Run a report consistency check for the staged VAT201 return:
+### Test 2: Company-Scoped VAT Settings
 
-```bash
-docker exec 8afddd0cf4e4 bash -lc 'cd /workspace/development-bench && env/bin/python - <<'"'"'PY'"'"'
-import frappe
-from frappe.utils import flt
+Steps:
 
-frappe.init(site="development.cohenix", sites_path="/workspace/development-bench/sites")
-frappe.connect()
+1. Create `South Africa VAT Settings` for Company A.
+2. Create a separate record for Company B if available.
+3. Save both.
 
-from za_local.sa_vat.report.vat_201_linked_transactions.vat_201_linked_transactions import execute as linked_execute
-from za_local.sa_vat.report.vat_analysis.vat_analysis import execute as analysis_execute
+Expected result:
 
-vat_return = "VAT201-26-04-0002"
-_, linked = linked_execute({"vat_return": vat_return})
-_, analysis = analysis_execute({"vat_return": vat_return})
+- Each company has its own VAT settings.
+- Company A settings do not affect Company B.
 
-print({
-    "vat_return": vat_return,
-    "linked_rows": len(linked),
-    "analysis_rows": len(analysis),
-    "linked_tax_total": flt(sum(flt(row.tax_amount) for row in linked)),
-    "analysis_tax_total": flt(sum(flt(row.vat_amount) for row in analysis)),
-    "needs_review_rows": len([row for row in linked if row.classification_status == "Needs Review"]),
-})
+### Test 3: VAT Vendor Type And VAT Rates
 
-frappe.destroy()
-PY'
-```
+Steps:
 
-Expected result includes:
+1. Open VAT settings.
+2. Select a VAT Vendor Type.
+3. Review VAT rates.
+4. Save.
 
-```text
-"linked_rows": 6
-"analysis_rows": 6
-"linked_tax_total": 360.0
-"analysis_tax_total": 360.0
-"needs_review_rows": 0
-```
+Expected result:
 
-## Practitioner Acceptance Criteria
+- Vendor type is selectable.
+- Standard, zero, and exempt rates are visible.
+- Filing frequency defaults sensibly where configured.
 
-A company is ready for SA VAT processing when:
+### Test 4: VAT Account Tracking
 
-- The company has a VAT registration number.
-- `South Africa VAT Settings` exists for that company.
-- Output and input VAT accounts are real ERPNext Tax accounts.
-- ERPNext `South Africa VAT Account` child rows contain the VAT accounts used on posted tax rows.
-- VAT201 mapping fields point to the company's actual sales and purchase tax templates.
-- Standard, zero-rated, export, exempt, capital, and non-capital purchase scenarios classify correctly.
-- `Needs Review` rows are resolved before finalising the VAT201 working paper.
-- The VAT201 return, linked transactions, VAT analysis, and ERPNext VAT Audit Report can be reconciled.
-- SARS filing is handled manually from reviewed working papers and exports.
+Steps:
+
+1. Set output and input VAT accounts.
+2. Save VAT settings.
+3. Review tracked VAT accounts.
+
+Expected result:
+
+- Actual VAT tax accounts are tracked.
+- Non-tax classification accounts are not stored as VAT tax accounts.
+
+### Test 5: Standard-Rated Sales
+
+Steps:
+
+1. Create a Sales Invoice for a standard-rated item.
+2. Apply the standard-rated sales tax template.
+3. Submit.
+4. Fetch transactions into VAT201.
+
+Expected result:
+
+- VAT output is based on the posted tax row.
+- The row is classified as standard-rated output.
+- VAT201 output tax increases by the posted VAT amount.
+
+### Test 6: Zero-Rated Local Sales
+
+Steps:
+
+1. Create a Sales Invoice for a zero-rated local item.
+2. Apply the zero-rated sales template.
+3. Submit.
+4. Fetch transactions into VAT201.
+
+Expected result:
+
+- The transaction appears as zero-rated local supplies.
+- VAT amount is zero.
+- It does not inflate standard output VAT.
+
+### Test 7: Export Zero-Rated Sales
+
+Steps:
+
+1. Create a Sales Invoice for an export item.
+2. Use export zero-rated treatment.
+3. Submit.
+4. Fetch transactions into VAT201.
+
+Expected result:
+
+- The row is classified separately from local zero-rated supplies.
+- VAT amount is zero.
+
+### Test 8: Exempt Sales
+
+Steps:
+
+1. Create a Sales Invoice for an exempt item.
+2. Use exempt treatment.
+3. Submit.
+4. Fetch transactions into VAT201.
+
+Expected result:
+
+- The row is treated as exempt.
+- It does not create VAT output.
+
+### Test 9: Standard-Rated Purchases
+
+Steps:
+
+1. Create a Purchase Invoice with standard input VAT.
+2. Submit.
+3. Fetch transactions into VAT201.
+
+Expected result:
+
+- Input VAT is based on the posted purchase tax row.
+- The row is classified into the mapped input VAT box.
+
+### Test 10: Capital Goods Purchase
+
+Steps:
+
+1. Create a Purchase Invoice for a capital goods item.
+2. Apply the capital purchase mapping/template.
+3. Submit.
+4. Fetch transactions into VAT201.
+
+Expected result:
+
+- Input VAT appears in the capital goods input category.
+- It is separated from ordinary local input VAT.
+
+### Test 11: Purchase With No Deductible VAT
+
+Steps:
+
+1. Create a purchase invoice with no posted deductible VAT.
+2. Submit.
+3. Fetch transactions into VAT201.
+
+Expected result:
+
+- No input VAT is created from assumptions.
+- If mapping is unclear, the row is flagged for review rather than silently included.
+
+### Test 12: VAT201 Needs Review Control
+
+Steps:
+
+1. Create a transaction with incomplete mapping.
+2. Fetch it into VAT201.
+3. Try to finalise the VAT201 return.
+
+Expected result:
+
+- The transaction is visible as `Needs Review`.
+- Finalisation is blocked until the row is resolved.
+
+### Test 13: VAT Reports Reconcile
+
+Steps:
+
+1. Open the VAT201 Return.
+2. Open `VAT 201 Linked Transactions`.
+3. Open `VAT Analysis`.
+4. Open ERPNext `VAT Audit Report`.
+
+Expected result:
+
+- Reports show the same source population for the period.
+- VAT totals reconcile to the VAT201 working paper.
+
+### Test 14: Tax Invoice Print Formats
+
+Steps:
+
+1. Open a submitted Sales Invoice.
+2. Print using `SA Abridged Tax Invoice`.
+3. Print using `SA Full Tax Invoice`.
+4. Review supplier and customer VAT details.
+
+Expected result:
+
+- Company VAT number appears.
+- Customer VAT number appears where required and available.
+- Invoice totals, VAT amount, and consideration are readable.
+- Print output matches the invoice threshold and document purpose.
+
+### Test 15: Direct SARS Submission Boundary
+
+Steps:
+
+1. Open VAT201 Return.
+2. Attempt any SARS submission action if visible.
+
+Expected result:
+
+- Direct electronic SARS submission is blocked or not available.
+- Practitioner is guided to manual SARS eFiling using reviewed working papers.
+
+## Reports And Print Formats To Review
+
+Reports:
+
+- VAT 201 Linked Transactions
+- VAT 201 Account Classifications
+- VAT Analysis
+- ERPNext VAT Audit Report
+- General Ledger for VAT accounts
+
+Print formats:
+
+- SA Sales Invoice
+- SA Full Tax Invoice
+- SA Abridged Tax Invoice
+- SA Credit Note
+- SA Purchase Invoice
+- SA Debit Note
+- SA Quotation
+- SA Sales Order
+- SA Delivery Note
+- SA Purchase Order
+- SA Payment Entry
+
+## Common Mistakes And Troubleshooting
+
+- If VAT201 has no transactions, confirm invoices are submitted and fall inside the VAT period.
+- If VAT rows are `Needs Review`, review tax template mappings and item VAT categories.
+- If input VAT is too high, check whether non-deductible purchases are incorrectly mapped.
+- If tax invoice formats do not show VAT numbers, check Company and Customer VAT fields.
+- If ERPNext VAT Audit Report differs, confirm ERPNext VAT account tracking rows are aligned to the company.
+- If item tax templates fail to generate, select a valid item tax template account or leave automation disabled intentionally.
+
+## Practitioner Responsibility
+
+The practitioner must validate VAT rates, classifications, invoice requirements, VAT201 totals, and final SARS eFiling values before submission. ZA Local provides working papers and controls; it does not guarantee compliance without review.
+

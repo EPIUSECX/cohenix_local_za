@@ -7,10 +7,11 @@ South African payroll requirements including PAYE, UIF, SDL, COIDA, and ETI.
 Note: This module only works when HRMS is installed.
 """
 
+from math import ceil
+
 import frappe
 from frappe import _
 from frappe.utils import flt, getdate
-from math import ceil
 
 from za_local.utils.hrms_detection import get_hrms_doctype_class, require_hrms, safe_import_hrms
 

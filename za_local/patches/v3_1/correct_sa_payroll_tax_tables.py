@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import frappe
 
-
 TAX_SLABS = {
 	"South Africa 2024-2025": [
 		(1, 237100.99, 18),

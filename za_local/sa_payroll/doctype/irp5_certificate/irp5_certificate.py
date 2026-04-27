@@ -825,7 +825,7 @@ class IRP5Certificate(Document):
 			y = draw_section_title(title, y)
 			can.setFont("Helvetica-Bold", 8)
 			x = margin
-			for label, _, col_width, align in columns:
+			for label, _fieldname, col_width, align in columns:
 				if align == "right":
 					can.drawRightString(x + col_width, y, label)
 				else:
@@ -846,7 +846,7 @@ class IRP5Certificate(Document):
 					draw_header("IRP5 / IT3(a) Employee Tax Certificate")
 					y = height - 86
 				x = margin
-				for _, fieldname, col_width, align in columns:
+				for _label, fieldname, col_width, align in columns:
 					value = row.get(fieldname) if hasattr(row, "get") else getattr(row, fieldname, "")
 					if fieldname == "amount":
 						value = money(value)

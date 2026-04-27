@@ -14,6 +14,17 @@ South African localization for ERPNext, with optional HRMS payroll support.
 
 HRMS is optional for the app, but payroll features require HRMS. Without HRMS, accounting, VAT, setup, print-format, workspace, labour, and COIDA features remain available.
 
+## Practitioner Guides
+
+Use the practitioner guides for Desk-first configuration, testing, and validation.
+
+- [Practitioner Guide Index](docs/practitioners_guide.md)
+- [SA Overview and Setup Practitioner Guide](docs/sa_overview_setup_practitioner_guide.md)
+- [SA VAT Configuration and Testing](docs/sa_vat_configuration_and_testing.md)
+- [SA Payroll Configuration and Testing](docs/sa_payroll_configuration_and_testing.md)
+- [SA Labour Configuration and Testing](docs/sa_labour_configuration_and_testing.md)
+- [SA COIDA Configuration and Testing](docs/sa_coida_configuration_and_testing.md)
+
 ## Supported Stack
 
 - Frappe Framework v15/v16
@@ -63,7 +74,7 @@ Available SA VAT reports:
 - `VAT Analysis`
 - ERPNext `VAT Audit Report`
 
-Detailed VAT setup and sandbox evidence are documented in [`docs/sa_vat_configuration_and_testing.md`](docs/sa_vat_configuration_and_testing.md).
+Detailed VAT setup and Desk validation scenarios are documented in [`docs/sa_vat_configuration_and_testing.md`](docs/sa_vat_configuration_and_testing.md).
 
 ## SA Payroll
 
@@ -93,11 +104,11 @@ Available SA Payroll reports:
 - HRMS payroll reports exposed in the ZA workspace: `Salary Register`, `Bank Remittance`, `Salary Payments Based On Payment Mode`, `Salary Payments via ECS`, `Income Tax Deductions`, `Income Tax Computation`
 - Accounting reports exposed in the ZA Payroll workspace: `General Ledger`, `Accounts Payable`, `Accounts Receivable`
 
-EMP501 and IRP5 / IT3(a) testing now covers the March-August 2026 interim cycle with six submitted EMP201 declarations, six submitted certificates, EMP501 CSV export, and IRP5 PDF generation. SARS BRS/XML export and direct SARS electronic submission remain intentionally blocked; practitioners should use the working papers, CSV, and PDF outputs for manual SARS eFiling review.
+EMP501 and IRP5 / IT3(a) support follows the statutory workflow: monthly EMP201 declarations first, then EMP501 reconciliation, then IRP5 / IT3(a) certificate preparation and PDF review. SARS BRS/XML export and direct SARS electronic submission remain intentionally blocked unless a supported integration is added.
 
 India-specific HRMS reports such as `Provident Fund Deductions` and `Professional Tax Deductions` are not exposed in ZA Payroll. ZA Local provides `Retirement Fund Deductions` for South African pension/provident/retirement-annuity deduction review instead.
 
-Detailed payroll setup and sandbox payslip/EMP201 evidence are documented in [`docs/sa_payroll_configuration_and_testing.md`](docs/sa_payroll_configuration_and_testing.md).
+Detailed payroll setup and Desk validation scenarios are documented in [`docs/sa_payroll_configuration_and_testing.md`](docs/sa_payroll_configuration_and_testing.md).
 
 ## SA Labour
 
@@ -117,7 +128,7 @@ Available SA Labour reports:
 - `Eea2 Income Differentials`
 - `Eea4 Employment Equity Plan`
 
-Detailed labour setup and sandbox evidence are documented in [`docs/sa_labour_configuration_and_testing.md`](docs/sa_labour_configuration_and_testing.md).
+Detailed labour setup and Desk validation scenarios are documented in [`docs/sa_labour_configuration_and_testing.md`](docs/sa_labour_configuration_and_testing.md).
 
 ## SA COIDA
 
@@ -130,18 +141,13 @@ SA COIDA supports Compensation Fund setup, annual return working papers, workpla
 - Direct Compensation Fund/eCOID submission is not automated; the supported posture is prepare, review, and manually file.
 - SA COIDA currently uses working-paper DocTypes rather than script reports: `COIDA Annual Return`, `Workplace Injury`, and `OID Claim`.
 
-Detailed COIDA setup and sandbox evidence are documented in [`docs/sa_coida_configuration_and_testing.md`](docs/sa_coida_configuration_and_testing.md).
+Detailed COIDA setup and Desk validation scenarios are documented in [`docs/sa_coida_configuration_and_testing.md`](docs/sa_coida_configuration_and_testing.md).
 
 ## Accounting and Financial Reports
 
-The sandbox company `Cohenix` has posted ERPNext accounting data for VAT and payroll testing:
+ZA Local relies on ERPNext Accounting as the system of record. Practitioners should validate that VAT, payroll, supplier, customer, and statutory postings reconcile to the core ERPNext reports.
 
-- Sales Invoices and Purchase Invoices post balanced GL entries for the SA VAT test set.
-- Payroll Entry `HR-PRUN-2026-00002` posts April 2026 Salary Slip accruals to `ACC-JV-2026-00003`.
-- Employer UIF and SDL company contributions post through `ACC-JV-2026-00004`.
-- The April 2026 GL test balances `Journal Entry`, `Sales Invoice`, and `Purchase Invoice` voucher totals.
-
-Core financial reports verified against the staged data:
+Recommended reports to review:
 
 - `General Ledger`
 - `Trial Balance`
@@ -183,7 +189,7 @@ bench --site your-site.local execute za_local.test_data_loading.run_all_tests
 bench --site your-site.local run-tests --app za_local --module za_local.sa_vat.doctype.south_africa_vat_settings.test_south_africa_vat_settings
 ```
 
-The final sandbox report sweep on `development.cohenix` verified 24 reports with 0 failures, including SA VAT, SA Payroll, SA Labour, HRMS payroll reports exposed in the ZA workspace, and ERPNext accounting/financial reports.
+Practitioner-facing validation steps are documented in the module guides linked above.
 
 ## Important Boundaries
 
@@ -193,6 +199,7 @@ The final sandbox report sweep on `development.cohenix` verified 24 reports with
 - Labour WSP, ATR, and Employment Equity reports are supporting records and report surfaces; statutory portal submission remains manual.
 - COIDA Annual Return and OID Claim records are working papers and tracking records; Compensation Fund/eCOID submission remains manual.
 - Always confirm SARS rates before changing statutory fixtures.
+- Cohenix, EPI-USE, contributors, and implementers do not accept responsibility for incorrect calculations, incorrect setup, incorrect statutory interpretation, or missed submissions. Employers and practitioners remain responsible for validating all statutory values before filing.
 
 ## License
 
