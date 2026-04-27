@@ -21,6 +21,9 @@ build-backend = "flit_core.buildapi"
 [tool.bench.dev-dependencies]
 # package_name = "~=1.1.0"
 
+[tool.frappe]
+required_frappe_version = ">=15.0.0 <17.0.0"
+
 [tool.ruff]
 line-length = 110
 target-version = "py310"
