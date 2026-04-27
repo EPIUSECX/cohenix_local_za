@@ -319,7 +319,8 @@ def after_install():
 	sync_sa_workspaces()
 	rebuild_za_local_workspace_sidebars()
 	sync_za_local_desktop_icons()
-	ensure_sa_payroll_print_formats()
+	ensure_sa_print_formats()
+	ensure_sa_vat_print_format_field_templates()
 	frappe.db.commit()
 	print("\n" + "=" * 80)
 	print("South African Localization installed successfully!")
@@ -357,7 +358,8 @@ def after_migrate():
 	sync_sa_workspaces()
 	rebuild_za_local_workspace_sidebars()
 	sync_za_local_desktop_icons()
-	ensure_sa_payroll_print_formats()
+	ensure_sa_print_formats()
+	ensure_sa_vat_print_format_field_templates()
 	frappe.db.commit()
 
 
@@ -423,120 +425,26 @@ def cleanup_invalid_doctype_links():
 		print("  ✓ Invalid DocType Links cleaned up\n")
 
 
-def ensure_sa_payroll_print_formats():
+def ensure_sa_print_formats():
 	"""Keep South African print formats owned by za_local and available after migrate."""
 	if not frappe.db.table_exists("Print Format"):
 		return
 
 	print("\nEnsuring South African print formats...")
 
-	print_formats = {
-		"SA Sales Invoice": {
-			"module": "SA VAT",
-			"doc_type": "Sales Invoice",
-			"html": '{% set za_print_title = "TAX INVOICE" %}\n{% set za_party_doctype = "Customer" %}\n{% set za_party_label = "Bill To" %}\n{% set za_footer_text = "System-generated South African tax invoice. Sequential document numbering and supporting records should be retained for the statutory retention period." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Full Tax Invoice": {
-			"module": "SA VAT",
-			"doc_type": "Sales Invoice",
-			"html": '{% set za_print_title = "FULL TAX INVOICE" %}\n{% set za_party_doctype = "Customer" %}\n{% set za_party_label = "Bill To" %}\n{% set za_footer_text = "Full South African tax invoice for taxable supplies above the abridged invoice threshold. Verify customer VAT registration details where required." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Abridged Tax Invoice": {
-			"module": "SA VAT",
-			"doc_type": "Sales Invoice",
-			"html": '{% set za_print_title = "ABRIDGED TAX INVOICE" %}\n{% set za_party_doctype = "Customer" %}\n{% set za_party_label = "Bill To" %}\n{% set za_footer_text = "Abridged South African tax invoice. Use for supplies within the SARS abridged-invoice threshold and retain supporting records." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Credit Note": {
-			"module": "SA VAT",
-			"doc_type": "Sales Invoice",
-			"html": '{% set za_print_title = "CREDIT NOTE" %}\n{% set za_party_doctype = "Customer" %}\n{% set za_party_label = "Credit To" %}\n{% set za_footer_text = "South African credit note. Retain with the original tax invoice and supporting adjustment records." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Delivery Note": {
-			"module": "SA VAT",
-			"doc_type": "Delivery Note",
-			"html": '{% set za_print_title = "DELIVERY NOTE" %}\n{% set za_party_doctype = "Customer" %}\n{% set za_party_label = "Deliver To" %}\n{% set za_footer_text = "South African delivery note. This is not a tax invoice unless explicitly stated and should be retained with the related transaction records." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Payment Entry": {
-			"module": "SA VAT",
-			"doc_type": "Payment Entry",
-			"html": '{% include "za_local/templates/print_format/sa_payment_entry.html" %}',
-		},
-		"SA Purchase Invoice": {
-			"module": "SA VAT",
-			"doc_type": "Purchase Invoice",
-			"html": '{% set za_print_title = "PURCHASE INVOICE" %}\n{% set za_party_doctype = "Supplier" %}\n{% set za_party_label = "Supplier" %}\n{% set za_footer_text = "South African purchase invoice record. Retain supplier tax invoice evidence for VAT input-claim support." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Debit Note": {
-			"module": "SA VAT",
-			"doc_type": "Purchase Invoice",
-			"html": '{% set za_print_title = "DEBIT NOTE" %}\n{% set za_party_doctype = "Supplier" %}\n{% set za_party_label = "Supplier" %}\n{% set za_footer_text = "South African debit note. Retain with the original supplier tax invoice and supporting adjustment records." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Purchase Order": {
-			"module": "SA VAT",
-			"doc_type": "Purchase Order",
-			"html": '{% set za_print_title = "PURCHASE ORDER" %}\n{% set za_party_doctype = "Supplier" %}\n{% set za_party_label = "Supplier" %}\n{% set za_footer_text = "South African purchase order. This is not a tax invoice and does not support VAT input claims without supplier tax invoice evidence." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Quotation": {
-			"module": "SA VAT",
-			"doc_type": "Quotation",
-			"html": '{% set za_print_title = "QUOTATION" %}\n{% set za_party_doctype = "Customer" %}\n{% set za_party_label = "Quoted To" %}\n{% set za_footer_text = "South African quotation. This is not a tax invoice and should be converted to a tax invoice once goods or services are supplied." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"SA Sales Order": {
-			"module": "SA VAT",
-			"doc_type": "Sales Order",
-			"html": '{% set za_print_title = "SALES ORDER" %}\n{% set za_party_doctype = "Customer" %}\n{% set za_party_label = "Customer" %}\n{% set za_footer_text = "South African sales order. This is not a tax invoice and should be retained with the related fulfilment and invoice records." %}\n{% include "za_local/templates/print_format/sa_commercial_document.html" %}',
-		},
-		"IRP5 Employee Certificate": {
-			"module": "SA Payroll",
-			"doc_type": "IRP5 Certificate",
-			"html": '{% include "za_local/templates/print_format/irp5_employee_certificate.html" %}',
-		},
-		"IRP5-it3 Certificate": {
-			"module": "SA Payroll",
-			"doc_type": "IRP5 Certificate",
-			"html": '{% include "za_local/templates/print_format/irp5_employee_certificate.html" %}',
-		},
-		"SA Salary Slip": {
-			"module": "SA Payroll",
-			"doc_type": "Salary Slip",
-			"html": '{% include "za_local/templates/print_format/sa_salary_slip.html" %}',
-		},
-	}
+	print_formats = _load_standard_print_format_records()
 
 	for name, values in print_formats.items():
-		if values["doc_type"] == "Salary Slip" and not is_hrms_installed():
+		if values.get("doc_type") == "Salary Slip" and not is_hrms_installed():
 			continue
-		if values["doc_type"] == "Salary Slip" and not frappe.db.exists("DocType", "Salary Slip"):
+		if values.get("doc_type") and not frappe.db.exists("DocType", values["doc_type"]):
 			continue
 
 		if frappe.db.exists("Print Format", name):
-			frappe.db.set_value(
-				"Print Format",
-				name,
-				{
-					"module": values["module"],
-					"doc_type": values["doc_type"],
-					"custom_format": 1,
-					"standard": "Yes",
-					"disabled": 0,
-					"print_format_type": "Jinja",
-					"html": values["html"],
-				},
-			)
+			update_values = _get_print_format_update_values(values)
+			frappe.db.set_value("Print Format", name, update_values)
 		else:
-			doc = frappe.get_doc(
-				{
-					"doctype": "Print Format",
-					"name": name,
-					"module": values["module"],
-					"doc_type": values["doc_type"],
-					"custom_format": 1,
-					"standard": "Yes",
-					"disabled": 0,
-					"print_format_type": "Jinja",
-					"html": values["html"],
-				}
-			)
+			doc = frappe.get_doc(values)
 			doc.flags.ignore_permissions = True
 			doc.insert(ignore_permissions=True)
 
@@ -546,6 +454,100 @@ def ensure_sa_payroll_print_formats():
 		frappe.db.set_value("DocType", "Salary Slip", "default_print_format", "SA Salary Slip")
 
 	print("  ✓ South African print formats are available")
+
+
+def _load_standard_print_format_records():
+	"""Load shipped Print Format JSON so DB sync matches the standard-doc files."""
+	print_formats = {}
+	for relative_root in ("sa_vat/print_format", "sa_payroll/print_format"):
+		root = Path(frappe.get_app_path("za_local", *relative_root.split("/")))
+		if not root.exists():
+			continue
+
+		for json_path in root.glob("*/*.json"):
+			with json_path.open() as handle:
+				record = json.load(handle)
+
+			record["doctype"] = "Print Format"
+			record.setdefault("custom_format", 1)
+			record.setdefault("disabled", 0)
+			record.setdefault("print_format_for", "DocType")
+			record.setdefault("print_format_type", "Jinja")
+			record.setdefault("standard", "Yes")
+			print_formats[record["name"]] = record
+
+	return print_formats
+
+
+def _get_print_format_update_values(values):
+	"""Limit updates to fields relevant to print rendering and Desk discovery."""
+	fields = (
+		"module",
+		"doc_type",
+		"custom_format",
+		"standard",
+		"disabled",
+		"print_format_type",
+		"print_format_for",
+		"raw_printing",
+		"html",
+		"font",
+		"font_size",
+		"pdf_generator",
+		"margin_top",
+		"margin_bottom",
+		"margin_left",
+		"margin_right",
+		"page_number",
+	)
+	return {field: values[field] for field in fields if field in values}
+
+
+def ensure_sa_vat_print_format_field_templates():
+	"""Mirror ERPNext tax field templates for South African commercial print formats."""
+	if not frappe.db.table_exists("Print Format Field Template"):
+		return
+
+	field_templates = {
+		"SA Sales Invoice Taxes": {
+			"document_type": "Sales Invoice",
+			"field": "taxes",
+		},
+		"SA Purchase Invoice Taxes": {
+			"document_type": "Purchase Invoice",
+			"field": "taxes",
+		},
+		"SA Quotation Taxes": {
+			"document_type": "Quotation",
+			"field": "taxes",
+		},
+		"SA Sales Order Taxes": {
+			"document_type": "Sales Order",
+			"field": "taxes",
+		},
+		"SA Purchase Order Taxes": {
+			"document_type": "Purchase Order",
+			"field": "taxes",
+		},
+	}
+
+	for name, values in field_templates.items():
+		payload = {
+			"module": "SA VAT",
+			"document_type": values["document_type"],
+			"field": values["field"],
+			"standard": 1,
+			"template": "",
+			"template_file": "templates/print_formats/includes/taxes_and_charges.html",
+		}
+		if frappe.db.exists("Print Format Field Template", name):
+			frappe.db.set_value("Print Format Field Template", name, payload)
+		else:
+			doc = frappe.get_doc({"doctype": "Print Format Field Template", "name": name, **payload})
+			doc.flags.ignore_permissions = True
+			doc.insert(ignore_permissions=True)
+
+	print("  ✓ South African print format field templates are available")
 
 
 def cleanup_orphaned_workspace_records():

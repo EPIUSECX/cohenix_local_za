@@ -1,259 +1,376 @@
-{# Shared South African commercial document template. #}
-{% set company_exists = frappe.db.exists("Company", doc.company) if doc.get("company") else None %}
-{% set company_doc = frappe.get_doc("Company", doc.company) if company_exists else None %}
+{#
+  Shared South African commercial document template.
+  It follows ERPNext's Standard buying/selling print format structure and adds
+  South African VAT evidence fields required for full and abridged tax invoices.
+#}
+{% set ps = print_settings if print_settings is defined and print_settings else frappe._dict({"repeat_header_footer": 0, "add_draft_heading": 1, "print_taxes_with_zero_amount": 0}) %}
+{% set pages = layout if layout is defined and layout else [1] %}
+{% set lh = letter_head if letter_head is defined else None %}
+{% set no_lh = no_letterhead if no_letterhead is defined else False %}
+{% set pf_footer = footer if footer is defined else None %}
+{% set heading_template = print_heading_template if print_heading_template is defined else None %}
 {% set title = za_print_title or doc.doctype %}
+{% set title_key = title|lower %}
+{% set is_customer_doc = doc.doctype in ["Sales Invoice", "Sales Order", "Quotation", "Delivery Note"] %}
 {% set party_doctype = za_party_doctype or ("Supplier" if doc.doctype in ["Purchase Invoice", "Purchase Order"] else "Customer") %}
 {% set party = doc.get("supplier") if party_doctype == "Supplier" else doc.get("customer") %}
 {% set party_name = doc.get("supplier_name") if party_doctype == "Supplier" else doc.get("customer_name") %}
-{% set party_exists = frappe.db.exists(party_doctype, party) if party else None %}
-{% set party_doc = frappe.get_doc(party_doctype, party) if party_exists else None %}
 {% set party_label = za_party_label or ("Supplier" if party_doctype == "Supplier" else "Customer") %}
+{% set party_address_name = doc.get("supplier_address") if party_doctype == "Supplier" else doc.get("customer_address") %}
+{% set party_address_display = doc.get("supplier_address_display") or doc.get("address_display") or "" %}
+{% set company_address_name = doc.get("company_address") or doc.get("billing_address") %}
+{% set company_address_display = doc.get("company_address_display") or doc.get("billing_address_display") or "" %}
 {% set posting_date = doc.get("posting_date") or doc.get("transaction_date") %}
-{% set address_display = doc.get("supplier_address_display") or doc.get("address_display") or doc.get("customer_address") or "" %}
+{% set company_doc = frappe.get_doc("Company", doc.company) if doc.get("company") and frappe.db.exists("Company", doc.company) else None %}
+{% set party_doc = frappe.get_doc(party_doctype, party) if party and frappe.db.exists(party_doctype, party) else None %}
+{% set company_vat = (company_doc.get("za_vat_number") or company_doc.get("tax_id")) if company_doc else "" %}
+{% set party_vat = party_doc.get("tax_id") if party_doc else "" %}
+{% set company_registration = company_doc.get("company_registration") if company_doc else "" %}
+{% set amount = doc.get("rounded_total") or doc.get("grand_total") or doc.get("base_grand_total") or 0 %}
+{% set inferred_profile = "VAT Adjustment Document" if "credit note" in title_key or "debit note" in title_key else ("Supplier Tax Invoice Evidence" if doc.doctype == "Purchase Invoice" else ("Full Tax Invoice" if "full" in title_key or amount > 5000 else ("Abridged Tax Invoice" if "abridged" in title_key or ("tax invoice" in title_key and amount > 50) else "Business Document"))) %}
+{% set is_tax_document = "tax invoice" in title_key or "credit note" in title_key or "debit note" in title_key or doc.doctype == "Purchase Invoice" %}
+{% set document_number_label = za_document_number_label or ("Invoice Number" if "invoice" in title_key else "Document Number") %}
+{% set document_date_label = za_document_date_label or ("Invoice Date" if "invoice" in title_key else "Document Date") %}
+{% set supplier_invoice_view = doc.doctype == "Purchase Invoice" %}
 
-<style>
-.za-doc {
-  color: #111827;
-  font-size: 9px;
-  line-height: 1.35;
-}
-.za-doc__header {
-  border-bottom: 2px solid #111827;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 1fr 210px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-}
-.za-doc__company-name {
-  font-size: 18px;
-  font-weight: 700;
-}
-.za-doc__company-meta,
-.za-doc__tax-meta {
-  color: #4b5563;
-  font-size: 8px;
-}
-.za-doc__tax-meta {
-  background: #f9fafb;
-  border-left: 3px solid #111827;
-  padding: 8px 10px;
-}
-.za-doc__title {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  margin: 10px 0 12px;
-  text-align: center;
-  text-transform: uppercase;
-}
-.za-doc__grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr 1fr;
-  margin-bottom: 12px;
-}
-.za-doc__box {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 10px;
-}
-.za-doc__box-title {
-  color: #4b5563;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-}
-.za-doc__row {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 120px 1fr;
-  margin-bottom: 3px;
-}
-.za-doc__label {
-  color: #4b5563;
-  font-weight: 600;
-}
-.za-doc__value {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.za-doc table {
-  border-collapse: collapse;
-  margin-top: 8px;
-  width: 100%;
-}
-.za-doc th {
-  background: #111827;
-  color: #fff !important;
-  font-size: 8px;
-  letter-spacing: .03em;
-  padding: 7px 6px;
-  text-align: left;
-  text-transform: uppercase;
-}
-.za-doc td {
-  border-bottom: 1px solid #e5e7eb;
-  padding: 7px 6px;
-  vertical-align: top;
-}
-.za-doc .num {
-  text-align: right;
-  white-space: nowrap;
-}
-.za-doc .muted {
-  color: #6b7280;
-  font-size: 8px;
-}
-.za-doc__totals {
-  margin-left: auto;
-  margin-top: 10px;
-  width: 330px;
-}
-.za-doc__total-row {
-  display: grid;
-  grid-template-columns: 1fr 120px;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 6px 8px;
-}
-.za-doc__grand {
-  background: #111827;
-  color: #fff;
-  font-weight: 700;
-}
-.za-doc__footer {
-  border-top: 1px solid #e5e7eb;
-  color: #6b7280;
-  font-size: 8px;
-  margin-top: 18px;
-  padding-top: 8px;
-  text-align: center;
-}
-@media print {
-  @page { margin: 8mm; }
-}
-</style>
+{%- macro add_header(doc, letter_head, no_letterhead, print_heading_template=None) -%}
+	{% if letter_head and not no_letterhead %}
+		<div class="letter-head">{{ letter_head }}</div>
+	{% endif %}
+	{% if print_heading_template %}
+		{{ frappe.render_template(print_heading_template, {"doc": doc}) }}
+	{% endif %}
+{%- endmacro -%}
 
-<div class="za-doc">
-  <div class="za-doc__header">
-    <div>
-      {% if company_doc and company_doc.company_logo %}
-      <img src="{{ company_doc.company_logo }}" style="max-height: 48px; max-width: 150px; margin-bottom: 6px;">
-      {% endif %}
-      <div class="za-doc__company-name">{{ company_doc.get("company_name") if company_doc else doc.get("company") }}</div>
-      <div class="za-doc__company-meta">
-        {% if company_doc %}
-          {{ company_doc.get("address_line1") or "" }}{% if company_doc.get("address_line2") %}, {{ company_doc.get("address_line2") }}{% endif %}
-          {% if company_doc.get("city") %}<br>{{ company_doc.get("city") }}{% endif %}
-          {% if company_doc.get("phone_no") %}<br>Tel: {{ company_doc.get("phone_no") }}{% endif %}
-          {% if company_doc.get("email") %}<br>Email: {{ company_doc.get("email") }}{% endif %}
-        {% endif %}
-      </div>
-    </div>
-    <div class="za-doc__tax-meta">
-      <div><strong>VAT Registration No.</strong></div>
-      <div class="za-doc__value">{{ company_doc.get("tax_id") if company_doc else "Not configured" }}</div>
-      {% if company_doc and company_doc.get("company_registration") %}
-      <div style="margin-top: 6px;"><strong>Company Reg.</strong></div>
-      <div>{{ company_doc.get("company_registration") }}</div>
-      {% endif %}
-    </div>
-  </div>
+{%- macro render_address(address_name, fallback_display, entity_name) -%}
+	{% if fallback_display %}
+		{{ fallback_display }}
+	{% elif address_name %}
+		{% set address = frappe.db.get_value("Address", address_name, ["address_line1", "address_line2", "city", "state", "pincode", "country"], as_dict=True) %}
+		{% if entity_name %}{{ entity_name }}<br>{% endif %}
+		{{ address.address_line1 or "" }}<br>
+		{% if address.address_line2 %}{{ address.address_line2 }}<br>{% endif %}
+		{{ address.city or "" }}{% if address.state %}, {{ address.state }}{% endif %}{% if address.pincode %} {{ address.pincode }}{% endif %}{% if address.country %}, {{ address.country }}{% endif %}
+	{% elif entity_name %}
+		{{ entity_name }}
+	{% endif %}
+{%- endmacro -%}
 
-  <div class="za-doc__title">{{ title }}</div>
+{% for page in pages %}
+<div class="page-break invoice-wrapper">
+	<div {% if ps.repeat_header_footer %} id="header-html" class="hidden-pdf" {% endif %}>
+		{{ add_header(doc, lh, no_lh, heading_template) }}
+	</div>
+	{%- if doc.meta.is_submittable and doc.docstatus == 2 -%}
+		<div class="text-center" document-status="cancelled">
+			<h4 style="margin-top: 20px;">{{ _("CANCELLED") }}</h4>
+		</div>
+	{%- endif -%}
+	{%- if doc.meta.is_submittable and doc.docstatus == 0 and (ps == None or ps.add_draft_heading) -%}
+		<div class="text-center" document-status="draft">
+			<h4 style="margin-top: 20px !important;">{{ _("DRAFT") }}</h4>
+		</div>
+	{%- endif -%}
 
-  <div class="za-doc__grid">
-    <div class="za-doc__box">
-      <div class="za-doc__box-title">{{ party_label }}</div>
-      <div class="za-doc__value">{{ party_name or party or "" }}</div>
-      {% if address_display %}
-      <div class="muted" style="margin-top: 5px;">{{ address_display | striptags | replace("\n", ", ") }}</div>
-      {% endif %}
-      {% if party_doc and party_doc.get("tax_id") %}
-      <div style="margin-top: 6px;"><span class="za-doc__label">VAT No.</span> {{ party_doc.get("tax_id") }}</div>
-      {% endif %}
-    </div>
+	<style>
+		.letter-head { margin-top: 12px !important; }
+		.invoice-wrapper {
+			font-family: "Inter", sans-serif;
+			color: var(--black-overlay-700);
+		}
+		.print-format-body { padding: 30px 12px 12px 12px !important; }
+		body { margin-bottom: 0mm !important; padding: 0px !important; }
+		table.info-table,
+		table.items-table,
+		table.tax-table {
+			border-collapse: separate;
+			border-spacing: 0;
+			border: 1px solid #ededed;
+			border-radius: 10px;
+			overflow: hidden;
+		}
+		table.info-table td { border-bottom: 1px solid #ededed; padding: 8px 10px !important; vertical-align: top; }
+		table.items-table td,
+		table.tax-table td { border-bottom: 1px solid #ededed; padding: 8px; vertical-align: top; }
+		table.info-table td:not(:first-of-type),
+		table.items-table td:not(:first-of-type),
+		table.tax-table td:not(:first-of-type) { border-left: 1px solid #ededed; }
+		table.info-table tbody tr:last-of-type td,
+		table.items-table tbody tr:last-of-type td,
+		table.tax-table tbody tr:last-of-type td { border-bottom: none; }
+		thead.table-header { background: #f8f8f8; }
+		thead.table-header td { color: #7c7c7c; }
+		.text-center { text-align: center; }
+		.text-left { text-align: left; }
+		.text-right { text-align: right; }
+		.text-muted { color: #7c7c7c; }
+		.text-dark { color: #525252; }
+		.text-bold { font-weight: bold; }
+		.small-text { color: #666; font-size: 11px; line-height: 1.45; }
+		.mt-15 { margin-top: 15px; }
+		.mt-20 { margin-top: 20px; }
+		.mt-40 { margin-top: 40px; }
+		.mb-20 { margin-bottom: 20px; }
+		.amount-width { width: 110px; }
+		.totals-table { border-radius: 5px; width: 100%; }
+		.totals-table td { padding: 4px 8px; }
+		.totals-table tr { border-bottom: 1px solid #ededed; position: relative; }
+		.totals-table tr td { position: relative; }
+		.totals-table tr td div {
+			width: 12%;
+			height: 14px;
+			background-color: white;
+			position: absolute;
+			bottom: -6px;
+			left: 0%;
+			color: white;
+		}
+		.totals-table tr:last-child { border-bottom: none; }
+		.totals-table .grand-total td { padding: 6px 8px; font-weight: bold; }
+		.words-box {
+			background: #f8f8f8;
+			border-radius: 8px;
+			padding: 8px;
+			line-height: 21px;
+			letter-spacing: 0.21px;
+			font-size: small;
+		}
+		.info-card { color: #7c7c7c; }
+		.title { color: #7c7c7c !important; }
+		.heading { color: #525252 !important; font-weight: 300; }
+		.print-format {
+			color: #171717;
+			font-size: 14px;
+			font-style: normal;
+			font-weight: 420;
+			line-height: 21px;
+			padding: 0px;
+			letter-spacing: 0.14px;
+			margin-left: 0mm !important;
+			margin-right: 0mm !important;
+		}
+		.letter-head-footer { margin-top: 0px !important; }
+		.print-heading { margin-top: 0px !important; margin-bottom: 0px !important; padding-bottom: 0px !important; }
+		.za-document-title {
+			color: #525252;
+			font-size: 26px;
+			font-weight: 300;
+			letter-spacing: 0.4px;
+			margin-bottom: 14px;
+		}
+		.za-profile-badge {
+			background: #f8f8f8;
+			border: 1px solid #ededed;
+			border-radius: 999px;
+			color: #525252;
+			display: inline-block;
+			font-size: 11px;
+			font-weight: 520;
+			margin-top: 4px;
+			padding: 4px 10px;
+		}
+		.za-vat-note {
+			background: #f8f8f8;
+			border: 1px solid #ededed;
+			border-radius: 8px;
+			color: #666;
+			font-size: 11px;
+			line-height: 1.45;
+			margin-top: 12px;
+			padding: 8px 10px;
+		}
+		.za-nowrap { white-space: nowrap; }
+		.za-wrap { overflow-wrap: anywhere; }
+	</style>
 
-    <div class="za-doc__box">
-      <div class="za-doc__box-title">Document Details</div>
-      <div class="za-doc__row"><div class="za-doc__label">Number</div><div class="za-doc__value">{{ doc.name }}</div></div>
-      <div class="za-doc__row"><div class="za-doc__label">Date</div><div>{{ frappe.format(posting_date, {"fieldtype": "Date"}) if posting_date else "" }}</div></div>
-      {% if doc.get("due_date") %}
-      <div class="za-doc__row"><div class="za-doc__label">Due Date</div><div>{{ doc.get_formatted("due_date") }}</div></div>
-      {% endif %}
-      {% if doc.get("po_no") %}
-      <div class="za-doc__row"><div class="za-doc__label">Customer PO</div><div class="za-doc__value">{{ doc.get("po_no") }}</div></div>
-      {% endif %}
-      {% if doc.get("bill_no") %}
-      <div class="za-doc__row"><div class="za-doc__label">Supplier Invoice</div><div class="za-doc__value">{{ doc.get("bill_no") }}</div></div>
-      {% endif %}
-    </div>
-  </div>
+	<div class="print-format-body">
+		<div class="za-document-title">
+			{{ _(title) }}
+			{% if is_tax_document %}
+				<div class="za-profile-badge">{{ _(inferred_profile) }}</div>
+			{% endif %}
+		</div>
 
-  {% if doc.get("items") %}
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 5%;">#</th>
-        <th>Description</th>
-        <th class="num" style="width: 11%;">Qty</th>
-        <th class="num" style="width: 14%;">Rate</th>
-        <th class="num" style="width: 15%;">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in doc.get("items") %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>
-          <strong>{{ item.item_code or item.item_name }}</strong>
-          {% if item.description %}
-          <div class="muted">{{ item.description | striptags }}</div>
-          {% endif %}
-          {% if item.item_tax_template %}
-          <div class="muted">Tax Template: {{ item.item_tax_template }}</div>
-          {% endif %}
-        </td>
-        <td class="num">{{ item.qty }} {{ item.uom or "" }}</td>
-        <td class="num">{{ item.get_formatted("rate") }}</td>
-        <td class="num">{{ item.get_formatted("amount") }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
+		<table class="info-table mb-20" style="width: 100%">
+			<tr>
+				<td style="width: 50%">
+					<span class="heading">{{ _(party_label) }}:</span> {{ party_name or party or "" }}
+				</td>
+				<td style="width: 50%">
+					<span class="heading">{{ _(document_number_label) }}:</span>
+					<span class="za-wrap">{{ doc.name }}</span>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span class="heading">{{ _("Company") }}:</span> {{ doc.get("company") or "" }}
+				</td>
+				<td>
+					<span class="heading">{{ _(document_date_label) }}:</span>
+					{{ frappe.utils.format_date(posting_date) if posting_date else "" }}
+					{% if doc.get("due_date") %}
+						<br><span class="heading">{{ _("Due Date") }}:</span> {{ doc.get_formatted("due_date") }}
+					{% endif %}
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span class="heading">{{ _("From") }}:</span><br>
+					{% if supplier_invoice_view %}
+						{{ render_address(party_address_name, party_address_display, party_name or party) }}
+					{% else %}
+						{{ render_address(company_address_name, company_address_display, doc.get("company")) }}
+					{% endif %}
+				</td>
+				<td>
+					<span class="heading">{{ _("To") }}:</span><br>
+					{% if supplier_invoice_view %}
+						{{ render_address(company_address_name, company_address_display, doc.get("company")) }}
+					{% else %}
+						{{ render_address(party_address_name, party_address_display, party_name or party) }}
+					{% endif %}
+				</td>
+			</tr>
+			<tr>
+				<td>
+					{% if supplier_invoice_view %}
+						<span class="heading">{{ _("Supplier VAT Registration No.") }}:</span>
+						{{ party_vat or _("Not provided") }}
+					{% else %}
+						<span class="heading">{{ _("Supplier VAT Registration No.") if party_doctype == "Customer" else _("Company VAT Registration No.") }}:</span>
+						{{ company_vat or _("Not configured") }}
+					{% endif %}
+					{% if not supplier_invoice_view and company_registration %}
+						<br><span class="heading">{{ _("Company Registration No.") }}:</span> {{ company_registration }}
+					{% endif %}
+				</td>
+				<td>
+					{% if supplier_invoice_view %}
+						<span class="heading">{{ _("Recipient VAT Registration No.") }}:</span>
+						{{ company_vat or _("Not configured") }}
+						{% if company_registration %}
+							<br><span class="heading">{{ _("Company Registration No.") }}:</span> {{ company_registration }}
+						{% endif %}
+					{% else %}
+						<span class="heading">{{ _("Recipient VAT Registration No.") if party_doctype == "Customer" else _("Supplier VAT Registration No.") }}:</span>
+						{{ party_vat or _("Not provided") }}
+					{% endif %}
+					{% if doc.get("po_no") %}
+						<br><span class="heading">{{ _("Customer PO") }}:</span> {{ doc.get("po_no") }}
+					{% endif %}
+					{% if doc.get("bill_no") %}
+						<br><span class="heading">{{ _("Supplier Invoice No.") }}:</span> {{ doc.get("bill_no") }}
+					{% endif %}
+					{% if doc.get("bill_date") %}
+						<br><span class="heading">{{ _("Supplier Invoice Date") }}:</span> {{ doc.get_formatted("bill_date") }}
+					{% endif %}
+				</td>
+			</tr>
+		</table>
 
-  <div class="za-doc__totals">
-    {% if doc.get("net_total") is not none %}
-    <div class="za-doc__total-row"><div>Subtotal excl. VAT</div><div class="num">{{ doc.get_formatted("net_total") }}</div></div>
-    {% endif %}
-    {% if doc.get("discount_amount") %}
-    <div class="za-doc__total-row"><div>Discount</div><div class="num">({{ doc.get_formatted("discount_amount") }})</div></div>
-    {% endif %}
-    {% for tax in doc.get("taxes") %}
-    <div class="za-doc__total-row">
-      <div>{{ tax.description }}{% if tax.rate is not none %} @ {{ "%.2f"|format(tax.rate) }}%{% endif %}</div>
-      <div class="num">{{ tax.get_formatted("tax_amount") }}</div>
-    </div>
-    {% endfor %}
-    {% if doc.get("grand_total") is not none %}
-    <div class="za-doc__total-row za-doc__grand"><div>Total incl. VAT</div><div class="num">{{ doc.get_formatted("grand_total") }}</div></div>
-    {% elif doc.get("rounded_total") is not none %}
-    <div class="za-doc__total-row za-doc__grand"><div>Total</div><div class="num">{{ doc.get_formatted("rounded_total") }}</div></div>
-    {% endif %}
-  </div>
+		{% if doc.get("items") %}
+			{% set item_naming_by = frappe.db.get_single_value("Stock Settings", "item_naming_by") %}
+			<table class="items-table mt-15" style="width: 100%">
+				<thead class="table-header">
+					<tr>
+						<td class="text-center">{{ _("No") }}</td>
+						<td class="text-left">{{ _("Item / Description") }}</td>
+						{% if item_naming_by != "Item Code" %}
+							<td class="text-left">{{ _("Item Code") }}</td>
+						{% endif %}
+						<td class="text-right">{{ _("Quantity") }}</td>
+						<td class="text-right">{{ _("Rate") }}</td>
+						<td class="text-right">{{ _("Amount") }}</td>
+					</tr>
+				</thead>
+				<tbody>
+					{% for item in doc.get("items") %}
+						<tr>
+							<td class="text-center text-dark">{{ loop.index }}</td>
+							<td>
+								{{ item.item_name or item.item_code }}
+								{% if item.description and (item.description|striptags).strip() != (item.item_name or item.item_code or "") %}
+									<div class="small-text">{{ item.description | striptags }}</div>
+								{% endif %}
+								{% if item.get("item_tax_template") %}
+									<div class="small-text">{{ _("Tax Template") }}: {{ item.get("item_tax_template") }}</div>
+								{% endif %}
+							</td>
+							{% if item_naming_by != "Item Code" %}
+								<td class="text-left">{{ item.item_code }}</td>
+							{% endif %}
+							<td class="text-right text-dark za-nowrap">{{ item.get_formatted("qty", doc) }} {{ item.uom or "" }}</td>
+							<td class="text-right text-dark za-nowrap">{{ item.get_formatted("net_rate", doc) if item.get("net_rate") is not none else item.get_formatted("rate", doc) }}</td>
+							<td class="text-right za-nowrap" style="color: #171717">
+								{{ item.get_formatted("net_amount", doc) if item.get("net_amount") is not none else item.get_formatted("amount", doc) }}
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		{% endif %}
 
-  {% if doc.get("terms") %}
-  <div class="za-doc__box" style="clear: both; margin-top: 18px;">
-    <div class="za-doc__box-title">Terms</div>
-    <div>{{ doc.terms }}</div>
-  </div>
-  {% endif %}
+		<table style="width:100%; margin-top: 15px">
+			<tr>
+				<td style="vertical-align: bottom !important; width: 60%;">
+					<p class="title">{{ _("Total in words") }}</p>
+					<div class="words-box text-uppercase">{{ doc.get("in_words") or doc.get("base_in_words") or "" }}</div>
+				</td>
+				<td>&nbsp;</td>
+				<td style="width: 38%;">
+					<table class="totals-table">
+						<tr>
+							<td class="text-right text-muted"><div></div>{{ _("Sub Total:") }}</td>
+							<td class="text-right amount-width">{{ doc.get_formatted("net_total", doc) if doc.get("net_total") is not none else doc.get_formatted("total", doc) }}</td>
+						</tr>
+						{%- if doc.get("apply_discount_on") == "Net Total" and doc.get("discount_amount") -%}
+							<tr>
+								<td class="text-right text-muted"><div></div>{{ _("Discount") }}{% if doc.get("additional_discount_percentage") %} ({{ doc.additional_discount_percentage }}%){% endif %}:</td>
+								<td class="text-right amount-width">{{ doc.get_formatted("discount_amount", doc) }}</td>
+							</tr>
+						{%- endif -%}
+						{%- for tax in doc.get("taxes") -%}
+							{%- if (tax.tax_amount or ps.print_taxes_with_zero_amount) and (not tax.get("included_in_print_rate") or doc.flags.show_inclusive_tax_in_print) -%}
+								<tr>
+									<td class="text-right text-muted">
+										<div></div>{{ tax.get_formatted("description") }}{% if tax.get("rate") is not none %} ({{ tax.get_formatted("rate") }}%){% endif %}:
+									</td>
+									<td class="text-right amount-width">{{ tax.get_formatted("tax_amount") }}</td>
+								</tr>
+							{%- endif -%}
+						{%- endfor -%}
+						{%- if doc.get("apply_discount_on") == "Grand Total" and doc.get("discount_amount") -%}
+							<tr>
+								<td class="text-right text-muted"><div></div>{{ _("Discount") }}{% if doc.get("additional_discount_percentage") %} ({{ doc.additional_discount_percentage }}%){% endif %}:</td>
+								<td class="text-right amount-width">{{ doc.get_formatted("discount_amount", doc) }}</td>
+							</tr>
+						{%- endif -%}
+						<tr class="grand-total">
+							<td class="text-right">{{ _("Grand Total:") }}</td>
+							<td class="text-right amount-width">{{ doc.get_formatted("rounded_total", doc) if doc.get("rounded_total") else doc.get_formatted("grand_total", doc) }}</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
 
-  <div class="za-doc__footer">
-    {{ za_footer_text or "South African business document generated from ERPNext. Retain supporting records for the statutory retention period." }}
-  </div>
+		{% if is_tax_document %}
+			<div class="za-vat-note">
+				<strong>{{ _("South African VAT note") }}:</strong>
+				{{ _("This document is prepared for South African VAT record keeping. Full tax invoices require supplier and recipient VAT details, serial number/date, description, quantity, value, VAT amount, and consideration. Abridged tax invoices apply only within the SARS threshold and still require supplier VAT details and VAT values.") }}
+			</div>
+		{% endif %}
+
+		{% if doc.get("terms") %}
+			<div class="info-card mt-40">
+				<div>{{ _("Terms and Conditions") }}</div>
+				{{ doc.terms }}
+			</div>
+		{% endif %}
+
+		<div class="info-card mt-20 small-text text-center">
+			{{ za_footer_text or _("South African business document generated from ERPNext. Retain supporting records for the statutory retention period.") }}
+		</div>
+	</div>
 </div>
+{% endfor %}

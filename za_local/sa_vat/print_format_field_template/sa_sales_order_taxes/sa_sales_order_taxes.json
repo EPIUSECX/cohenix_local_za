@@ -1,0 +1,16 @@
+{
+ "creation": "2026-04-27 07:50:44.470381",
+ "docstatus": 0,
+ "doctype": "Print Format Field Template",
+ "document_type": "Sales Order",
+ "field": "taxes",
+ "idx": 0,
+ "modified": "2026-04-27 07:50:44.470381",
+ "modified_by": "Administrator",
+ "module": "SA VAT",
+ "name": "SA Sales Order Taxes",
+ "owner": "Administrator",
+ "standard": 1,
+ "template": "",
+ "template_file": "templates/print_formats/includes/taxes_and_charges.html"
+}
