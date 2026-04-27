@@ -2,6 +2,24 @@
 
 set -e
 
+start_redis_port() {
+	local port="$1"
+	if redis-cli -p "$port" ping >/dev/null 2>&1; then
+		return
+	fi
+
+	redis-server --daemonize yes --port "$port" --save "" --appendonly no --dir /tmp
+	for _ in {1..20}; do
+		if redis-cli -p "$port" ping >/dev/null 2>&1; then
+			return
+		fi
+		sleep 1
+	done
+
+	echo "Redis did not start on port $port"
+	exit 1
+}
+
 cd ~ || exit
 
 sudo apt update
@@ -32,6 +50,8 @@ bench get-app --overwrite za_local "${GITHUB_WORKSPACE}"
 bench setup requirements --dev
 
 CI=Yes bench build --app frappe --app erpnext --app za_local
+start_redis_port 11000
+start_redis_port 13000
 bench --site test_site reinstall --yes
 bench --site test_site install-app erpnext
 bench --site test_site install-app za_local
