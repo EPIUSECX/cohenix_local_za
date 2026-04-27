@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import UnitTestCase
 
 from za_local.overrides import journal_entry
+from za_local.tests.compat import UnitTestCase
 
 
 class TestJournalEntryCleanupGuards(UnitTestCase):

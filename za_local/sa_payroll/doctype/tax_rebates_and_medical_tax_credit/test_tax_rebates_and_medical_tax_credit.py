@@ -1,5 +1,6 @@
 import frappe
-from frappe.tests import UnitTestCase
+
+from za_local.tests.compat import UnitTestCase
 
 
 class TestTaxRebatesandMedicalTaxCredit(UnitTestCase):

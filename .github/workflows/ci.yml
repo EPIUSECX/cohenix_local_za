@@ -44,7 +44,7 @@ jobs:
           - erpnext_branch: version-15
             python_version: "3.11"
           - erpnext_branch: version-16
-            python_version: "3.12"
+            python_version: "3.14"
 
     services:
       mariadb:

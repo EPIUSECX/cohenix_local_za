@@ -3,7 +3,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import UnitTestCase
 from frappe.utils import add_days, flt, today
 
 from za_local.sa_coida.doctype.coida_annual_return.coida_annual_return import COIDAAnnualReturn
@@ -20,6 +19,7 @@ from za_local.sa_setup.install import (
 	ensure_sa_vat_print_format_field_templates,
 	sync_za_local_desktop_icons,
 )
+from za_local.tests.compat import UnitTestCase
 
 EXPECTED_SA_PRINT_FORMATS = {
 	"SA Sales Invoice": "Sales Invoice",

@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import UnitTestCase
 
 from za_local.sa_payroll.doctype.emp501_reconciliation.emp501_reconciliation import EMP501Reconciliation
 from za_local.sa_payroll.doctype.irp5_certificate.irp5_certificate import IRP5Certificate
+from za_local.tests.compat import UnitTestCase
 
 
 class TestIRP5CertificateSetup(UnitTestCase):

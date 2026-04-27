@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import UnitTestCase
 
 from za_local.sa_vat.doctype.vat201_return.vat201_return import VAT201Return
 from za_local.sa_vat.item_sync import sync_item_zero_rated_flag
@@ -23,6 +22,7 @@ from za_local.sa_vat.tax_invoice import (
 	build_sales_invoice_print_profile,
 	get_invoice_type,
 )
+from za_local.tests.compat import UnitTestCase
 
 
 class TestSouthAfricaVATSettings(UnitTestCase):
