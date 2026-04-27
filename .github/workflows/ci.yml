@@ -43,8 +43,10 @@ jobs:
         include:
           - erpnext_branch: version-15
             python_version: "3.11"
+            node_version: 22
           - erpnext_branch: version-16
             python_version: "3.14"
+            node_version: 24
 
     services:
       mariadb:
@@ -72,7 +74,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ matrix.node_version }}
           check-latest: true
 
       - name: Add test host
@@ -102,4 +104,5 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
+          bench --site test_site execute za_local.tests.ci_setup.prepare_site_for_tests
           bench --site test_site run-tests --app za_local
