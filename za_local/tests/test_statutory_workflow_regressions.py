@@ -15,7 +15,11 @@ from za_local.sa_payroll.doctype.emp501_reconciliation.emp501_reconciliation imp
 from za_local.sa_payroll.report.retirement_fund_deductions.retirement_fund_deductions import (
 	get_data as get_retirement_fund_deductions,
 )
-from za_local.sa_setup.install import ensure_sa_vat_print_format_field_templates
+from za_local.sa_setup.install import (
+	_desktop_icon_supports_app_tiles,
+	ensure_sa_vat_print_format_field_templates,
+	sync_za_local_desktop_icons,
+)
 
 EXPECTED_SA_PRINT_FORMATS = {
 	"SA Sales Invoice": "Sales Invoice",
@@ -91,6 +95,21 @@ class TestStatutoryWorkflowRegressions(UnitTestCase):
 
 		self.assertEqual(5, sql.call_count)
 		get_doc.assert_not_called()
+
+	def test_desktop_icon_sync_skips_legacy_schema_without_icon_type(self):
+		with (
+			patch("frappe.db.table_exists", return_value=True),
+			patch(
+				"frappe.db.get_table_columns",
+				return_value=["name", "label", "link", "link_to", "hidden", "standard"],
+			),
+			patch("frappe.get_meta", side_effect=Exception("legacy metadata")),
+			patch("frappe.get_all") as get_all,
+		):
+			self.assertFalse(_desktop_icon_supports_app_tiles())
+			sync_za_local_desktop_icons()
+
+		get_all.assert_not_called()
 
 	def test_emp201_fetch_data_aggregates_sars_mapped_components(self):
 		doc = frappe.new_doc("EMP201 Submission")

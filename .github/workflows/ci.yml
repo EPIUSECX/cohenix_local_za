@@ -40,7 +40,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        erpnext_branch: [version-15, version-16]
+        include:
+          - erpnext_branch: version-15
+            python_version: "3.11"
+          - erpnext_branch: version-16
+            python_version: "3.12"
 
     services:
       mariadb:
@@ -62,7 +66,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python_version }}
           cache: pip
 
       - name: Setup Node

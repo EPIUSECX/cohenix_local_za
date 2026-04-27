@@ -590,6 +590,24 @@ def cleanup_orphaned_workspace_records():
 	print("\nSkipping cleanup of za_local workspaces and desktop icons (kept by design).\n")
 
 
+def _desktop_icon_has_field(fieldname: str) -> bool:
+	"""Return whether the current Frappe version exposes a Desktop Icon field."""
+	if not frappe.db.table_exists("Desktop Icon"):
+		return False
+	try:
+		return bool(frappe.get_meta("Desktop Icon").has_field(fieldname))
+	except Exception:
+		return fieldname in frappe.db.get_table_columns("Desktop Icon")
+
+
+def _desktop_icon_supports_app_tiles() -> bool:
+	"""Frappe v16 supports App/Link desktop-icon tiles; older schemas may not."""
+	return all(
+		_desktop_icon_has_field(fieldname)
+		for fieldname in ("icon_type", "app", "parent_icon", "link_to")
+	)
+
+
 def ensure_sa_localisation_module_def():
 	"""
 	Desk-only module from modules.txt: Frappe may not create Module Def until
@@ -651,11 +669,10 @@ def migrate_workspace_sa_localisation_to_sa_overview():
 				ignore_permissions=True,
 			)
 
-		for icon_name in frappe.get_all(
-			"Desktop Icon",
-			filters={"label": "SA Localisation", "icon_type": "Link"},
-			pluck="name",
-		):
+		icon_filters = {"label": "SA Localisation"}
+		if _desktop_icon_has_field("icon_type"):
+			icon_filters["icon_type"] = "Link"
+		for icon_name in frappe.get_all("Desktop Icon", filters=icon_filters, pluck="name"):
 			rename_doc("Desktop Icon", icon_name, "SA Overview", force=True, ignore_permissions=True)
 
 		print("  ✓ Renamed hub workspace SA Localisation → SA Overview (desktop icon PK fix)")
@@ -1231,6 +1248,9 @@ def sync_za_local_desktop_icons():
 	Uses add_to_apps_screen + app_title from hooks.
 	"""
 	if not frappe.db.table_exists("Desktop Icon"):
+		return
+	if not _desktop_icon_supports_app_tiles():
+		print("  ⊙ Skipping za_local desktop icon sync (Desktop Icon schema has no app-tile fields)")
 		return
 
 	app_name = "za_local"
