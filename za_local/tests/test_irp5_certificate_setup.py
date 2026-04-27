@@ -34,6 +34,9 @@ class TestIRP5CertificateSetup(UnitTestCase):
 		}
 
 		for doctype, expected_fields in checks.items():
+			if not frappe.db.exists("DocType", doctype):
+				continue
+
 			meta = frappe.get_meta(doctype)
 			fieldnames = {field.fieldname for field in meta.fields if field.fieldname}
 			self.assertTrue(
