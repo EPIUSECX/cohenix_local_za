@@ -140,7 +140,7 @@
       <div class="za-slip__section-title">Attendance Basis</div>
       {{ field("Total Working Days", doc.total_working_days) }}
       {{ field("Payment Days", doc.payment_days) }}
-      {{ field("Leave Without Pay", doc.leave_without_pay or doc.lop_days) }}
+      {{ field("Leave Without Pay", doc.get("leave_without_pay") or doc.get("lop_days") or 0) }}
       {{ field("Absent Days", doc.absent_days) }}
     </div>
 
