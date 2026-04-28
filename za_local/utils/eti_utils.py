@@ -114,19 +114,19 @@ def calculate_eti_amount(employee, salary_slip, monthly_remuneration):
     """
     Calculate the ETI amount for an employee.
 
-    ETI Calculation Brackets (2024/2025):
+    ETI Calculation Brackets from 1 April 2025:
 
     First 12 months:
-    - R0 - R2,000: 50% of remuneration
-    - R2,001 - R4,500: R1,000
-    - R4,501 - R6,500: R1,000 - (0.5 x (Remuneration - R4,500))
-    - Above R6,500: R0
+    - R0 - R2,499.99: 60% of remuneration
+    - R2,500 - R5,499.99: R1,500
+    - R5,500 - R7,499.99: R1,500 - (0.75 x (Remuneration - R5,500))
+    - R7,500 and above: R0
 
     Second 12 months:
-    - R0 - R2,000: 25% of remuneration
-    - R2,001 - R4,500: R500
-    - R4,501 - R6,500: R500 - (0.25 x (Remuneration - R4,500))
-    - Above R6,500: R0
+    - R0 - R2,499.99: 30% of remuneration
+    - R2,500 - R5,499.99: R750
+    - R5,500 - R7,499.99: R750 - (0.375 x (Remuneration - R5,500))
+    - R7,500 and above: R0
 
     Args:
         employee (str): Employee ID

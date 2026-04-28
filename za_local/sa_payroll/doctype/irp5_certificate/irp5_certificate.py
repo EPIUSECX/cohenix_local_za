@@ -723,22 +723,24 @@ class IRP5Certificate(Document):
 		self.eti = self.calculate_eti_amount(monthly_remuneration, is_first_12_months) * months_in_period
 
 	def calculate_eti_amount(self, monthly_remuneration, is_first_12_months):
-		if monthly_remuneration < 2000:
-			return 0
 		max_eti_first_year = 1500
 		max_eti_second_year = 750
 
 		if is_first_12_months:
-			if monthly_remuneration < 4500:
-				return max_eti_first_year * (monthly_remuneration / 4500)
-			if monthly_remuneration <= 6500:
-				return max_eti_first_year * (1 - (monthly_remuneration - 4500) / 2000)
+			if monthly_remuneration < 2500:
+				return monthly_remuneration * 0.60
+			if monthly_remuneration < 5500:
+				return max_eti_first_year
+			if monthly_remuneration < 7500:
+				return max_eti_first_year - (0.75 * (monthly_remuneration - 5500))
 			return 0
 
-		if monthly_remuneration < 4500:
-			return max_eti_second_year * (monthly_remuneration / 4500)
-		if monthly_remuneration <= 6500:
-			return max_eti_second_year * (1 - (monthly_remuneration - 4500) / 2000)
+		if monthly_remuneration < 2500:
+			return monthly_remuneration * 0.30
+		if monthly_remuneration < 5500:
+			return max_eti_second_year
+		if monthly_remuneration < 7500:
+			return max_eti_second_year - (0.375 * (monthly_remuneration - 5500))
 		return 0
 
 	@frappe.whitelist()

@@ -2,3 +2,4 @@
 za_local.patches.v3_1.migrate_sa_vat_settings_to_multi_company
 za_local.patches.v3_1.correct_sa_payroll_tax_tables
 za_local.patches.v3_1.correct_company_contribution_expense_accounts
+za_local.patches.v3_1.update_eti_slabs_2025_sars_rates

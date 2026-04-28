@@ -34,7 +34,7 @@
   },
   {
    "fieldname": "percentage",
-   "fieldtype": "Int",
+   "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Percentage"
   },

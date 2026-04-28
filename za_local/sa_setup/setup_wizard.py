@@ -195,11 +195,11 @@ def setup_current_year_tax_slabs():
 
 def setup_eti_slabs():
     """Setup Employment Tax Incentive slabs"""
-    # ETI rates for 2024-2025
-    # Age 18-29: R1,000/month (first 12 months), R500/month (months 13-24)
+    # ETI rates from 1 April 2025
+    # Age 18-29: up to R1,500/month (first 12 months), R750/month (months 13-24)
     # This is typically configured in the existing ETI Rate DocType
     print("  → ETI slabs configuration")
-    print("     Age 18-29: R1,000/month (Year 1), R500/month (Year 2)")
+    print("     Age 18-29: up to R1,500/month (Year 1), R750/month (Year 2)")
     print("     Configured in: ETI Rate DocType")
 
 
