@@ -22,8 +22,8 @@ build-backend = "flit_core.buildapi"
 # package_name = "~=1.1.0"
 
 [tool.frappe]
-frappe_version = ">=16.0.0 <17.0.0"
-required_frappe_version = ">=16.0.0 <17.0.0"
+frappe_version = ">=16.0.0,<17.0.0"
+required_frappe_version = ">=16.0.0,<17.0.0"
 
 [tool.ruff]
 line-length = 110
@@ -63,3 +63,6 @@ typing-modules = ["frappe.types.DF"]
 quote-style = "double"
 indent-style = "tab"
 docstring-code-format = true
+
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0,<17.0.0"
