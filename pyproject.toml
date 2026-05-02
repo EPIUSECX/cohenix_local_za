@@ -1,13 +1,12 @@
 [project]
 name = "za_local"
-version = "1.0"
+version = "1.0.0"
 authors = [
     { name = "Cohenix", email = "info@cohenix.com"}
 ]
 description = "Cohenix ZA_Local is a comprehensive South African localization module for Cohenix ERPthat provides essential features for businesses operating in South Africa. It covers statutory compliance requirements, tax regulations, payroll localization, and financial reporting specific to the South African context."
 requires-python = ">=3.10"
 readme = "README.md"
-dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
     "PyPDF2>=3.0.0",  # PDF generation for IRP5 certificates
