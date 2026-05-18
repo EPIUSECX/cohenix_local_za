@@ -323,7 +323,6 @@ def after_install():
 	sync_za_local_desktop_icons()
 	ensure_sa_print_formats()
 	ensure_sa_vat_print_format_field_templates()
-	frappe.db.commit()  # nosemgrep: after_install setup changes must be committed before install completes
 	print("\n" + "=" * 80)
 	print("South African Localization installed successfully!")
 	print("=" * 80)
@@ -362,7 +361,6 @@ def after_migrate():
 	sync_za_local_desktop_icons()
 	ensure_sa_print_formats()
 	ensure_sa_vat_print_format_field_templates()
-	frappe.db.commit()  # nosemgrep: after_migrate setup changes must be committed before migrate continues
 
 
 def set_accounts_settings_for_za_vat():
@@ -423,7 +421,6 @@ def cleanup_invalid_doctype_links():
 			except Exception as e:
 				print(f"  ! Error removing link {link.name}: {e}")
 
-		frappe.db.commit()  # nosemgrep: invalid DocType Link cleanup must persist before metadata sync continues
 		print("  ✓ Invalid DocType Links cleaned up\n")
 
 
@@ -808,7 +805,6 @@ def sync_sa_workspaces():
 			base / "sa_coida" / "workspace" / "sa_coida" / "sa_coida.json",
 		):
 			_upsert_workspace(rel)
-		frappe.db.commit()  # nosemgrep: workspace sync must persist before sidebar and desktop-icon sync runs
 	except Exception as e:
 		# Do not fail install/migrate if workspace sync has issues
 		print(f"  ! Could not sync za_local workspaces: {e}")
@@ -1389,7 +1385,6 @@ def before_migrate():
 					"SA COIDA",
 					update_modified=False,
 				)
-		frappe.db.commit()  # nosemgrep: module rename must persist before Frappe rebuilds module caches
 		# Ensure cache is cleared so app_modules is rebuilt from modules.txt (SA COIDA not COIDA)
 		frappe.cache().delete_value("app_modules")
 		frappe.cache().delete_value("installed_app_modules")
@@ -1468,7 +1463,6 @@ def ensure_modules_visible():
 		except Exception as e:
 			print(f"  ! Could not check/update module '{module_name}': {e}")
 
-	frappe.db.commit()  # nosemgrep: module visibility normalization must persist during setup/migrate
 	print("  ✓ Module visibility check complete\n")
 
 
@@ -1567,7 +1561,6 @@ def create_company_contribution_doctype():
 	)
 
 	doc.insert(ignore_permissions=True)
-	frappe.db.commit()  # nosemgrep: custom DocType creation must persist before dependent setup data loads
 	print("✓ Company Contribution DocType created successfully")
 
 
@@ -1626,7 +1619,6 @@ def seed_sars_payroll_codes():
 						update_modified=False,
 					)
 
-	frappe.db.commit()  # nosemgrep: SARS payroll code seeding must persist before payroll mapping runs
 	print("  ✓ SARS Payroll Codes seeded")
 
 
@@ -1690,7 +1682,6 @@ def migrate_irp5_legacy_source_fields():
 					update_modified=False,
 				)
 
-	frappe.db.commit()  # nosemgrep: legacy IRP5 source migration is an intentional setup transaction boundary
 	print("  ✓ Migrated legacy IRP5 source fields")
 
 
@@ -1876,7 +1867,6 @@ def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict
 				{"name": name, "formula": fields["formula"]},
 			)
 
-	frappe.db.commit()  # nosemgrep: statutory formula updates must persist before payroll documents are recalculated
 
 
 def import_master_data():
@@ -1937,7 +1927,6 @@ def run_za_local_setup(setup_doc):
 	"""
 	setup_doc.setup_status = "In Progress"
 	setup_doc.save()
-	frappe.db.commit()  # nosemgrep: setup status must persist before long-running setup work begins
 
 	try:
 		data_dir = resolve_app_path("sa_setup", "data")
@@ -1984,14 +1973,12 @@ def run_za_local_setup(setup_doc):
 		setup_doc.setup_status = "Completed"
 		setup_doc.setup_completed_on = frappe.utils.now()
 		setup_doc.save()
-		frappe.db.commit()  # nosemgrep: completed setup status must persist before the wizard reports success
 
 		frappe.msgprint("✅ South African localization setup completed successfully!")
 
 	except Exception as e:
 		setup_doc.setup_status = "Pending"
 		setup_doc.save()
-		frappe.db.commit()  # nosemgrep: failed setup status must persist before raising the setup error
 		frappe.log_error(f"Setup failed: {e!s}", "ZA Local Setup")
 		frappe.throw(f"Setup failed: {e!s}")
 
@@ -2147,9 +2134,6 @@ def load_data_from_json(file_path):
 		# List of records
 		for record in data:
 			insert_record(record)
-
-	# Commit after loading all records from this file
-	frappe.db.commit()  # nosemgrep: packaged JSON import intentionally commits after each fixture file
 
 
 def insert_record(record):

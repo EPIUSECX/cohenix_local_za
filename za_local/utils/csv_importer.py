@@ -87,9 +87,6 @@ def import_csv_data(doctype, csv_filename, update_existing=False):
 			print(f"  Error importing row {row}: {e}")
 			stats["errors"] += 1
 
-	# Commit changes
-	frappe.db.commit()  # nosemgrep: packaged CSV import intentionally commits after processing the file
-
 	# Print summary
 	print(f"  ✓ {doctype}: Created {stats['created']}, Updated {stats['updated']}, "
 	      f"Skipped {stats['skipped']}, Errors {stats['errors']}")

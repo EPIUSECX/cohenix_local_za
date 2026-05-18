@@ -1,15 +1,8 @@
-"""
-Override Sales Invoice and Purchase Invoice to use ZA VAT tax calculation.
-This ensures 15% and 0% tax rows (same account) get correct amounts per item
-for SA legislation and VAT 201 reporting, without patching ERPNext core.
-"""
-
-from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
-from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+"""Extend invoice controllers to use ZA VAT tax calculation."""
 
 
-class ZASalesInvoice(SalesInvoice):
-	"""Sales Invoice using ZA VAT tax calculation (same-account multiple rates)."""
+class ZASalesInvoice:
+	"""Sales Invoice extension using ZA VAT tax calculation."""
 
 	def calculate_taxes_and_totals(self):
 		from za_local.sa_vat.vat_tax_calculation import ZACalculateTaxesAndTotals
@@ -26,8 +19,8 @@ class ZASalesInvoice(SalesInvoice):
 			self.calculate_contribution()
 
 
-class ZAPurchaseInvoice(PurchaseInvoice):
-	"""Purchase Invoice using ZA VAT tax calculation (same-account multiple rates)."""
+class ZAPurchaseInvoice:
+	"""Purchase Invoice extension using ZA VAT tax calculation."""
 
 	def calculate_taxes_and_totals(self):
 		from za_local.sa_vat.vat_tax_calculation import ZACalculateTaxesAndTotals

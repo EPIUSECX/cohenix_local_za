@@ -413,7 +413,6 @@ class EMP501Reconciliation(Document):
 		if self.is_new() or (hasattr(self, "name") and self.name and self.name.startswith("new-")):
 			# Save the document first to get a proper name
 			self.save(ignore_permissions=True)
-			frappe.db.commit()  # nosemgrep: save new reconciliation so generated certificates can link to its name
 
 		unique_employees = self._get_salary_slip_employees()
 

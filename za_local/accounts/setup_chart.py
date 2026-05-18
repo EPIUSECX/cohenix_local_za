@@ -388,15 +388,11 @@ def get_za_chart_tree():
 @frappe.whitelist()
 def get_charts_for_country_with_za(country, with_standard=False):
 	"""
-	Whitelisted wrapper used by ERPNext setup wizard to fetch charts.
+	Whitelisted wrapper retained for direct calls to fetch charts with ZA support.
 
-	This function is registered via `override_whitelisted_methods` in hooks.py
-	as an override for get_charts_for_country. It calls ERPNext's implementation
-	then injects the South Africa chart option when country is South Africa.
-
-	Injection is done here (not in the monkey patch) so it works on every
-	request; the monkey patch only runs at install/migrate and is not active
-	when the setup wizard runs in a fresh process.
+	The normal ERPNext setup flow calls the core whitelisted method; the
+	before_request hook patches that method in the current worker before Frappe
+	resolves it.
 	"""
 	from erpnext.accounts.doctype.account.chart_of_accounts import (
 		chart_of_accounts as coa_module,  # type: ignore

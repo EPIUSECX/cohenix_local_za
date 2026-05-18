@@ -105,23 +105,16 @@ after_uninstall = "za_local.sa_setup.uninstall.after_uninstall"
 setup_wizard_requires = "assets/za_local/js/setup_wizard.js"
 setup_wizard_stages = "za_local.sa_setup.setup_wizard.get_sa_localization_stages"
 
-# Override Whitelisted Methods
+# DocType Class Extensions and Overrides
 # ------------------
-# Override ERPNext's get_charts_for_country to use our whitelisted wrapper
-# This allows the setup wizard to call the function via API
-override_whitelisted_methods = {
-	"erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts.get_charts_for_country":
-		"za_local.accounts.setup_chart.get_charts_for_country_with_za",
-}
-
-# DocType Class Overrides
-# ------------------
-# Override standard doctype classes with South African implementations
-# Only register HRMS overrides if HRMS is installed
-override_doctype_class = {
+# Extend standard invoice controllers with South African VAT calculation.
+extend_doctype_class = {
 	"Sales Invoice": "za_local.overrides.vat_invoices.ZASalesInvoice",
 	"Purchase Invoice": "za_local.overrides.vat_invoices.ZAPurchaseInvoice",
 }
+
+# Only register HRMS overrides if HRMS is installed.
+override_doctype_class = {}
 
 if is_hrms_installed():
 	override_doctype_class.update({

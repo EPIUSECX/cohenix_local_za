@@ -1042,7 +1042,6 @@ def _apply_custom_field_fixtures():
 				frappe.get_doc(d).insert(ignore_permissions=True)
 		except Exception as e:
 			print(f"  ! Error applying custom field {d.get('name')}: {e}")
-	frappe.db.commit()  # nosemgrep: setup fixtures must be committed before later setup steps read metadata
 	print("  ✓ Custom field fixtures applied")
 
 
@@ -1088,7 +1087,6 @@ def _cleanup_old_custom_fields():
 				except Exception as e:
 					print(f"  ! Error deleting custom field {custom_field_name}: {e}")
 	if deleted_count > 0:
-		frappe.db.commit()  # nosemgrep: legacy custom-field cleanup is an intentional setup transaction boundary
 		print(f"  ✓ Cleaned up {deleted_count} old custom field(s)")
 
 

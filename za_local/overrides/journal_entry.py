@@ -74,8 +74,6 @@ def force_delete_all_cancelled_payroll_journal_entries():
         except Exception as e:
             failed.append({"name": je.name, "error": str(e)})
 
-    frappe.db.commit()  # nosemgrep: developer-only cleanup must persist forced deletions before returning
-
     return {
         "deleted": deleted,
         "failed": failed,

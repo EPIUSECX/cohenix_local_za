@@ -298,7 +298,6 @@ def setup_sa_print_formats():
 		except Exception as e:
 			print(f"  ! Error setting print format for {doctype}: {e}")
 
-	frappe.db.commit()  # nosemgrep: wizard print-format defaults must persist before setup continues
 	print("  ✓ SA print formats configured successfully")
 
 
