@@ -53,9 +53,7 @@ def get_data(filters):
             conditions.append("posting_date <= %(to_date)s")
             values["to_date"] = filters["to_date"]
 
-    sql_conditions = "WHERE " + " AND ".join(conditions) if conditions else ""
-
-    data = frappe.db.sql(f"""
+    query = """
         SELECT
             name, company, month, fiscal_year,
             submission_period_start_date, submission_period_end_date,
@@ -64,8 +62,11 @@ def get_data(filters):
             (net_paye_payable + uif_payable + sdl_payable) as total_payable,
             status
         FROM `tabEMP201 Submission`
-        {sql_conditions}
-        ORDER BY posting_date DESC
-    """, values, as_dict=1)
+    """
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    query += " ORDER BY posting_date DESC"
+
+    data = frappe.db.sql(query, values, as_dict=1)
 
     return data

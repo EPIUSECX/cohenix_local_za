@@ -113,7 +113,7 @@ class BusinessTrip(Document):
 			expense_claim = frappe.get_doc("Expense Claim", self.expense_claim)
 			if expense_claim.docstatus == 0:
 				frappe.delete_doc("Expense Claim", self.expense_claim)
-				self.expense_claim = None
+				self.db_set("expense_claim", None, update_modified=False)
 			elif expense_claim.docstatus == 1:
 				frappe.msgprint(
 					_("Linked Expense Claim {0} must be cancelled separately").format(self.expense_claim),
@@ -189,9 +189,13 @@ class BusinessTrip(Document):
 		# Save and link
 		expense_claim.insert()
 
-		self.expense_claim = expense_claim.name
-		self.status = "Expense Claim Created"
-		self.db_update()
+		self.db_set(
+			{
+				"expense_claim": expense_claim.name,
+				"status": "Expense Claim Created",
+			},
+			update_modified=False,
+		)
 
 		frappe.msgprint(
 			_("Expense Claim {0} created successfully").format(expense_claim.name),

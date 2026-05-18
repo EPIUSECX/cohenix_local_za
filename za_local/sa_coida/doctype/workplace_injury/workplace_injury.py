@@ -91,8 +91,7 @@ class WorkplaceInjury(Document):
         try:
             leave_application.insert()
             leave_application.submit()
-            self.leave_application = leave_application.name
-            self.db_update()
+            self.db_set("leave_application", leave_application.name, update_modified=False)
             frappe.msgprint(_("Leave Application {0} created").format(
                 frappe.bold(leave_application.name)))
         except Exception as e:
@@ -114,8 +113,7 @@ class WorkplaceInjury(Document):
 
         try:
             oid_claim.insert()
-            self.oid_claim = oid_claim.name
-            self.db_update()
+            self.db_set("oid_claim", oid_claim.name, update_modified=False)
             frappe.msgprint(_("OID Claim {0} created").format(
                 frappe.bold(oid_claim.name)))
         except Exception as e:

@@ -6,7 +6,7 @@ submissions to SARS.
 """
 
 import csv
-from tempfile import NamedTemporaryFile
+from io import StringIO
 
 import frappe
 from frappe.utils import flt, format_date, getdate
@@ -28,108 +28,102 @@ def generate_emp501_csv(emp501_name):
     if not emp501:
         frappe.throw("EMP501 Reconciliation not found")
 
-    # Create CSV file
-    with NamedTemporaryFile(mode='w+', delete=False, suffix='.csv') as temp_file:
-        try:
-            writer = csv.writer(temp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    try:
+        csv_buffer = StringIO()
+        writer = csv.writer(csv_buffer, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-            # Write header row
-            writer.writerow([
-                "Record Type", "Tax Year", "Period", "PAYE Reference", "SDL Reference",
-                "UIF Reference", "Trading Name", "Submission Date", "PAYE Total",
-                "SDL Total", "UIF Total", "ETI Total"
-            ])
+        # Write header row
+        writer.writerow([
+            "Record Type", "Tax Year", "Period", "PAYE Reference", "SDL Reference",
+            "UIF Reference", "Trading Name", "Submission Date", "PAYE Total",
+            "SDL Total", "UIF Total", "ETI Total"
+        ])
 
-            # Write EMP501 summary row
+        # Write EMP501 summary row
+        writer.writerow([
+            "EMP501",
+            emp501.tax_year,
+            emp501.reconciliation_period,
+            emp501.paye_reference_number,
+            emp501.sdl_reference_number,
+            emp501.uif_reference_number,
+            frappe.db.get_value("Company", emp501.company, "company_name"),
+            format_date(emp501.submission_date),
+            f"{emp501.total_paye:.2f}",
+            f"{emp501.total_sdl:.2f}",
+            f"{emp501.total_uif:.2f}",
+            f"{emp501.total_eti:.2f}"
+        ])
+
+        # Add EMP201 records
+        for emp201_ref in emp501.emp201_submissions:
+            emp201 = frappe.get_doc("EMP201 Submission", emp201_ref.emp201_submission)
+
+            # Format period as YYYYMM
+            month_map = {
+                "January": "01", "February": "02", "March": "03", "April": "04",
+                "May": "05", "June": "06", "July": "07", "August": "08",
+                "September": "09", "October": "10", "November": "11", "December": "12"
+            }
+
+            period_year = str(getdate(emp201.submission_period_start_date).year)
+            period_month = month_map.get(emp201.month, "00")
+            period_yyyymm = f"{period_year}{period_month}"
+
             writer.writerow([
-                "EMP501",
+                "EMP201",
                 emp501.tax_year,
-                emp501.reconciliation_period,
+                period_yyyymm,
                 emp501.paye_reference_number,
                 emp501.sdl_reference_number,
                 emp501.uif_reference_number,
                 frappe.db.get_value("Company", emp501.company, "company_name"),
-                format_date(emp501.submission_date),
-                f"{emp501.total_paye:.2f}",
-                f"{emp501.total_sdl:.2f}",
-                f"{emp501.total_uif:.2f}",
-                f"{emp501.total_eti:.2f}"
+                format_date(emp201_ref.submission_date or emp201.submission_period_start_date),
+                f"{emp201_ref.paye:.2f}",
+                f"{emp201_ref.sdl:.2f}",
+                f"{emp201_ref.uif:.2f}",
+                f"{emp201_ref.eti:.2f}"
             ])
 
-            # Add EMP201 records
-            for emp201_ref in emp501.emp201_submissions:
-                emp201 = frappe.get_doc("EMP201 Submission", emp201_ref.emp201_submission)
+        # Add IRP5 certificate records
+        for irp5_ref in emp501.irp5_certificates:
+            irp5 = frappe.get_doc("IRP5 Certificate", irp5_ref.irp5_certificate)
 
-                # Format period as YYYYMM
-                month_map = {
-                    "January": "01", "February": "02", "March": "03", "April": "04",
-                    "May": "05", "June": "06", "July": "07", "August": "08",
-                    "September": "09", "October": "10", "November": "11", "December": "12"
-                }
+            employee_name = frappe.db.get_value("Employee", irp5.employee, "employee_name") or ""
+            tax_number = irp5.get("income_tax_reference_number") or ""
+            id_number = irp5.get("employee_id_number") or ""
 
-                period_year = str(getdate(emp201.submission_period_start_date).year)
-                period_month = month_map.get(emp201.month, "00")
-                period_yyyymm = f"{period_year}{period_month}"
+            writer.writerow([
+                irp5.get("certificate_type", "IRP5"),
+                emp501.tax_year,
+                irp5.get("certificate_type", "IRP5"),
+                tax_number,
+                id_number,
+                employee_name,
+                irp5.certificate_number,
+                format_date(irp5.get("issue_date") or emp501.submission_date),
+                f"{flt(irp5.get('gross_taxable_income') or 0):.2f}",
+                f"{irp5.paye:.2f}",
+                f"{irp5.uif:.2f}",
+                f"{irp5.get('eti', 0):.2f}"
+            ])
 
-                writer.writerow([
-                    "EMP201",
-                    emp501.tax_year,
-                    period_yyyymm,
-                    emp501.paye_reference_number,
-                    emp501.sdl_reference_number,
-                    emp501.uif_reference_number,
-                    frappe.db.get_value("Company", emp501.company, "company_name"),
-                    format_date(emp201_ref.submission_date or emp201.submission_period_start_date),
-                    f"{emp201_ref.paye:.2f}",
-                    f"{emp201_ref.sdl:.2f}",
-                    f"{emp201_ref.uif:.2f}",
-                    f"{emp201_ref.eti:.2f}"
-                ])
+        file_content = csv_buffer.getvalue().encode("utf-8")
+        file_name = f"EMP501_{emp501.tax_year}_{emp501.reconciliation_period}.csv"
 
-            # Add IRP5 certificate records
-            for irp5_ref in emp501.irp5_certificates:
-                irp5 = frappe.get_doc("IRP5 Certificate", irp5_ref.irp5_certificate)
+        frappe.local.response.filename = file_name
+        frappe.local.response.filecontent = file_content
+        frappe.local.response.type = "download"
 
-                employee_name = frappe.db.get_value("Employee", irp5.employee, "employee_name") or ""
-                tax_number = irp5.get("income_tax_reference_number") or ""
-                id_number = irp5.get("employee_id_number") or ""
+        return {
+            "success": True,
+            "message": "EMP501 CSV generated successfully",
+            "filename": file_name
+        }
 
-                writer.writerow([
-                    irp5.get("certificate_type", "IRP5"),
-                    emp501.tax_year,
-                    irp5.get("certificate_type", "IRP5"),
-                    tax_number,
-                    id_number,
-                    employee_name,
-                    irp5.certificate_number,
-                    format_date(irp5.get("issue_date") or emp501.submission_date),
-                    f"{flt(irp5.get('gross_taxable_income') or 0):.2f}",
-                    f"{irp5.paye:.2f}",
-                    f"{irp5.uif:.2f}",
-                    f"{irp5.get('eti', 0):.2f}"
-                ])
-
-            temp_file.flush()
-
-            # Save file
-            with open(temp_file.name, 'rb') as f:
-                file_content = f.read()
-
-            file_name = f"EMP501_{emp501.tax_year}_{emp501.reconciliation_period}.csv"
-
-            frappe.local.response.filename = file_name
-            frappe.local.response.filecontent = file_content
-            frappe.local.response.type = "download"
-
-            return {
-                "success": True,
-                "message": "EMP501 CSV generated successfully",
-                "filename": file_name
-            }
-
-        except Exception as e:
-            frappe.log_error(f"Error generating EMP501 CSV: {e!s}", "EMP501 Generation")
-            frappe.throw(f"Error generating EMP501 CSV: {e!s}")
+    except Exception as e:
+        frappe.log_error(f"Error generating EMP501 CSV: {e!s}", "EMP501 Generation")
+        frappe.throw(f"Error generating EMP501 CSV: {e!s}")
 
 
 def validate_emp501_reconciliation(emp501):

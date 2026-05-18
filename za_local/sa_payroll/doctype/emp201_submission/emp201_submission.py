@@ -225,7 +225,7 @@ class EMP201Submission(Document):
 		}
 
 	def on_submit(self):
-		self.status = "Submitted"
+		self.db_set("status", "Submitted", update_modified=False)
 
 	def on_cancel(self):
-		self.status = "Cancelled"
+		self.db_set("status", "Cancelled", update_modified=False)

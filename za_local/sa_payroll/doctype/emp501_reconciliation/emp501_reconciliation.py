@@ -296,10 +296,10 @@ class EMP501Reconciliation(Document):
 		self.validate_irp5_coverage()
 
 	def on_submit(self):
-		self.status = "Submitted"
+		self.db_set("status", "Submitted", update_modified=False)
 
 	def on_cancel(self):
-		self.status = "Cancelled"
+		self.db_set("status", "Cancelled", update_modified=False)
 		frappe.msgprint(_("EMP501 Reconciliation {0} has been cancelled.").format(self.name))
 
 	@frappe.whitelist()
@@ -349,7 +349,7 @@ class EMP501Reconciliation(Document):
 					title=_("Field Missing"),
 				)
 			frappe.log_error(frappe.get_traceback())
-			frappe.throw(_("Error fetching EMP201 submissions: {0}").format(e), title=_("Fetch Error"))
+			frappe.throw(_("Error fetching EMP201 submissions: {0}").format(str(e)), title=_("Fetch Error"))
 
 		count = 0
 		for emp201_doc in emp201_docs:
@@ -413,7 +413,7 @@ class EMP501Reconciliation(Document):
 		if self.is_new() or (hasattr(self, "name") and self.name and self.name.startswith("new-")):
 			# Save the document first to get a proper name
 			self.save(ignore_permissions=True)
-			frappe.db.commit()  # Commit to ensure name is available
+			frappe.db.commit()  # nosemgrep: save new reconciliation so generated certificates can link to its name
 
 		unique_employees = self._get_salary_slip_employees()
 

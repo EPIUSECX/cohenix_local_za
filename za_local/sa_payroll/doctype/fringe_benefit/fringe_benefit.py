@@ -20,11 +20,11 @@ class FringeBenefit(Document):
 
 	def on_submit(self):
 		"""Actions on submission"""
-		self.status = "Active"
+		self.db_set("status", "Active", update_modified=False)
 
 	def on_cancel(self):
 		"""Actions on cancellation"""
-		self.status = "Inactive"
+		self.db_set("status", "Inactive", update_modified=False)
 
 	def validate_dates(self):
 		"""Validate from/to dates"""
@@ -153,4 +153,3 @@ def get_active_fringe_benefits(employee, date=None):
 	)
 
 	return benefits
-

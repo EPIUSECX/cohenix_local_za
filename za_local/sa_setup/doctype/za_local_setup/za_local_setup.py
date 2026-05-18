@@ -32,8 +32,7 @@ class ZALocalSetup(Document):
 			run_za_local_setup(self)
 		except Exception as e:
 			frappe.log_error(f"Setup failed: {e!s}", "ZA Local Setup")
-			self.setup_status = "Pending"
-			self.save()
+			self.db_set("setup_status", "Pending", update_modified=False)
 			frappe.throw(_("Setup failed: {0}").format(str(e)))
 
 	@frappe.whitelist()

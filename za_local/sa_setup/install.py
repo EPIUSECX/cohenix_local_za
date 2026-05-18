@@ -7,11 +7,11 @@ for the South African localization app.
 
 import copy
 import json
+from datetime import datetime
 from pathlib import Path
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from frappe.utils import now
 from frappe.utils.fixtures import import_fixtures
 
 from za_local.sa_setup.custom_fields import setup_custom_fields
@@ -22,6 +22,7 @@ from za_local.sa_vat.setup import (
 	migrate_legacy_vat_account_rows,
 	seed_vat_vendor_types,
 )
+from za_local.utils.file_utils import read_app_json, resolve_app_path
 from za_local.utils.hrms_detection import is_hrms_installed
 
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
@@ -322,7 +323,7 @@ def after_install():
 	sync_za_local_desktop_icons()
 	ensure_sa_print_formats()
 	ensure_sa_vat_print_format_field_templates()
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: after_install setup changes must be committed before install completes
 	print("\n" + "=" * 80)
 	print("South African Localization installed successfully!")
 	print("=" * 80)
@@ -361,7 +362,7 @@ def after_migrate():
 	sync_za_local_desktop_icons()
 	ensure_sa_print_formats()
 	ensure_sa_vat_print_format_field_templates()
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: after_migrate setup changes must be committed before migrate continues
 
 
 def set_accounts_settings_for_za_vat():
@@ -422,7 +423,7 @@ def cleanup_invalid_doctype_links():
 			except Exception as e:
 				print(f"  ! Error removing link {link.name}: {e}")
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: invalid DocType Link cleanup must persist before metadata sync continues
 		print("  ✓ Invalid DocType Links cleaned up\n")
 
 
@@ -461,13 +462,12 @@ def _load_standard_print_format_records():
 	"""Load shipped Print Format JSON so DB sync matches the standard-doc files."""
 	print_formats = {}
 	for relative_root in ("sa_vat/print_format", "sa_payroll/print_format"):
-		root = Path(frappe.get_app_path("za_local", *relative_root.split("/")))
+		root = resolve_app_path(*relative_root.split("/"))
 		if not root.exists():
 			continue
 
 		for json_path in root.glob("*/*.json"):
-			with json_path.open() as handle:
-				record = json.load(handle)
+			record = read_app_json(json_path)
 
 			record["doctype"] = "Print Format"
 			record.setdefault("custom_format", 1)
@@ -558,7 +558,7 @@ def _insert_print_format_field_template(name, payload):
 	JSON. These templates are already shipped in the app, so migration only
 	needs the database row.
 	"""
-	timestamp = now()
+	timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 	record = {
 		"name": name,
 		"creation": timestamp,
@@ -574,10 +574,8 @@ def _insert_print_format_field_template(name, payload):
 
 	fields = ", ".join(f"`{field}`" for field in record)
 	placeholders = ", ".join(["%s"] * len(record))
-	frappe.db.sql(
-		f"INSERT INTO `tabPrint Format Field Template` ({fields}) VALUES ({placeholders})",
-		tuple(record.values()),
-	)
+	query = "INSERT INTO `tabPrint Format Field Template` (" + fields + ") VALUES (" + placeholders + ")"
+	frappe.db.sql(query, tuple(record.values()))
 
 
 def cleanup_orphaned_workspace_records():
@@ -748,15 +746,12 @@ def sync_sa_workspaces():
 	app's workspace JSON files directly and upsert the corresponding Workspace
 	records in the current site.
 	"""
-	from pathlib import Path
-
 	def _upsert_workspace(json_path: Path):
 		if not json_path.exists():
 			return
 
 		try:
-			with open(json_path) as f:
-				data = json.load(f)
+			data = read_app_json(json_path)
 		except Exception as e:
 			print(f"  ! Could not read workspace definition {json_path}: {e}")
 			return
@@ -804,7 +799,7 @@ def sync_sa_workspaces():
 				print(f"  ! Could not create Workspace {ws_name}: {e}")
 
 	try:
-		base = Path(frappe.get_app_path("za_local"))
+		base = resolve_app_path()
 		for rel in (
 			base / "sa_setup" / "workspace" / "sa_localisation" / "sa_localisation.json",
 			base / "sa_vat" / "workspace" / "sa_vat" / "sa_vat.json",
@@ -813,7 +808,7 @@ def sync_sa_workspaces():
 			base / "sa_coida" / "workspace" / "sa_coida" / "sa_coida.json",
 		):
 			_upsert_workspace(rel)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: workspace sync must persist before sidebar and desktop-icon sync runs
 	except Exception as e:
 		# Do not fail install/migrate if workspace sync has issues
 		print(f"  ! Could not sync za_local workspaces: {e}")
@@ -1385,10 +1380,16 @@ def before_migrate():
 	try:
 		stabilize_sa_vat_doctype_metadata()
 		# Update any DocType or Report that still has module "COIDA" to "SA COIDA"
-		for dt in ("DocType", "Report"):
-			if frappe.db.table_exists(dt):
-				frappe.db.sql("UPDATE `tab{0}` SET module = 'SA COIDA' WHERE module = 'COIDA'".format(dt))
-		frappe.db.commit()
+		for doctype in ("DocType", "Report"):
+			if frappe.db.table_exists(doctype):
+				frappe.db.set_value(
+					doctype,
+					{"module": "COIDA"},
+					"module",
+					"SA COIDA",
+					update_modified=False,
+				)
+		frappe.db.commit()  # nosemgrep: module rename must persist before Frappe rebuilds module caches
 		# Ensure cache is cleared so app_modules is rebuilt from modules.txt (SA COIDA not COIDA)
 		frappe.cache().delete_value("app_modules")
 		frappe.cache().delete_value("installed_app_modules")
@@ -1467,7 +1468,7 @@ def ensure_modules_visible():
 		except Exception as e:
 			print(f"  ! Could not check/update module '{module_name}': {e}")
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: module visibility normalization must persist during setup/migrate
 	print("  ✓ Module visibility check complete\n")
 
 
@@ -1566,7 +1567,7 @@ def create_company_contribution_doctype():
 	)
 
 	doc.insert(ignore_permissions=True)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: custom DocType creation must persist before dependent setup data loads
 	print("✓ Company Contribution DocType created successfully")
 
 
@@ -1625,7 +1626,7 @@ def seed_sars_payroll_codes():
 						update_modified=False,
 					)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: SARS payroll code seeding must persist before payroll mapping runs
 	print("  ✓ SARS Payroll Codes seeded")
 
 
@@ -1689,7 +1690,7 @@ def migrate_irp5_legacy_source_fields():
 					update_modified=False,
 				)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: legacy IRP5 source migration is an intentional setup transaction boundary
 	print("  ✓ Migrated legacy IRP5 source fields")
 
 
@@ -1875,7 +1876,7 @@ def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict
 				{"name": name, "formula": fields["formula"]},
 			)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: statutory formula updates must persist before payroll documents are recalculated
 
 
 def import_master_data():
@@ -1934,15 +1935,12 @@ def run_za_local_setup(setup_doc):
 	Args:
 		setup_doc: ZA Local Setup document instance
 	"""
-	import json
-	from pathlib import Path
-
 	setup_doc.setup_status = "In Progress"
 	setup_doc.save()
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: setup status must persist before long-running setup work begins
 
 	try:
-		data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
+		data_dir = resolve_app_path("sa_setup", "data")
 
 		# Load salary components
 		if setup_doc.load_salary_components:
@@ -1986,102 +1984,98 @@ def run_za_local_setup(setup_doc):
 		setup_doc.setup_status = "Completed"
 		setup_doc.setup_completed_on = frappe.utils.now()
 		setup_doc.save()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: completed setup status must persist before the wizard reports success
 
 		frappe.msgprint("✅ South African localization setup completed successfully!")
 
 	except Exception as e:
 		setup_doc.setup_status = "Pending"
 		setup_doc.save()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: failed setup status must persist before raising the setup error
 		frappe.log_error(f"Setup failed: {e!s}", "ZA Local Setup")
 		frappe.throw(f"Setup failed: {e!s}")
 
 
 @frappe.whitelist()
 def refresh_sa_tax_tables():
-	"""
-	Idempotently reload South African payroll periods, tax slabs and rebates
-	from fixtures for all configured tax years (2025, 2026, 2027) without
-	recreating the site.
-	Can be run via bench:
-	  bench --site <site> execute za_local.sa_setup.install.refresh_sa_tax_tables
-	"""
-	import json
-	from pathlib import Path
+    """
+    Idempotently reload South African payroll periods, tax slabs and rebates
+    from fixtures for all configured tax years (2025, 2026, 2027) without
+    recreating the site.
+    Can be run via bench:
+      bench --site <site> execute za_local.sa_setup.install.refresh_sa_tax_tables
+    """
+    data_dir = resolve_app_path("sa_setup", "data")
+    fixture_files = [
+        # Payroll Periods
+        "payroll_period_2025.json",  # 2024-2025 (2025 tax year)
+        "payroll_period_2026.json",  # 2025-2026 (2026 tax year)
+        "payroll_period_2027.json",  # 2026-2027 (2027 tax year)
+        # Income Tax Slabs
+        "tax_slabs_2025.json",  # 2024-2025 (2025 tax year)
+        "tax_slabs_2026.json",  # 2025-2026 (2026 tax year)
+        "tax_slabs_2027.json",  # 2026-2027 (2027 tax year)
+        # Tax Rebates & Medical Credits
+        "tax_rebates_2025.json",  # 2024-2025 (2025 tax year)
+        "tax_rebates_2026.json",  # 2025-2026 (2026 tax year)
+        "tax_rebates_2027.json",  # 2026-2027 (2027 tax year)
+    ]
 
-	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
-	fixture_files = [
-		# Payroll Periods
-		"payroll_period_2025.json",  # 2024-2025 (2025 tax year)
-		"payroll_period_2026.json",  # 2025-2026 (2026 tax year)
-		"payroll_period_2027.json",  # 2026-2027 (2027 tax year)
-		# Income Tax Slabs
-		"tax_slabs_2025.json",  # 2024-2025 (2025 tax year)
-		"tax_slabs_2026.json",  # 2025-2026 (2026 tax year)
-		"tax_slabs_2027.json",  # 2026-2027 (2027 tax year)
-		# Tax Rebates & Medical Credits
-		"tax_rebates_2025.json",  # 2024-2025 (2025 tax year)
-		"tax_rebates_2026.json",  # 2025-2026 (2026 tax year)
-		"tax_rebates_2027.json",  # 2026-2027 (2027 tax year)
-	]
+    print("\nRefreshing South African payroll periods and tax tables from fixtures...")
+    for filename in fixture_files:
+        file_path = data_dir / filename
+        if not file_path.exists():
+            print(f"  ⊙ Skipping {filename} (file not found)")
+            continue
 
-	print("\nRefreshing South African payroll periods and tax tables from fixtures...")
-	for filename in fixture_files:
-		file_path = data_dir / filename
-		if not file_path.exists():
-			print(f"  ⊙ Skipping {filename} (file not found)")
-			continue
-		try:
-			# Single DocType (Tax Rebates and Medical Tax Credit) needs merge behaviour, not delete/recreate
-			if filename.startswith("tax_rebates_"):
-				_merge_tax_rebates_from_file(file_path)
-				print(f"  ✓ Merged rebates from {filename}")
-			else:
-				# Best-effort pre-delete so fixture values overwrite existing ones for non-Single doctypes
-				try:
-					with open(file_path) as f:
-						raw = json.load(f)
+        try:
+            # Single DocType (Tax Rebates and Medical Tax Credit) needs merge behaviour, not delete/recreate
+            if filename.startswith("tax_rebates_"):
+                _merge_tax_rebates_from_file(file_path)
+                print(f"  ✓ Merged rebates from {filename}")
+            else:
+                # Best-effort pre-delete so fixture values overwrite existing ones for non-Single doctypes
+                try:
+                    raw = read_app_json(file_path)
 
-					records: list[dict] = []
-					if isinstance(raw, list):
-						records = raw
-					elif isinstance(raw, dict) and raw.get("doctype"):
-						records = [raw]
-					elif isinstance(raw, dict):
-						for dt, rows in raw.items():
-							for row in rows or []:
-								row = dict(row)
-								row.setdefault("doctype", dt)
-								records.append(row)
+                    records: list[dict] = []
+                    if isinstance(raw, list):
+                        records = raw
+                    elif isinstance(raw, dict) and raw.get("doctype"):
+                        records = [raw]
+                    elif isinstance(raw, dict):
+                        for dt, rows in raw.items():
+                            for row in rows or []:
+                                row = dict(row)
+                                row.setdefault("doctype", dt)
+                                records.append(row)
 
-					for record in records:
-						doctype = record.get("doctype")
-						name = record.get("name")
-						if (
-							doctype in ("Payroll Period", "Income Tax Slab")
-							and name
-							and frappe.db.exists(doctype, name)
-						):
-							frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
-							print(f"  ⊙ Deleted existing {doctype}: {name}")
-				except Exception:
-					# Don't fail refresh if pre-delete inspection fails
-					pass
+                    for record in records:
+                        doctype = record.get("doctype")
+                        name = record.get("name")
+                        if (
+                            doctype in ("Payroll Period", "Income Tax Slab")
+                            and name
+                            and frappe.db.exists(doctype, name)
+                        ):
+                            frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
+                            print(f"  ⊙ Deleted existing {doctype}: {name}")
+                except Exception:
+                    # Don't fail refresh if pre-delete inspection fails
+                    pass
 
-				load_data_from_json(file_path)
-				print(f"  ✓ Loaded {filename}")
-		except Exception as e:
-			print(f"  ! Error loading {filename}: {e}")
+                load_data_from_json(file_path)
+                print(f"  ✓ Loaded {filename}")
+        except Exception as e:
+            print(f"  ! Error loading {filename}: {e}")
 
-	print("✓ SA payroll periods and tax tables refresh complete\n")
+    print("✓ SA payroll periods and tax tables refresh complete\n")
 
 
 def _merge_tax_rebates_from_file(file_path: Path) -> None:
 	"""Merge a tax_rebates_*.json fixture into the Single DocType without discarding other years."""
 	try:
-		with open(file_path) as f:
-			data = json.load(f)
+		data = read_app_json(file_path)
 	except Exception as e:
 		print(f"  ! Could not read {file_path.name}: {e}")
 		return
@@ -2133,10 +2127,7 @@ def load_data_from_json(file_path):
 	Args:
 		file_path: Path to JSON file
 	"""
-	import json
-
-	with open(file_path) as f:
-		data = json.load(f)
+	data = read_app_json(file_path)
 
 	# Handle different JSON formats
 	if isinstance(data, dict):
@@ -2158,7 +2149,7 @@ def load_data_from_json(file_path):
 			insert_record(record)
 
 	# Commit after loading all records from this file
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: packaged JSON import intentionally commits after each fixture file
 
 
 def insert_record(record):

@@ -5,11 +5,11 @@ Interactive wizard to configure za_local app for first-time use.
 Integrates with ERPNext setup wizard via after_wizard_complete hook.
 """
 
-import json
-
 import frappe
 from frappe import _
 from frappe.utils import getdate, today
+
+from za_local.utils.file_utils import read_app_json, resolve_app_path
 
 
 def run_sa_compliance_wizard(company=None):
@@ -166,31 +166,29 @@ def setup_sa_salary_components():
 
 
 def setup_current_year_tax_slabs():
-    """Load current year tax slabs from fixtures"""
-    try:
-        import os
-        fixture_path = os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "tax_slabs_2025.json"  # 2024-2025 (2025 tax year)
-        )
+	"""Load current year tax slabs from fixtures"""
+	try:
+		fixture_path = resolve_app_path(
+			"sa_setup",
+			"data",
+			"tax_slabs_2025.json"  # 2024-2025 (2025 tax year)
+		)
 
-        if os.path.exists(fixture_path):
-            with open(fixture_path) as f:
-                data = json.load(f)
+		if fixture_path.exists():
+			data = read_app_json(fixture_path)
 
-            # Import tax slabs if Tax Slab DocType exists
-            if "Tax Slab" in data:
-                for slab in data["Tax Slab"]:
-                    if not frappe.db.exists("Tax Slab", slab["name"]):
-                        # Tax Slab might not exist in this Frappe version
-                        # This is a placeholder for when it's available
-                        print(f"  → Tax slab: {slab['name']} ({slab['rate_of_tax']}%)")
-        else:
-            print(f"  ! Fixture file not found: {fixture_path}")
+			# Import tax slabs if Tax Slab DocType exists
+			if "Tax Slab" in data:
+				for slab in data["Tax Slab"]:
+					if not frappe.db.exists("Tax Slab", slab["name"]):
+						# Tax Slab might not exist in this Frappe version
+						# This is a placeholder for when it's available
+						print(f"  → Tax slab: {slab['name']} ({slab['rate_of_tax']}%)")
+		else:
+			print(f"  ! Fixture file not found: {fixture_path}")
 
-    except Exception as e:
-        print(f"  ! Error loading tax slabs: {e}")
+	except Exception as e:
+		print(f"  ! Error loading tax slabs: {e}")
 
 
 def setup_eti_slabs():
@@ -300,7 +298,7 @@ def setup_sa_print_formats():
 		except Exception as e:
 			print(f"  ! Error setting print format for {doctype}: {e}")
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: wizard print-format defaults must persist before setup continues
 	print("  ✓ SA print formats configured successfully")
 
 
@@ -371,8 +369,6 @@ def setup_za_localization(args):
 	Args:
 		args: Dictionary from setup wizard containing user selections
 	"""
-	from pathlib import Path
-
 	import frappe
 	from frappe import _
 
@@ -428,7 +424,7 @@ def setup_za_localization(args):
 		)
 		company = companies[0] if companies else None
 
-	data_dir = Path(frappe.get_app_path("za_local", "sa_setup", "data"))
+	data_dir = resolve_app_path("sa_setup", "data")
 
 	try:
 		# Step 1: Setup SA print formats as default

@@ -92,7 +92,7 @@ def check_tax_directive_expiry():
 		notification.for_user = get_hr_admin_users()
 		notification.insert(ignore_permissions=True)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: scheduled notification inserts must persist at the end of the job
 	print(f"✓ Tax Directive Expiry Check: {len(expiring_directives)} directive(s) expiring soon")
 
 
@@ -146,7 +146,7 @@ def check_eti_eligibility_changes():
 		)
 
 	if employees_turning_30 or employees_at_24_months:
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: scheduled ETI notification inserts must persist at the end of the job
 		print(f"✓ ETI Eligibility Check: {len(employees_turning_30)} turning 30, {len(employees_at_24_months)} at 24 months")
 
 
@@ -218,7 +218,7 @@ def validate_employee_id_numbers():
 		)
 
 	if invalid_ids or actual_duplicates:
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: scheduled ID-validation notifications must persist at the end of the job
 		print(f"✓ ID Validation: {len(invalid_ids)} invalid, {len(actual_duplicates)} duplicates")
 
 
@@ -246,7 +246,7 @@ def check_sars_rate_updates():
 			doctype=None,
 			docname=None
 		)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: scheduled SARS-rate reminder must persist at the end of the job
 		print("✓ SARS Rate Update Reminder sent for new tax year")
 
 
@@ -284,7 +284,7 @@ def reminder_for_eea_reporting():
 			doctype=None,
 			docname=None
 		)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: scheduled EEA reminder must persist at the end of the job
 		print("✓ EEA Reporting Reminder sent")
 
 

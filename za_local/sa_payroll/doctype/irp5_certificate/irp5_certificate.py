@@ -121,7 +121,7 @@ class IRP5Certificate(Document):
 		self.status = "Submitted"
 
 	def on_cancel(self):
-		self.status = "Cancelled"
+		self.db_set("status", "Cancelled", update_modified=False)
 		frappe.msgprint(_("IRP5 Certificate {0} has been cancelled.").format(self.name))
 
 	def set_certificate_number(self):

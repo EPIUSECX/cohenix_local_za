@@ -41,13 +41,10 @@ def get_data(filters):
 	if filters.get("department"):
 		conditions.append("e.department = %(department)s")
 
-	where_clause = " AND ".join(conditions)
-
-	return frappe.db.sql(
-		f"""
-		SELECT
-			ss.name AS salary_slip,
-			ss.employee,
+	query = """
+			SELECT
+				ss.name AS salary_slip,
+				ss.employee,
 			ss.employee_name,
 			e.department,
 			ss.posting_date,
@@ -64,14 +61,16 @@ def get_data(filters):
 			SELECT parent, salary_component, amount, 'company_contribution' AS source_table
 			FROM `tabCompany Contribution`
 		) src
-		INNER JOIN `tabSalary Slip` ss ON ss.name = src.parent
-		INNER JOIN `tabEmployee` e ON e.name = ss.employee
-		LEFT JOIN `tabSalary Component` sc ON sc.name = src.salary_component
-		WHERE {where_clause}
-			AND (
-				sc.za_sars_payroll_code IN %(retirement_codes)s
-				OR LOWER(src.salary_component) LIKE '%%pension%%'
-				OR LOWER(src.salary_component) LIKE '%%provident%%'
+			INNER JOIN `tabSalary Slip` ss ON ss.name = src.parent
+			INNER JOIN `tabEmployee` e ON e.name = ss.employee
+			LEFT JOIN `tabSalary Component` sc ON sc.name = src.salary_component
+			WHERE """
+	query += " AND ".join(conditions)
+	query += """
+				AND (
+					sc.za_sars_payroll_code IN %(retirement_codes)s
+					OR LOWER(src.salary_component) LIKE '%%pension%%'
+					OR LOWER(src.salary_component) LIKE '%%provident%%'
 				OR LOWER(src.salary_component) LIKE '%%retirement annuity%%'
 				OR LOWER(src.salary_component) LIKE '%%retirement fund%%'
 			)
@@ -80,11 +79,14 @@ def get_data(filters):
 			ss.employee,
 			ss.employee_name,
 			e.department,
-			ss.posting_date,
-			src.salary_component,
-			sc.za_sars_payroll_code
-		ORDER BY ss.posting_date, ss.employee_name, src.salary_component
-		""",
+				ss.posting_date,
+				src.salary_component,
+				sc.za_sars_payroll_code
+			ORDER BY ss.posting_date, ss.employee_name, src.salary_component
+			"""
+
+	return frappe.db.sql(
+		query,
 		{**filters, "retirement_codes": tuple(RETIREMENT_FUND_CODES)},
 		as_dict=True,
 	)

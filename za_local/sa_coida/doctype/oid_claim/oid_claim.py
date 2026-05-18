@@ -45,8 +45,13 @@ class OIDClaim(Document):
     def on_submit(self):
         """Update status when submitted"""
         if self.claim_status == "Pending":
-            self.claim_status = "Submitted"
-            self.claim_date = today()
+            self.db_set(
+                {
+                    "claim_status": "Submitted",
+                    "claim_date": today(),
+                },
+                update_modified=False,
+            )
 
     def on_update_after_submit(self):
         """Update linked workplace injury when claim status changes"""
@@ -65,8 +70,13 @@ class OIDClaim(Document):
 
     def on_cancel(self):
         """Reset status when cancelled"""
-        self.claim_status = "Pending"
-        self.claim_date = None
+        self.db_set(
+            {
+                "claim_status": "Pending",
+                "claim_date": None,
+            },
+            update_modified=False,
+        )
 
         # Update linked workplace injury
         if self.workplace_injury:

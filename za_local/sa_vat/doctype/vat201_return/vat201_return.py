@@ -191,11 +191,13 @@ class VAT201Return(Document):
 					len(review_rows)
 				)
 			)
+		updates = {}
 		if self.status == "Draft":
-			self.status = "Prepared"
+			updates["status"] = "Prepared"
 		if not self.submission_reference:
-			self.submission_reference = f"VAT201-{self.name}-{frappe.utils.random_string(8)}"
-		self.db_update()
+			updates["submission_reference"] = f"VAT201-{self.name}-{frappe.utils.random_string(8)}"
+		if updates:
+			self.db_set(updates, update_modified=False)
 
 	@frappe.whitelist()
 	def submit_to_sars(self):

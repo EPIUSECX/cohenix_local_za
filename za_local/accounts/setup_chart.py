@@ -6,11 +6,10 @@ for companies during setup and provides integration helpers
 for the ERPNext setup wizard.
 """
 
-import json
-from pathlib import Path
-
 import frappe
 from frappe import _
+
+from za_local.utils.file_utils import read_app_json, resolve_app_path
 
 
 def load_sa_chart_of_accounts(company):
@@ -342,13 +341,15 @@ def _get_or_create_account(company, account_name, account_type, parent=None, is_
 def get_chart_template_name():
 	"""Get the name of the South African Chart of Accounts template"""
 	try:
-		chart_path = Path(frappe.get_app_path("za_local", "accounts", "chart_of_accounts",
-											  "za_south_africa_chart_template.json"))
+		chart_path = resolve_app_path(
+			"accounts",
+			"chart_of_accounts",
+			"za_south_africa_chart_template.json",
+		)
 
 		if chart_path.exists():
-			with open(chart_path) as f:
-				chart_data = json.load(f)
-				return chart_data.get("name")
+			chart_data = read_app_json(chart_path)
+			return chart_data.get("name")
 	except Exception as e:
 		# Log error but don't fail - chart template loading is optional
 		frappe.log_error(f"Error getting chart template name: {e!s}", "ZA Chart Template")
@@ -366,17 +367,16 @@ def get_za_chart_tree():
 	South African chart using its standard `create_charts` logic.
 	"""
 	try:
-		chart_path = Path(
-			frappe.get_app_path(
-				"za_local", "accounts", "chart_of_accounts", "za_south_africa_chart_template.json"
-			)
+		chart_path = resolve_app_path(
+			"accounts",
+			"chart_of_accounts",
+			"za_south_africa_chart_template.json",
 		)
 
 		if not chart_path.exists():
 			return None
 
-		with open(chart_path) as f:
-			chart_data = json.load(f)
+		chart_data = read_app_json(chart_path)
 
 		return chart_data.get("tree")
 	except Exception as e:
@@ -386,7 +386,7 @@ def get_za_chart_tree():
 
 
 @frappe.whitelist()
-def get_charts_for_country_with_za(country, with_standard: bool = False):
+def get_charts_for_country_with_za(country, with_standard=False):
 	"""
 	Whitelisted wrapper used by ERPNext setup wizard to fetch charts.
 
@@ -438,7 +438,7 @@ def extend_charts_for_country():
 		original_get_charts = coa_module.get_charts_for_country
 
 		@wraps(original_get_charts)
-		def get_charts_for_country_with_za(country, with_standard: bool = False):
+		def get_charts_for_country_with_za(country, with_standard=False):
 			"""Return core charts plus ZA template for South Africa."""
 			try:
 				charts = original_get_charts(country, with_standard)

@@ -320,11 +320,7 @@ class ZAPayrollEntry(PayrollEntry):
         employee_frequency = get_employee_frequency_map()
 
         # Get payment timing setting
-        pay_at = frappe.db.get_value(
-            "Employee Payroll Frequency",
-            "Employee Payroll Frequency",
-            "pay_at"
-        )
+        pay_at = frappe.db.get_single_value("Employee Payroll Frequency", "pay_at")
 
         # Filter employees based on frequency
         for emp in employees:

@@ -11,7 +11,8 @@ app_home = "/desk/sa-overview"
 # Import hook utility functions for conditional configuration
 # These are called at import time to generate configuration dynamically
 from za_local.sa_setup.custom_fields import get_za_local_custom_records
-from za_local.utils.hooks_utils import get_hrms_doctype_js, get_override_doctype_class
+from za_local.utils.hooks_utils import get_hrms_doctype_js
+from za_local.utils.hrms_detection import is_hrms_installed
 
 # Add to Apps Screen (Frappe v16 desk: one App tile with map logo; workspace icons nest under it)
 # ------------------
@@ -117,7 +118,20 @@ override_whitelisted_methods = {
 # ------------------
 # Override standard doctype classes with South African implementations
 # Only register HRMS overrides if HRMS is installed
-override_doctype_class = get_override_doctype_class()
+override_doctype_class = {
+	"Sales Invoice": "za_local.overrides.vat_invoices.ZASalesInvoice",
+	"Purchase Invoice": "za_local.overrides.vat_invoices.ZAPurchaseInvoice",
+}
+
+if is_hrms_installed():
+	override_doctype_class.update({
+		"Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
+		"Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
+		"Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary",
+		"Leave Application": "za_local.overrides.leave_application.ZALeaveApplication",
+		"Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation",
+		"Salary Structure Assignment": "za_local.overrides.salary_structure_assignment.ZASalaryStructureAssignment",
+	})
 
 # Document Events
 # ------------------

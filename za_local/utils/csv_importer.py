@@ -11,10 +11,12 @@ trip regions, SETAs, bargaining councils, etc.
 
 import contextlib
 from csv import DictReader
-from pathlib import Path
+from io import StringIO
 
 import frappe
 from frappe.exceptions import DuplicateEntryError
+
+from za_local.utils.file_utils import read_app_text, resolve_app_path
 
 
 def import_csv_data(doctype, csv_filename, update_existing=False):
@@ -41,8 +43,8 @@ def import_csv_data(doctype, csv_filename, update_existing=False):
 		print(f"  Warning: DocType '{doctype}' does not exist. Skipping.")
 		return stats
 
-	# Build path to CSV file
-	csv_path = Path(frappe.get_app_path("za_local", "data", csv_filename))
+	# Build path to packaged CSV file
+	csv_path = resolve_app_path("data", csv_filename)
 
 	if not csv_path.exists():
 		print(f"  Warning: CSV file '{csv_filename}' not found at {csv_path}")
@@ -51,43 +53,42 @@ def import_csv_data(doctype, csv_filename, update_existing=False):
 	print(f"Importing {doctype} from {csv_filename}...")
 
 	# Read and import CSV data
-	with open(csv_path, encoding="utf-8") as csvfile:
-		reader = DictReader(csvfile)
+	reader = DictReader(StringIO(read_app_text(csv_path)))
 
-		for row in reader:
-			try:
-				# Convert CSV string values to proper types
-				converted_row = convert_csv_types(row)
+	for row in reader:
+		try:
+			# Convert CSV string values to proper types
+			converted_row = convert_csv_types(row)
 
-				# Check if record already exists
-				existing = check_existing_record(doctype, converted_row)
+			# Check if record already exists
+			existing = check_existing_record(doctype, converted_row)
 
-				if existing:
-					if update_existing:
-						# Update existing record
-						doc = frappe.get_doc(doctype, existing)
-						doc.update(converted_row)
-						doc.save(ignore_permissions=True)
-						stats["updated"] += 1
-					else:
-						# Skip duplicate
-						stats["skipped"] += 1
-						continue
-				else:
-					# Create new record
-					doc = frappe.new_doc(doctype)
+			if existing:
+				if update_existing:
+					# Update existing record
+					doc = frappe.get_doc(doctype, existing)
 					doc.update(converted_row)
+					doc.save(ignore_permissions=True)
+					stats["updated"] += 1
+				else:
+					# Skip duplicate
+					stats["skipped"] += 1
+					continue
+			else:
+				# Create new record
+				doc = frappe.new_doc(doctype)
+				doc.update(converted_row)
 
-					with contextlib.suppress(DuplicateEntryError):
-						doc.insert(ignore_permissions=True)
-						stats["created"] += 1
+				with contextlib.suppress(DuplicateEntryError):
+					doc.insert(ignore_permissions=True)
+					stats["created"] += 1
 
-			except Exception as e:
-				print(f"  Error importing row {row}: {e}")
-				stats["errors"] += 1
+		except Exception as e:
+			print(f"  Error importing row {row}: {e}")
+			stats["errors"] += 1
 
 	# Commit changes
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: packaged CSV import intentionally commits after processing the file
 
 	# Print summary
 	print(f"  ✓ {doctype}: Created {stats['created']}, Updated {stats['updated']}, "
@@ -230,4 +231,3 @@ def import_all_master_data():
 	      f"{total_stats['skipped']} skipped, {total_stats['errors']} errors\n")
 
 	return total_stats
-

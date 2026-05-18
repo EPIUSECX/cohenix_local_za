@@ -21,7 +21,7 @@ class TaxDirective(Document):
 
 	def on_cancel(self):
 		"""Actions on cancellation"""
-		self.status = "Cancelled"
+		self.db_set("status", "Cancelled", update_modified=False)
 
 	def validate_dates(self):
 		"""Validate effective dates"""
@@ -162,4 +162,3 @@ def get_active_directive(employee, date=None):
 		return frappe.get_doc("Tax Directive", directives[0].name)
 
 	return None
-

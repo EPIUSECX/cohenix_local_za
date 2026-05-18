@@ -31,7 +31,7 @@ def after_uninstall():
     # Clean up custom DocTypes (optional - with data preservation)
     cleanup_custom_doctypes()
 
-    frappe.db.commit()
+    frappe.db.commit()  # nosemgrep: uninstall cleanup must persist before reporting completion
 
     print("\n" + "="*80)
     print("South African Localization uninstalled successfully!")
@@ -61,7 +61,7 @@ def remove_custom_fields():
             except Exception as e:
                 print(f"  Warning: Could not delete custom field {field_name}: {e}")
 
-    frappe.db.commit()
+    frappe.db.commit()  # nosemgrep: custom-field removal is an intentional uninstall transaction boundary
     print(f"✓ Removed {count} custom fields")
 
 
@@ -94,7 +94,7 @@ def remove_property_setters():
                 except Exception as e:
                     print(f"  Warning: Could not delete property setter for {doctype}.{property_setter[0]}: {e}")
 
-    frappe.db.commit()
+    frappe.db.commit()  # nosemgrep: property-setter removal is an intentional uninstall transaction boundary
     print(f"✓ Removed {count} property setters")
 
 
@@ -151,4 +151,3 @@ def preserve_data_warning():
     print("2. Then delete the DocTypes themselves")
     print("3. Run: bench clear-cache")
     print("!"*80 + "\n")
-
