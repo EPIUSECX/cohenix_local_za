@@ -11,6 +11,7 @@ dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
     "PyPDF2>=3.0.0",  # PDF generation for IRP5 certificates
     "reportlab>=4.0.0",  # PDF report generation
+    "python-dateutil>=2.8.2",  # Date/time utilities
 ]
 
 [build-system]

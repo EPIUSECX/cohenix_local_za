@@ -114,17 +114,15 @@ extend_doctype_class = {
 }
 
 # Only register HRMS overrides if HRMS is installed.
-override_doctype_class = {}
-
 if is_hrms_installed():
-	override_doctype_class.update({
+	override_doctype_class = {
 		"Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
 		"Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
 		"Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary",
 		"Leave Application": "za_local.overrides.leave_application.ZALeaveApplication",
 		"Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation",
 		"Salary Structure Assignment": "za_local.overrides.salary_structure_assignment.ZASalaryStructureAssignment",
-	})
+	}
 
 # Document Events
 # ------------------
