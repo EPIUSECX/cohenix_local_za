@@ -7,10 +7,12 @@ for the South African localization app.
 
 import copy
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
 import frappe
+from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.utils.fixtures import import_fixtures
 
@@ -318,9 +320,7 @@ def after_install():
 	ensure_modules_visible()
 	set_accounts_settings_for_za_vat()
 	migrate_workspace_sa_localisation_to_sa_overview()
-	sync_sa_workspaces()
-	rebuild_za_local_workspace_sidebars()
-	sync_za_local_desktop_icons()
+	sync_sa_navigation()
 	ensure_sa_print_formats()
 	ensure_sa_vat_print_format_field_templates()
 	print("\n" + "=" * 80)
@@ -328,10 +328,14 @@ def after_install():
 	print("=" * 80)
 	print("\nNext steps:")
 	print("1. Configure Company SA registration numbers")
-	print("2. Set up Payroll Settings with SA statutory components")
-	print("3. Configure ETI Slabs and Tax Rebates")
-	print("4. Set up COIDA and VAT settings if applicable")
-	print("5. Configure Business Trip Settings for travel allowances")
+	if is_hrms_installed():
+		print("2. Set up Payroll Settings with SA statutory components")
+		print("3. Configure ETI Slabs and Tax Rebates")
+		print("4. Set up COIDA and VAT settings if applicable")
+		print("5. Configure Business Trip Settings for travel allowances")
+	else:
+		print("2. Configure VAT, COIDA, and Business Trip Settings if applicable")
+		print("3. Install HRMS only if payroll and employee compliance are required")
 	print("=" * 80 + "\n")
 
 
@@ -356,9 +360,7 @@ def after_migrate():
 	ensure_modules_visible()
 	set_accounts_settings_for_za_vat()
 	migrate_workspace_sa_localisation_to_sa_overview()
-	sync_sa_workspaces()
-	rebuild_za_local_workspace_sidebars()
-	sync_za_local_desktop_icons()
+	sync_sa_navigation()
 	ensure_sa_print_formats()
 	ensure_sa_vat_print_format_field_templates()
 
@@ -432,9 +434,10 @@ def ensure_sa_print_formats():
 	print("\nEnsuring South African print formats...")
 
 	print_formats = _load_standard_print_format_records()
+	hrms_available = is_hrms_installed()
 
 	for name, values in print_formats.items():
-		if values.get("doc_type") == "Salary Slip" and not is_hrms_installed():
+		if values.get("doc_type") in {"Salary Slip", "IRP5 Certificate"} and not hrms_available:
 			continue
 		if values.get("doc_type") and not frappe.db.exists("DocType", values["doc_type"]):
 			continue
@@ -447,9 +450,9 @@ def ensure_sa_print_formats():
 			doc.flags.ignore_permissions = True
 			doc.insert(ignore_permissions=True)
 
-	if frappe.db.exists("DocType", "IRP5 Certificate"):
+	if hrms_available and frappe.db.exists("DocType", "IRP5 Certificate"):
 		frappe.db.set_value("DocType", "IRP5 Certificate", "default_print_format", "IRP5 Employee Certificate")
-	if is_hrms_installed() and frappe.db.exists("DocType", "Salary Slip") and frappe.db.exists("Print Format", "SA Salary Slip"):
+	if hrms_available and frappe.db.exists("DocType", "Salary Slip") and frappe.db.exists("Print Format", "SA Salary Slip"):
 		frappe.db.set_value("DocType", "Salary Slip", "default_print_format", "SA Salary Slip")
 
 	print("  ✓ South African print formats are available")
@@ -734,6 +737,349 @@ def _sanitize_workspace_dashboard_charts(data: dict) -> None:
 	_strip_workspace_content_chart_blocks(data, allowed)
 
 
+_HRMS_ONLY_NAV_DOCTYPES = frozenset(
+	{
+		"Additional Salary",
+		"Bulk Salary Structure Assignment",
+		"Employee",
+		"Employee Benefit Application",
+		"Employee Incentive",
+		"Holiday List",
+		"Income Tax Slab",
+		"Payroll Correction",
+		"Payroll Entry",
+		"Payroll Period",
+		"Payroll Settings",
+		"Retention Bonus",
+		"Retirement Fund",
+		"Salary Component",
+		"Salary Slip",
+		"Salary Structure",
+		"Salary Structure Assignment",
+		"Salary Withholding",
+		"Tax Rebates and Medical Tax Credit",
+	}
+)
+
+_HRMS_ONLY_NAV_REPORTS = frozenset(
+	{
+		"Bank Remittance",
+		"Department Cost Analysis",
+		"Ee Workforce Profile",
+		"Eea2 Income Differentials",
+		"Eea4 Employment Equity Plan",
+		"EMP201 Report",
+		"Income Tax Computation",
+		"Income Tax Deductions",
+		"Payroll Register",
+		"Retirement Fund Deductions",
+		"Salary Payments Based On Payment Mode",
+		"Salary Payments via ECS",
+		"Salary Register",
+		"Statutory Submissions Summary",
+	}
+)
+
+_HRMS_SETUP_FIELDS = frozenset(
+	{
+		"load_salary_components",
+		"load_earnings_components",
+		"load_tax_slabs",
+		"load_tax_rebates",
+		"load_medical_credits",
+	}
+)
+
+_SIDEBAR_MODULE_ONBOARDING = {
+	"SA Overview": "SA Overview Onboarding",
+	"SA VAT": "SA VAT Onboarding",
+	"SA Payroll": "SA Payroll Onboarding",
+	"SA Labour": "SA Labour Onboarding",
+	"SA COIDA": "SA COIDA Onboarding",
+}
+
+
+def _sa_workspace_definition_paths(hrms_available: bool | None = None):
+	"""Return standard ZA workspace JSON paths for the current site's installed apps."""
+	if hrms_available is None:
+		hrms_available = is_hrms_installed()
+
+	base = resolve_app_path()
+	paths = [
+		base / "sa_setup" / "workspace" / "sa_localisation" / "sa_localisation.json",
+		base / "sa_vat" / "workspace" / "sa_vat" / "sa_vat.json",
+		base / "sa_labour" / "workspace" / "sa_labour" / "sa_labour.json",
+		base / "sa_coida" / "workspace" / "sa_coida" / "sa_coida.json",
+	]
+	if hrms_available:
+		paths.insert(2, base / "sa_payroll" / "workspace" / "sa_payroll" / "sa_payroll.json")
+	return tuple(paths)
+
+
+def _doctype_has_field(doctype: str, fieldname: str) -> bool:
+	try:
+		return bool(frappe.get_meta(doctype).has_field(fieldname))
+	except Exception:
+		try:
+			return fieldname in frappe.db.get_table_columns(doctype)
+		except Exception:
+			return False
+
+
+def _set_doc_field_if_present(doc, fieldname: str, value):
+	if _doctype_has_field(doc.doctype, fieldname):
+		doc.set(fieldname, value)
+
+
+def _is_hrms_only_navigation_item(label=None, link_type=None, link_to=None, url=None) -> bool:
+	label = label or ""
+	link_type = link_type or ""
+	link_to = link_to or ""
+	url = url or ""
+
+	if label == "SA Payroll" or link_to == "SA Payroll" or "/sa-payroll" in url:
+		return True
+	if link_type == "DocType" and link_to in _HRMS_ONLY_NAV_DOCTYPES:
+		return True
+	if link_type == "Report" and link_to in _HRMS_ONLY_NAV_REPORTS:
+		return True
+	return False
+
+
+def _link_target_exists(link_type: str | None, link_to: str | None, url: str | None = None) -> bool:
+	if link_type == "URL":
+		return bool(url or link_to)
+	if not link_type or not link_to:
+		return False
+
+	target_doctype = {
+		"DocType": "DocType",
+		"Page": "Page",
+		"Report": "Report",
+		"Dashboard": "Dashboard",
+		"Workspace": "Workspace",
+	}.get(link_type)
+	if not target_doctype:
+		return True
+
+	try:
+		if target_doctype != "DocType" and not frappe.db.table_exists(target_doctype):
+			return False
+		if not frappe.db.exists(target_doctype, link_to):
+			return False
+		if target_doctype == "Report":
+			ref_doctype = frappe.db.get_value("Report", link_to, "ref_doctype")
+			if ref_doctype and not frappe.db.exists("DocType", ref_doctype):
+				return False
+		return True
+	except Exception:
+		return False
+
+
+def _workspace_link_row_is_valid(row: dict, hrms_available: bool) -> bool:
+	if row.get("type") != "Link":
+		return True
+	if not hrms_available and _is_hrms_only_navigation_item(
+		row.get("label"),
+		row.get("link_type"),
+		row.get("link_to"),
+		row.get("url"),
+	):
+		return False
+	return _link_target_exists(row.get("link_type"), row.get("link_to"), row.get("url"))
+
+
+def _sanitize_workspace_links(data: dict, hrms_available: bool) -> None:
+	"""Drop invalid link rows and any Card Breaks left empty after filtering."""
+	links = data.get("links") or []
+	if not links:
+		return
+
+	output = []
+	current_card = None
+	current_card_links = []
+
+	def flush_card():
+		nonlocal current_card, current_card_links
+		if current_card and current_card_links:
+			card = dict(current_card)
+			card["link_count"] = len(current_card_links)
+			output.append(card)
+			output.extend(current_card_links)
+		current_card = None
+		current_card_links = []
+
+	for row in links:
+		if row.get("type") == "Card Break":
+			flush_card()
+			current_card = row
+			current_card_links = []
+			continue
+
+		if not _workspace_link_row_is_valid(row, hrms_available):
+			continue
+
+		if current_card:
+			current_card_links.append(row)
+		else:
+			output.append(row)
+
+	flush_card()
+	data["links"] = output
+
+
+def _sanitize_workspace_shortcuts(data: dict, hrms_available: bool) -> None:
+	shortcuts = data.get("shortcuts") or []
+	if not shortcuts:
+		return
+
+	data["shortcuts"] = [
+		row for row in shortcuts
+		if not (
+			not hrms_available
+			and _is_hrms_only_navigation_item(
+				row.get("label"),
+				row.get("type"),
+				row.get("link_to"),
+				row.get("url"),
+			)
+		)
+		and _link_target_exists(row.get("type"), row.get("link_to"), row.get("url"))
+	]
+
+
+def _sanitize_workspace_quick_lists(data: dict, hrms_available: bool) -> None:
+	quick_lists = data.get("quick_lists") or []
+	if not quick_lists:
+		return
+
+	kept = []
+	for row in quick_lists:
+		doctype = row.get("document_type")
+		if not doctype:
+			continue
+		if not hrms_available and _is_hrms_only_navigation_item(row.get("label"), "DocType", doctype):
+			continue
+		if frappe.db.exists("DocType", doctype):
+			kept.append(row)
+	data["quick_lists"] = kept
+
+
+def _strip_workspace_content_card_blocks(data: dict, allowed_card_names: set[str]) -> None:
+	raw = data.get("content")
+	if not raw:
+		return
+	try:
+		blocks = json.loads(raw)
+	except Exception:
+		return
+	if not isinstance(blocks, list):
+		return
+
+	output = []
+	for block in blocks:
+		if block.get("type") == "card":
+			card_name = (block.get("data") or {}).get("card_name")
+			if card_name not in allowed_card_names:
+				continue
+		output.append(block)
+	data["content"] = json.dumps(output)
+
+
+def _sanitize_workspace_content_cards(data: dict) -> None:
+	allowed_card_names = {
+		row.get("label")
+		for row in data.get("links") or []
+		if row.get("type") == "Card Break" and row.get("label")
+	}
+	_strip_workspace_content_card_blocks(data, allowed_card_names)
+
+
+def _sanitize_workspace_content_hrms_text(data: dict) -> None:
+	raw = data.get("content")
+	if not raw:
+		return
+	try:
+		blocks = json.loads(raw)
+	except Exception:
+		return
+	if not isinstance(blocks, list):
+		return
+
+	changed = False
+	for block in blocks:
+		block_data = block.get("data") or {}
+		text = block_data.get("text")
+		if not isinstance(text, str):
+			continue
+		new_text = text
+		new_text = new_text.replace("payroll masters, ", "")
+		new_text = new_text.replace("payroll runs, ", "")
+		new_text = re.sub(r"<br><br><b>SA Payroll</b>.*?reports\.", "", new_text)
+		if new_text != text:
+			block_data["text"] = new_text
+			changed = True
+
+	if changed:
+		data["content"] = json.dumps(blocks)
+
+
+def _sanitize_workspace_navigation(data: dict, hrms_available: bool) -> None:
+	_sanitize_workspace_shortcuts(data, hrms_available)
+	_sanitize_workspace_quick_lists(data, hrms_available)
+	_sanitize_workspace_links(data, hrms_available)
+	_sanitize_workspace_content_cards(data)
+	if not hrms_available:
+		_sanitize_workspace_content_hrms_text(data)
+
+
+def _remove_or_hide_hrms_navigation():
+	"""Hide stale payroll navigation left from a previous HRMS-enabled state."""
+	if frappe.db.table_exists("Workspace") and frappe.db.exists("Workspace", "SA Payroll"):
+		try:
+			frappe.db.set_value("Workspace", "SA Payroll", "is_hidden", 1, update_modified=False)
+		except Exception as e:
+			print(f"  ! Could not hide SA Payroll workspace: {e}")
+
+	if frappe.db.table_exists("Workspace Sidebar") and frappe.db.exists("Workspace Sidebar", "SA Payroll"):
+		try:
+			frappe.delete_doc("Workspace Sidebar", "SA Payroll", force=True, ignore_permissions=True)
+			print("  ✓ Removed SA Payroll Workspace Sidebar (HRMS not installed)")
+		except Exception as e:
+			print(f"  ! Could not remove SA Payroll Workspace Sidebar: {e}")
+
+	if frappe.db.table_exists("Desktop Icon") and _desktop_icon_has_field("hidden"):
+		try:
+			for row in frappe.get_all(
+				"Desktop Icon",
+				filters={"label": "SA Payroll"},
+				fields=["name"],
+			):
+				frappe.db.set_value("Desktop Icon", row.name, "hidden", 1, update_modified=False)
+		except Exception as e:
+			print(f"  ! Could not hide SA Payroll desktop icon: {e}")
+
+
+def _module_onboarding_for_workspace(workspace_name: str) -> str:
+	onboarding = _SIDEBAR_MODULE_ONBOARDING.get(workspace_name)
+	if (
+		onboarding
+		and frappe.db.table_exists("Module Onboarding")
+		and frappe.db.exists("Module Onboarding", onboarding)
+	):
+		return onboarding
+	return ""
+
+
+def _za_sidebar_workspace_names(hrms_available: bool | None = None):
+	if hrms_available is None:
+		hrms_available = is_hrms_installed()
+	names = ["SA Overview", "SA VAT", "SA Labour", "SA COIDA"]
+	if hrms_available:
+		names.insert(2, "SA Payroll")
+	return tuple(names)
+
+
 def sync_sa_workspaces():
 	"""
 	Ensure ZA Local workspaces defined in the app (e.g. SA Localisation, SA VAT)
@@ -743,6 +1089,10 @@ def sync_sa_workspaces():
 	app's workspace JSON files directly and upsert the corresponding Workspace
 	records in the current site.
 	"""
+	hrms_available = is_hrms_installed()
+	if not hrms_available:
+		_remove_or_hide_hrms_navigation()
+
 	def _upsert_workspace(json_path: Path):
 		if not json_path.exists():
 			return
@@ -760,9 +1110,13 @@ def sync_sa_workspaces():
 		ws_name = data.get("name") or data.get("title")
 		if not ws_name:
 			return
+		if ws_name == "SA Payroll" and not hrms_available:
+			_remove_or_hide_hrms_navigation()
+			return
 
 		data = copy.deepcopy(data)
 		_sanitize_workspace_dashboard_charts(data)
+		_sanitize_workspace_navigation(data, hrms_available)
 
 		immutable_keys = {
 			"name",
@@ -796,14 +1150,7 @@ def sync_sa_workspaces():
 				print(f"  ! Could not create Workspace {ws_name}: {e}")
 
 	try:
-		base = resolve_app_path()
-		for rel in (
-			base / "sa_setup" / "workspace" / "sa_localisation" / "sa_localisation.json",
-			base / "sa_vat" / "workspace" / "sa_vat" / "sa_vat.json",
-			base / "sa_payroll" / "workspace" / "sa_payroll" / "sa_payroll.json",
-			base / "sa_labour" / "workspace" / "sa_labour" / "sa_labour.json",
-			base / "sa_coida" / "workspace" / "sa_coida" / "sa_coida.json",
-		):
+		for rel in _sa_workspace_definition_paths(hrms_available):
 			_upsert_workspace(rel)
 	except Exception as e:
 		# Do not fail install/migrate if workspace sync has issues
@@ -963,28 +1310,34 @@ def rebuild_za_local_workspace_sidebars():
 	if not frappe.db.table_exists("Workspace Sidebar"):
 		return
 
-	for workspace_name in (
-		"SA Overview",
-		"SA VAT",
-		"SA Payroll",
-		"SA Labour",
-		"SA COIDA",
-	):
+	hrms_available = is_hrms_installed()
+	if not hrms_available:
+		_remove_or_hide_hrms_navigation()
+
+	for workspace_name in _za_sidebar_workspace_names(hrms_available):
 		if not frappe.db.exists("Workspace", workspace_name):
 			continue
+		if frappe.db.get_value("Workspace", workspace_name, "is_hidden"):
+			continue
 		try:
-			_rebuild_single_za_local_workspace_sidebar(workspace_name)
+			_rebuild_single_za_local_workspace_sidebar(workspace_name, hrms_available=hrms_available)
 		except Exception as e:
 			print(f"  ! Could not rebuild Workspace Sidebar '{workspace_name}': {e}")
 
 
-def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
+def _rebuild_single_za_local_workspace_sidebar(workspace_name: str, hrms_available: bool | None = None):
 	"""
 	Build Workspace Sidebar rows like Frappe HR Payroll: top-level Home (and optional
 	Dashboard) + shortcut links with Lucide icons; Card Break → Section Break with
 	indent/collapsible/keep_closed; links under each card as child rows (child=1, icon '')
 	so the sidebar nests and does not fall back to the default 'list' icon.
 	"""
+	if hrms_available is None:
+		hrms_available = is_hrms_installed()
+	if workspace_name == "SA Payroll" and not hrms_available:
+		_remove_or_hide_hrms_navigation()
+		return
+
 	ws = frappe.get_doc("Workspace", workspace_name)
 	rows = []
 	idx = 0
@@ -999,10 +1352,16 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
 	shortcut_keys = set()
 	for s in ws.shortcuts or []:
 		st = getattr(s, "type", None)
+		link_to = getattr(s, "link_to", None)
+		url = getattr(s, "url", None) or ""
+		if not hrms_available and _is_hrms_only_navigation_item(s.label, st, link_to, url):
+			continue
+		if not _link_target_exists(st, link_to, url):
+			continue
 		if st == "URL":
-			shortcut_keys.add(("URL", getattr(s, "url", None) or ""))
+			shortcut_keys.add(("URL", url))
 		else:
-			shortcut_keys.add((st, getattr(s, "link_to", None)))
+			shortcut_keys.add((st, link_to))
 
 	settings_footer = []
 	settings_footer_keys = set()
@@ -1051,6 +1410,12 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
 
 	for s in ws.shortcuts or []:
 		st = getattr(s, "type", None)
+		link_to = getattr(s, "link_to", None)
+		url = getattr(s, "url", None) or ""
+		if not hrms_available and _is_hrms_only_navigation_item(s.label, st, link_to, url):
+			continue
+		if not _link_target_exists(st, link_to, url):
+			continue
 		if _is_sidebar_settings_footer_link(st, getattr(s, "link_to", None), workspace_name):
 			queue_settings_footer(s.label, st, s.link_to)
 			continue
@@ -1070,7 +1435,7 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
 			"show_arrow": 0,
 		}
 		if st == "URL":
-			row["url"] = getattr(s, "url", None) or ""
+			row["url"] = url
 			row["link_to"] = ""
 		else:
 			row["link_to"] = s.link_to
@@ -1126,6 +1491,10 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
 			flush_card()
 			current_card_label = link.label
 		elif lt == "Link" and current_card_label is not None:
+			if not hrms_available and _is_hrms_only_navigation_item(link.label, link.link_type, link.link_to):
+				continue
+			if not _link_target_exists(link.link_type, link.link_to):
+				continue
 			if _is_sidebar_settings_footer_link(link.link_type, link.link_to, workspace_name):
 				queue_settings_footer(link.label, link.link_type, link.link_to)
 				continue
@@ -1134,6 +1503,10 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
 				continue
 			pending_card_links.append(link)
 		elif lt == "Link":
+			if not hrms_available and _is_hrms_only_navigation_item(link.label, link.link_type, link.link_to):
+				continue
+			if not _link_target_exists(link.link_type, link.link_to):
+				continue
 			if _is_sidebar_settings_footer_link(link.link_type, link.link_to, workspace_name):
 				queue_settings_footer(link.label, link.link_type, link.link_to)
 			else:
@@ -1193,6 +1566,9 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str):
 
 	sidebar.header_icon = ws.icon
 	sidebar.module = "SA Localisation"
+	_set_doc_field_if_present(sidebar, "app", "za_local")
+	_set_doc_field_if_present(sidebar, "standard", 1)
+	_set_doc_field_if_present(sidebar, "module_onboarding", _module_onboarding_for_workspace(workspace_name))
 	for r in rows:
 		sidebar.append("items", r)
 
@@ -1211,13 +1587,7 @@ def sync_za_local_workspace_sidebar_modules():
 	"""Group all SA area sidebars under module SA Localisation (HR-style switcher)."""
 	if not frappe.db.table_exists("Workspace Sidebar"):
 		return
-	for title in (
-		"SA Overview",
-		"SA VAT",
-		"SA Payroll",
-		"SA Labour",
-		"SA COIDA",
-	):
+	for title in _za_sidebar_workspace_names():
 		if frappe.db.exists("Workspace Sidebar", title):
 			try:
 				frappe.db.set_value(
@@ -1243,6 +1613,10 @@ def sync_za_local_desktop_icons():
 	if not _desktop_icon_supports_app_tiles():
 		print("  ⊙ Skipping za_local desktop icon sync (Desktop Icon schema has no app-tile fields)")
 		return
+
+	hrms_available = is_hrms_installed()
+	if not hrms_available:
+		_remove_or_hide_hrms_navigation()
 
 	app_name = "za_local"
 	try:
@@ -1308,15 +1682,11 @@ def sync_za_local_desktop_icons():
 		print(f"  ! Could not upsert App desktop icon: {e}")
 		return
 
-	ws_labels = [
-		"SA Overview",
-		"SA VAT",
-		"SA Payroll",
-		"SA Labour",
-		"SA COIDA",
-	]
+	ws_labels = _za_sidebar_workspace_names(hrms_available)
 	for label in ws_labels:
 		if not frappe.db.exists("Workspace", label):
+			continue
+		if frappe.db.get_value("Workspace", label, "is_hidden"):
 			continue
 		icons = frappe.get_all(
 			"Desktop Icon",
@@ -1363,6 +1733,19 @@ def sync_za_local_desktop_icons():
 	except Exception:
 		pass
 	print("  ✓ SA Localisation desk: App tile + nested workspace icons (modal picker)")
+
+
+def sync_sa_navigation():
+	"""Sync ZA workspaces, sidebars, and desktop icons using site-installed apps."""
+	sync_sa_workspaces()
+	rebuild_za_local_workspace_sidebars()
+	sync_za_local_desktop_icons()
+	try:
+		frappe.clear_cache()
+		frappe.cache.delete_key("desktop_icons")
+		frappe.cache.delete_key("bootinfo")
+	except Exception:
+		pass
 
 
 def before_migrate():
@@ -1917,6 +2300,36 @@ def setup_default_retirement_funds():
 	print("✓ Default retirement funds created")
 
 
+def validate_za_local_setup_hrms_options(setup_doc):
+	"""Reject payroll/HR master loading when HRMS is not installed on this site."""
+	if is_hrms_installed():
+		return
+
+	def get_field_label(fieldname: str) -> str:
+		meta = getattr(setup_doc, "meta", None)
+		if meta:
+			try:
+				field = meta.get_field(fieldname)
+				if field and field.label:
+					return field.label
+			except Exception:
+				pass
+		return fieldname
+
+	selected = [
+		get_field_label(field)
+		for field in sorted(_HRMS_SETUP_FIELDS)
+		if frappe.utils.cint(setup_doc.get(field))
+	]
+	if selected:
+		frappe.throw(
+			_(
+				"These ZA Local Setup options require HRMS to be installed on this site: {0}"
+			).format(", ".join(selected)),
+			title=_("HRMS Required"),
+		)
+
+
 def run_za_local_setup(setup_doc):
 	"""
 	Execute za_local setup based on user selections.
@@ -1925,6 +2338,8 @@ def run_za_local_setup(setup_doc):
 	Args:
 		setup_doc: ZA Local Setup document instance
 	"""
+	validate_za_local_setup_hrms_options(setup_doc)
+
 	setup_doc.setup_status = "In Progress"
 	setup_doc.save()
 
@@ -1992,6 +2407,13 @@ def refresh_sa_tax_tables():
     Can be run via bench:
       bench --site <site> execute za_local.sa_setup.install.refresh_sa_tax_tables
     """
+    require_hrms_message = "South African payroll periods and tax tables"
+    if not is_hrms_installed():
+        frappe.throw(
+            _("{0} require HRMS to be installed on this site.").format(require_hrms_message),
+            title=_("HRMS Required"),
+        )
+
     data_dir = resolve_app_path("sa_setup", "data")
     fixture_files = [
         # Payroll Periods

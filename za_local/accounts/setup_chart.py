@@ -14,10 +14,11 @@ from za_local.utils.file_utils import read_app_json, resolve_app_path
 
 def load_sa_chart_of_accounts(company):
 	"""
-	Load South African Chart of Accounts for a company.
+	Augment an existing company Chart of Accounts with South African accounts.
 
-	If company has no accounts, loads the full SA chart.
-	If company already has accounts, adds only the SA-specific tax accounts.
+	ERPNext creates the base chart during company setup. ZA Local does not
+	create or replace that chart here; it only adds ZA-specific statutory
+	accounts after the base accounts exist.
 
 	Args:
 		company: Company name for which to load the chart
@@ -388,85 +389,27 @@ def get_za_chart_tree():
 @frappe.whitelist()
 def get_charts_for_country_with_za(country, with_standard=False):
 	"""
-	Whitelisted wrapper retained for direct calls to fetch charts with ZA support.
+	Compatibility wrapper for older integrations.
 
-	The normal ERPNext setup flow calls the core whitelisted method; the
-	before_request hook patches that method in the current worker before Frappe
-	resolves it.
+	First-run setup must use ERPNext's standard chart discovery unchanged.
+	ZA statutory accounts are added after ERPNext creates the base chart.
 	"""
 	from erpnext.accounts.doctype.account.chart_of_accounts import (
 		chart_of_accounts as coa_module,  # type: ignore
 	)
 
-	charts = coa_module.get_charts_for_country(country, with_standard)
-	if country == "South Africa" and isinstance(charts, list):
-		try:
-			chart_name = get_chart_template_name()
-			if chart_name and chart_name not in charts:
-				charts.insert(0, chart_name)
-		except Exception:
-			pass
-	return charts
+	return coa_module.get_charts_for_country(country, with_standard)
 
 
 def extend_charts_for_country():
 	"""
-	Extend ERPNext's chart discovery to include za_local charts.
+	Historical no-op.
 
-	This monkey patches ERPNext's get_charts_for_country function to include
-	the South African chart template when South Africa is selected as the country.
+	ZA Local no longer injects its full chart template into ERPNext's first-run
+	setup wizard. ERPNext creates the standard CoA, then ZA Local augments it
+	with South African statutory accounts.
 	"""
-	try:
-		from functools import wraps
-
-		from erpnext.accounts.doctype.account.chart_of_accounts import (
-			chart_of_accounts as coa_module,  # type: ignore
-		)
-
-		# Check if function exists and hasn't been wrapped already
-		if not hasattr(coa_module, "get_charts_for_country"):
-			return
-
-		# Avoid double wrapping
-		if getattr(coa_module.get_charts_for_country, "_za_wrapped", False):
-			return
-
-		original_get_charts = coa_module.get_charts_for_country
-
-		@wraps(original_get_charts)
-		def get_charts_for_country_with_za(country, with_standard=False):
-			"""Return core charts plus ZA template for South Africa."""
-			try:
-				charts = original_get_charts(country, with_standard)
-			except Exception:
-				# Hard fallback to original behaviour if wrapper misbehaves
-				try:
-					return original_get_charts(country, with_standard)
-				except Exception:
-					return []
-
-			# Inject ZA chart name only for South Africa
-			if country == "South Africa" and isinstance(charts, list):
-				try:
-					chart_name = get_chart_template_name()
-					if chart_name and chart_name not in charts:
-						# Add at the beginning so it's the default suggestion
-						charts.insert(0, chart_name)
-				except Exception as e:
-					try:
-						frappe.log_error(f"Could not load ZA chart template name: {e}", "ZA Chart Extension")
-					except Exception:
-						# Logging failure should not break chart discovery
-						pass
-
-			return charts
-
-		# Mark as wrapped to avoid double wrapping
-		get_charts_for_country_with_za._za_wrapped = True
-		coa_module.get_charts_for_country = get_charts_for_country_with_za
-	except Exception:
-		# Chart discovery extension is optional, never break hooks loading
-		pass
+	return
 
 
 def extend_chart_loader():
@@ -604,7 +547,6 @@ def apply_chart_patches_on_request():
 	cmd = (frappe.form_dict or {}).get("cmd", "")
 
 	relevant_commands = {
-		"erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts.get_charts_for_country",
 		"za_local.accounts.setup_chart.get_charts_for_country_with_za",
 		"frappe.desk.page.setup_wizard.setup_wizard.setup_complete",
 	}
@@ -616,6 +558,5 @@ def apply_chart_patches_on_request():
 	):
 		return
 
-	extend_charts_for_country()
 	extend_chart_loader()
 	patch_financial_report_templates_sync()

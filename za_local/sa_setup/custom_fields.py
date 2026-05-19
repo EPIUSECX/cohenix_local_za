@@ -1094,6 +1094,36 @@ def _cleanup_old_custom_fields():
 # Section 3: Custom records (DocType Links for Connections tab)
 # ---------------------------------------------------------------------------
 
+_HRMS_ONLY_DOCTYPE_LINK_PARENTS = frozenset({"Employee", "Payroll Entry", "Expense Claim"})
+
+_HRMS_ONLY_DOCTYPE_LINK_TARGETS = frozenset(
+	{
+		"Bursary Benefit",
+		"Cellphone Benefit",
+		"Company Car Benefit",
+		"Employee Final Settlement",
+		"Fringe Benefit",
+		"Fuel Card Benefit",
+		"Housing Benefit",
+		"Leave Encashment SA",
+		"Low Interest Loan Benefit",
+		"Payroll Payment Batch",
+		"Retirement Fund",
+		"Tax Directive",
+		"Travel Allowance Rate",
+		"UIF U19 Declaration",
+	}
+)
+
+
+def _doctype_exists_for_link(doctype: str) -> bool:
+	try:
+		return bool(frappe.db.exists("DocType", doctype))
+	except Exception:
+		# hooks.py imports this before a site connection in some commands. In
+		# that context, avoid mutating the hook output based on unavailable DB.
+		return True
+
 
 def _get_doctype_link_records():
 	"""DocType Link records; filtered by HRMS availability."""
@@ -1291,8 +1321,15 @@ def _get_doctype_link_records():
 		},
 	]
 	if not hrms_installed:
-		hrms_parents = ["Employee", "Payroll Entry", "Expense Claim"]
-		records = [r for r in records if r.get("parent") not in hrms_parents]
+		records = [
+			r for r in records
+			if r.get("parent") not in _HRMS_ONLY_DOCTYPE_LINK_PARENTS
+			and r.get("link_doctype") not in _HRMS_ONLY_DOCTYPE_LINK_TARGETS
+		]
+	records = [
+		r for r in records
+		if _doctype_exists_for_link(r.get("parent")) and _doctype_exists_for_link(r.get("link_doctype"))
+	]
 	return records
 
 

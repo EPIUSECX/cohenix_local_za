@@ -13,6 +13,9 @@ class ZALocalSetup(Document):
 		"""Validate the setup document"""
 		if not self.company:
 			frappe.throw(_("Company is required"))
+		from za_local.sa_setup.install import validate_za_local_setup_hrms_options
+
+		validate_za_local_setup_hrms_options(self)
 
 	def on_update(self):
 		"""Called after document is saved"""

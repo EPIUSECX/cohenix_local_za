@@ -11,27 +11,24 @@ import frappe
 @frappe.whitelist()
 def is_hrms_installed():
 	"""
-	Check if HRMS app is installed and available.
+	Check if HRMS app is installed on the current site.
+
+	Do not infer availability from the Python module being present on the
+	bench. Frappe Cloud and shared benches may have HRMS code available even
+	when the app is not installed on a specific site.
 
 	Returns:
-		bool: True if HRMS is installed, False otherwise
+		bool: True if HRMS is installed on the active site, False otherwise
 	"""
 	try:
-		# Method 1: Check installed apps
-		installed_apps = frappe.get_installed_apps()
-		if "hrms" in installed_apps:
-			return True
-
-		# Method 2: Try to import HRMS module
-		import importlib.util
-		spec = importlib.util.find_spec("hrms")
-		if spec is not None:
-			return True
-
-		return False
+		return "hrms" in (frappe.get_installed_apps() or [])
 	except Exception:
-		# If any error occurs, assume HRMS is not installed
-		return False
+		try:
+			if frappe.db and frappe.db.table_exists("Installed Application"):
+				return bool(frappe.db.exists("Installed Application", {"app_name": "hrms"}))
+		except Exception:
+			pass
+	return False
 
 
 def require_hrms(feature_name="This feature"):
@@ -92,4 +89,3 @@ def safe_import_hrms(module_path, *items):
 		return tuple([getattr(module, item, None) for item in items])
 	except ImportError:
 		return tuple([None] * len(items))
-
