@@ -68,7 +68,6 @@ class TestRepositoryHygiene(unittest.TestCase):
 
 	def test_expected_sa_workspace_sidebars_exist(self):
 		expected = {
-			"sa_localisation.json",
 			"sa_overview.json",
 			"sa_vat.json",
 			"sa_payroll.json",
@@ -80,6 +79,31 @@ class TestRepositoryHygiene(unittest.TestCase):
 			expected.issubset(found),
 			msg=f"Missing expected workspace sidebar standard docs: {sorted(expected - found)}",
 		)
+		self.assertNotIn(
+			"sa_localisation.json",
+			found,
+			msg="SA Localisation is an App tile, not a Workspace Sidebar",
+		)
+
+	def test_workspace_sidebars_use_boot_visible_area_modules(self):
+		expected_modules = {
+			"sa_overview.json": "SA Setup",
+			"sa_vat.json": "SA VAT",
+			"sa_payroll.json": "SA Payroll",
+			"sa_labour.json": "SA Labour",
+			"sa_coida.json": "SA COIDA",
+		}
+
+		for filename, module in expected_modules.items():
+			path = PACKAGE_ROOT / "workspace_sidebar" / filename
+			with path.open() as handle:
+				data = json.load(handle)
+			self.assertEqual(data.get("app"), "za_local")
+			self.assertEqual(
+				data.get("module"),
+				module,
+				msg=f"{filename} should not be grouped under SA Localisation",
+			)
 
 	def test_expected_sa_module_onboarding_exists(self):
 		expected = {

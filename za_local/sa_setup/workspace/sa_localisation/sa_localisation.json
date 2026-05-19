@@ -67,7 +67,7 @@
  "creation": "2026-02-25 15:51:34.424061",
  "icon": "setting",
  "label": "Setup & Overview",
- "module": "SA Localisation",
+ "module": "SA Setup",
  "name": "SA Overview",
  "title": "SA Overview",
  "sequence_id": 23.0,

@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import frappe
@@ -91,6 +92,164 @@ class TestNavigationStabilisation(UnitTestCase):
 		self.assertTrue(any("/sa_payroll/" in path for path in hrms_paths))
 		self.assertNotIn("SA Payroll", _za_sidebar_workspace_names(False))
 		self.assertIn("SA Payroll", _za_sidebar_workspace_names(True))
+
+	def test_sidebar_module_mapping_uses_area_modules_for_boot_permissions(self):
+		from za_local.sa_setup.install import _sidebar_module_for_workspace
+
+		self.assertEqual(_sidebar_module_for_workspace("SA Overview"), "SA Setup")
+		self.assertEqual(_sidebar_module_for_workspace("SA VAT"), "SA VAT")
+		self.assertEqual(_sidebar_module_for_workspace("SA Labour"), "SA Labour")
+		self.assertEqual(_sidebar_module_for_workspace("SA COIDA"), "SA COIDA")
+		self.assertEqual(_sidebar_module_for_workspace("SA Payroll"), "SA Payroll")
+
+	def test_desktop_layout_repair_merges_missing_child_icons(self):
+		from za_local.sa_setup.install import _repair_za_local_desktop_layouts
+
+		layout = [{"label": "SA Localisation", "icon_type": "App", "app": "za_local"}]
+		desktop_icons = [
+			frappe._dict(
+				name="SA Localisation",
+				label="SA Localisation",
+				icon_type="App",
+				app="za_local",
+				link_type="External",
+				link="/desk/sa-overview",
+				parent_icon=None,
+				hidden=0,
+				idx=0,
+			),
+			frappe._dict(
+				name="SA Overview",
+				label="SA Overview",
+				icon_type="Link",
+				app="za_local",
+				link_type="Workspace Sidebar",
+				link_to="SA Overview",
+				parent_icon="SA Localisation",
+				hidden=0,
+				idx=0,
+			),
+			frappe._dict(
+				name="SA VAT",
+				label="SA VAT",
+				icon_type="Link",
+				app="za_local",
+				link_type="Workspace Sidebar",
+				link_to="SA VAT",
+				parent_icon="SA Localisation",
+				hidden=0,
+				idx=1,
+			),
+			frappe._dict(
+				name="SA Labour",
+				label="SA Labour",
+				icon_type="Link",
+				app="za_local",
+				link_type="Workspace Sidebar",
+				link_to="SA Labour",
+				parent_icon="SA Localisation",
+				hidden=0,
+				idx=2,
+			),
+			frappe._dict(
+				name="SA COIDA",
+				label="SA COIDA",
+				icon_type="Link",
+				app="za_local",
+				link_type="Workspace Sidebar",
+				link_to="SA COIDA",
+				parent_icon="SA Localisation",
+				hidden=0,
+				idx=3,
+			),
+		]
+
+		def get_all(doctype, *args, **kwargs):
+			if doctype == "Desktop Icon":
+				return desktop_icons
+			if doctype == "Desktop Layout":
+				return [frappe._dict(name="test@example.com", layout=json.dumps(layout))]
+			return []
+
+		with (
+			patch("za_local.sa_setup.install.frappe.db.table_exists", return_value=True),
+			patch("za_local.sa_setup.install.frappe.get_all", side_effect=get_all),
+			patch("za_local.sa_setup.install.frappe.db.set_value") as set_value,
+		):
+			_repair_za_local_desktop_layouts("SA Localisation", hrms_available=False)
+
+		updated_layout = json.loads(set_value.call_args.args[3])
+		labels = [icon["label"] for icon in updated_layout]
+		self.assertEqual(labels, ["SA Localisation", "SA Overview", "SA VAT", "SA Labour", "SA COIDA"])
+		self.assertTrue(
+			all(
+				icon.get("parent_icon") == "SA Localisation"
+				for icon in updated_layout
+				if icon.get("label", "").startswith("SA ") and icon.get("label") != "SA Localisation"
+			)
+		)
+
+	def test_desktop_layout_repair_removes_payroll_without_hrms(self):
+		from za_local.sa_setup.install import _repair_za_local_desktop_layouts
+
+		layout = [
+			{"label": "SA Localisation", "icon_type": "App", "app": "za_local"},
+			{"label": "SA Payroll", "icon_type": "Link", "parent_icon": "SA Localisation"},
+		]
+		desktop_icons = [
+			frappe._dict(
+				name="SA Localisation",
+				label="SA Localisation",
+				icon_type="App",
+				app="za_local",
+				link_type="External",
+				link="/desk/sa-overview",
+				parent_icon=None,
+				hidden=0,
+				idx=0,
+			)
+		]
+
+		def get_all(doctype, *args, **kwargs):
+			if doctype == "Desktop Icon":
+				return desktop_icons
+			if doctype == "Desktop Layout":
+				return [frappe._dict(name="test@example.com", layout=json.dumps(layout))]
+			return []
+
+		with (
+			patch("za_local.sa_setup.install.frappe.db.table_exists", return_value=True),
+			patch("za_local.sa_setup.install.frappe.get_all", side_effect=get_all),
+			patch("za_local.sa_setup.install.frappe.db.set_value") as set_value,
+		):
+			_repair_za_local_desktop_layouts("SA Localisation", hrms_available=False)
+
+		updated_layout = json.loads(set_value.call_args.args[3])
+		self.assertEqual([icon["label"] for icon in updated_layout], ["SA Localisation"])
+
+	def test_app_permission_requires_system_manager_system_user(self):
+		from za_local.api import check_app_permission
+
+		with (
+			patch("za_local.api.frappe.session", frappe._dict(user="manager@example.com")),
+			patch("za_local.api.frappe.db.get_value", return_value="System User"),
+			patch("za_local.api.frappe.get_roles", return_value=["System Manager"]),
+		):
+			self.assertTrue(check_app_permission())
+
+		with (
+			patch("za_local.api.frappe.session", frappe._dict(user="accounts@example.com")),
+			patch("za_local.api.frappe.db.get_value", return_value="System User"),
+			patch("za_local.api.frappe.get_roles", return_value=["Accounts Manager"]),
+		):
+			self.assertFalse(check_app_permission())
+
+		with (
+			patch("za_local.api.frappe.session", frappe._dict(user="portal@example.com")),
+			patch("za_local.api.frappe.db.get_value", return_value="Website User"),
+			patch("za_local.api.frappe.get_roles", return_value=["System Manager"]),
+		):
+			self.assertFalse(check_app_permission())
 
 	def test_workspace_navigation_removes_hrms_only_and_missing_targets(self):
 		from za_local.sa_setup.install import _sanitize_workspace_navigation

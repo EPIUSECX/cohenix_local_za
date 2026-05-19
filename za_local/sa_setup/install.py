@@ -8,6 +8,7 @@ for the South African localization app.
 import copy
 import json
 import re
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -26,6 +27,8 @@ from za_local.sa_vat.setup import (
 )
 from za_local.utils.file_utils import read_app_json, resolve_app_path
 from za_local.utils.hrms_detection import is_hrms_installed
+
+_MISSING = object()
 
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
@@ -798,6 +801,14 @@ _SIDEBAR_MODULE_ONBOARDING = {
 	"SA COIDA": "SA COIDA Onboarding",
 }
 
+_SIDEBAR_MODULE_BY_WORKSPACE = {
+	"SA Overview": "SA Setup",
+	"SA VAT": "SA VAT",
+	"SA Payroll": "SA Payroll",
+	"SA Labour": "SA Labour",
+	"SA COIDA": "SA COIDA",
+}
+
 
 def _sa_workspace_definition_paths(hrms_available: bool | None = None):
 	"""Return standard ZA workspace JSON paths for the current site's installed apps."""
@@ -829,6 +840,33 @@ def _doctype_has_field(doctype: str, fieldname: str) -> bool:
 def _set_doc_field_if_present(doc, fieldname: str, value):
 	if _doctype_has_field(doc.doctype, fieldname):
 		doc.set(fieldname, value)
+
+
+@contextmanager
+def _suppress_standard_doc_export():
+	"""Runtime navigation repair should not rewrite standard JSON fixtures."""
+	previous = getattr(frappe.flags, "in_import", _MISSING)
+	frappe.flags.in_import = True
+	try:
+		yield
+	finally:
+		if previous is _MISSING:
+			try:
+				del frappe.flags.in_import
+			except AttributeError:
+				pass
+		else:
+			frappe.flags.in_import = previous
+
+
+def _insert_doc_without_standard_export(doc):
+	with _suppress_standard_doc_export():
+		return doc.insert(ignore_permissions=True)
+
+
+def _save_doc_without_standard_export(doc):
+	with _suppress_standard_doc_export():
+		return doc.save(ignore_permissions=True)
 
 
 def _is_hrms_only_navigation_item(label=None, link_type=None, link_to=None, url=None) -> bool:
@@ -1071,6 +1109,10 @@ def _module_onboarding_for_workspace(workspace_name: str) -> str:
 	return ""
 
 
+def _sidebar_module_for_workspace(workspace_name: str) -> str:
+	return _SIDEBAR_MODULE_BY_WORKSPACE.get(workspace_name, "")
+
+
 def _za_sidebar_workspace_names(hrms_available: bool | None = None):
 	if hrms_available is None:
 		hrms_available = is_hrms_installed()
@@ -1137,14 +1179,14 @@ def sync_sa_workspaces():
 						continue
 					doc.set(key, value)
 				doc.flags.ignore_permissions = True
-				doc.save()
+				_save_doc_without_standard_export(doc)
 				print(f"  ✓ Updated Workspace from file: {ws_name}")
 			except Exception as e:
 				print(f"  ! Could not update Workspace {ws_name}: {e}")
 		else:
 			try:
 				doc = frappe.get_doc(data)
-				doc.insert(ignore_permissions=True)
+				_insert_doc_without_standard_export(doc)
 				print(f"  ✓ Created Workspace from file: {ws_name}")
 			except Exception as e:
 				print(f"  ! Could not create Workspace {ws_name}: {e}")
@@ -1565,7 +1607,7 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str, hrms_availab
 		sidebar.title = workspace_name
 
 	sidebar.header_icon = ws.icon
-	sidebar.module = "SA Localisation"
+	sidebar.module = _sidebar_module_for_workspace(workspace_name)
 	_set_doc_field_if_present(sidebar, "app", "za_local")
 	_set_doc_field_if_present(sidebar, "standard", 1)
 	_set_doc_field_if_present(sidebar, "module_onboarding", _module_onboarding_for_workspace(workspace_name))
@@ -1574,31 +1616,172 @@ def _rebuild_single_za_local_workspace_sidebar(workspace_name: str, hrms_availab
 
 	sidebar.flags.ignore_permissions = True
 	if sidebar.is_new():
-		sidebar.insert(ignore_permissions=True)
+		_insert_doc_without_standard_export(sidebar)
 		print(f"  ✓ Created Workspace Sidebar '{workspace_name}' ({len(rows)} items)")
 	else:
-		sidebar.save(ignore_permissions=True)
+		_save_doc_without_standard_export(sidebar)
 		print(f"  ✓ Rebuilt Workspace Sidebar '{workspace_name}' ({len(rows)} items)")
 
 	_strip_nested_workspace_sidebar_icons(sidebar.name)
 
 
 def sync_za_local_workspace_sidebar_modules():
-	"""Group all SA area sidebars under module SA Localisation (HR-style switcher)."""
+	"""Repair ZA sidebar modules so Frappe boot keeps them for permitted users."""
 	if not frappe.db.table_exists("Workspace Sidebar"):
 		return
-	for title in _za_sidebar_workspace_names():
+	hrms_available = is_hrms_installed()
+	for title in _za_sidebar_workspace_names(hrms_available):
 		if frappe.db.exists("Workspace Sidebar", title):
+			module = _sidebar_module_for_workspace(title)
+			if not module:
+				continue
 			try:
 				frappe.db.set_value(
 					"Workspace Sidebar",
 					title,
 					"module",
-					"SA Localisation",
+					module,
 					update_modified=False,
 				)
 			except Exception as e:
 				print(f"  ! Could not set Workspace Sidebar module for {title}: {e}")
+
+
+def _remove_legacy_sa_localisation_sidebar():
+	"""Remove the old grouping sidebar; the root App tile owns grouping now."""
+	if not frappe.db.table_exists("Workspace Sidebar"):
+		return
+	if not frappe.db.exists("Workspace Sidebar", "SA Localisation"):
+		return
+	try:
+		frappe.delete_doc("Workspace Sidebar", "SA Localisation", force=True, ignore_permissions=True)
+		print("  ✓ Removed legacy SA Localisation Workspace Sidebar")
+	except Exception as e:
+		print(f"  ! Could not remove legacy SA Localisation Workspace Sidebar: {e}")
+
+
+def _clean_desktop_icon_dict(icon: dict) -> dict:
+	"""Avoid stale serialized asset values such as the literal string 'undefined'."""
+	cleaned = dict(icon)
+	for key, value in list(cleaned.items()):
+		if value == "undefined":
+			cleaned[key] = ""
+	return cleaned
+
+
+def _repair_za_local_desktop_layouts(app_title: str, hrms_available: bool):
+	"""
+	Saved Desktop Layout rows can pin a stale SA Localisation app tile without
+	child icons. Merge current ZA child icons into those saved layouts so users
+	do not need to manually reset their desktop after migration.
+	"""
+	if not frappe.db.table_exists("Desktop Layout") or not frappe.db.table_exists("Desktop Icon"):
+		return
+
+	desired_labels = [app_title, *_za_sidebar_workspace_names(hrms_available)]
+	fields = [
+		"name",
+		"label",
+		"bg_color",
+		"link",
+		"link_type",
+		"app",
+		"icon_type",
+		"parent_icon",
+		"icon",
+		"link_to",
+		"idx",
+		"standard",
+		"logo_url",
+		"hidden",
+		"restrict_removal",
+		"icon_image",
+	]
+	current_icons = {}
+	for icon in frappe.get_all(
+		"Desktop Icon",
+		filters={"label": ["in", desired_labels]},
+		fields=fields,
+	):
+		if icon.label == app_title and icon.icon_type != "App":
+			continue
+		if icon.label != app_title and icon.icon_type != "Link":
+			continue
+		if icon.hidden:
+			continue
+		current_icons[icon.label] = _clean_desktop_icon_dict(dict(icon))
+
+	if app_title not in current_icons:
+		return
+
+	allowed_za_labels = set(current_icons)
+	all_za_labels = {app_title, "SA Overview", "SA VAT", "SA Payroll", "SA Labour", "SA COIDA"}
+
+	for row in frappe.get_all("Desktop Layout", fields=["name", "layout"]):
+		try:
+			layout = json.loads(row.layout or "[]")
+		except Exception:
+			continue
+		if not isinstance(layout, list):
+			continue
+		if not any(isinstance(icon, dict) and icon.get("label") == app_title for icon in layout):
+			continue
+
+		changed = False
+		filtered_layout = []
+		for icon in layout:
+			if not isinstance(icon, dict):
+				filtered_layout.append(icon)
+				continue
+			label = icon.get("label")
+			if label in all_za_labels and label not in allowed_za_labels:
+				changed = True
+				continue
+			if label in current_icons:
+				updated = dict(icon)
+				updated.update(current_icons[label])
+				updated = _clean_desktop_icon_dict(updated)
+				if updated != icon:
+					changed = True
+				filtered_layout.append(updated)
+			else:
+				cleaned = _clean_desktop_icon_dict(icon)
+				if cleaned != icon:
+					changed = True
+				filtered_layout.append(cleaned)
+
+		labels_in_layout = {
+			icon.get("label") for icon in filtered_layout if isinstance(icon, dict) and icon.get("label")
+		}
+		missing_children = [
+			label
+			for label in _za_sidebar_workspace_names(hrms_available)
+			if label in current_icons and label not in labels_in_layout
+		]
+		if missing_children:
+			parent_index = next(
+				(
+					index
+					for index, icon in enumerate(filtered_layout)
+					if isinstance(icon, dict) and icon.get("label") == app_title
+				),
+				len(filtered_layout) - 1,
+			)
+			for offset, label in enumerate(missing_children, start=1):
+				filtered_layout.insert(parent_index + offset, current_icons[label])
+			changed = True
+
+		if changed:
+			try:
+				frappe.db.set_value(
+					"Desktop Layout",
+					row.name,
+					"layout",
+					json.dumps(filtered_layout),
+					update_modified=False,
+				)
+			except Exception as e:
+				print(f"  ! Could not repair Desktop Layout {row.name}: {e}")
 
 
 def sync_za_local_desktop_icons():
@@ -1669,14 +1852,15 @@ def sync_za_local_desktop_icons():
 		di.label = app_title
 		di.link_type = "External"
 		di.link = route
-		di.logo_url = logo
+		di.logo_url = logo if logo != "undefined" else "/assets/za_local/images/sa_map_icon.png"
 		di.standard = 1
+		di.hidden = 0
 		di.flags.ignore_permissions = True
 		if di.is_new():
-			di.insert(ignore_permissions=True)
+			_insert_doc_without_standard_export(di)
 			print(f"  ✓ Created App desktop icon '{app_title}'")
 		else:
-			di.save(ignore_permissions=True)
+			_save_doc_without_standard_export(di)
 			print(f"  ✓ Updated App desktop icon '{app_title}'")
 	except Exception as e:
 		print(f"  ! Could not upsert App desktop icon: {e}")
@@ -1701,13 +1885,15 @@ def sync_za_local_desktop_icons():
 				link.icon_type = "Link"
 				link.link_type = "Workspace Sidebar"
 				link.link_to = label
-				link.icon = ws_icon
+				link.link = ""
+				link.icon = ws_icon if ws_icon and ws_icon != "undefined" else ""
 				link.app = app_name
 				link.parent_icon = app_title
 				link.hidden = 0
 				link.standard = 1
+				link.logo_url = ""
 				link.flags.ignore_permissions = True
-				link.insert(ignore_permissions=True)
+				_insert_doc_without_standard_export(link)
 				print(f"  ✓ Created nested desktop link icon for workspace '{label}'")
 			except Exception as e:
 				print(f"  ! Could not create desktop link icon for {label}: {e}")
@@ -1716,14 +1902,23 @@ def sync_za_local_desktop_icons():
 		for row in icons:
 			try:
 				icon = frappe.get_doc("Desktop Icon", row.name)
+				icon.icon_type = "Link"
+				icon.link_type = "Workspace Sidebar"
+				icon.link_to = label
+				icon.link = ""
 				icon.app = app_name
 				icon.parent_icon = app_title
 				icon.hidden = 0
+				icon.standard = 1
 				ws_icon = frappe.db.get_value("Workspace", label, "icon")
-				if ws_icon:
+				if ws_icon and ws_icon != "undefined":
 					icon.icon = ws_icon
+				if getattr(icon, "logo_url", None) == "undefined":
+					icon.logo_url = ""
+				if getattr(icon, "icon_image", None) == "undefined":
+					icon.icon_image = ""
 				icon.flags.ignore_permissions = True
-				icon.save(ignore_permissions=True)
+				_save_doc_without_standard_export(icon)
 			except Exception as e:
 				print(f"  ! Could not update desktop icon {label}: {e}")
 
@@ -1738,8 +1933,15 @@ def sync_za_local_desktop_icons():
 def sync_sa_navigation():
 	"""Sync ZA workspaces, sidebars, and desktop icons using site-installed apps."""
 	sync_sa_workspaces()
+	_remove_legacy_sa_localisation_sidebar()
 	rebuild_za_local_workspace_sidebars()
+	sync_za_local_workspace_sidebar_modules()
 	sync_za_local_desktop_icons()
+	try:
+		app_title = frappe.get_hooks("app_title", app_name="za_local")[0]
+		_repair_za_local_desktop_layouts(app_title, is_hrms_installed())
+	except Exception as e:
+		print(f"  ! Could not repair ZA desktop layouts: {e}")
 	try:
 		frappe.clear_cache()
 		frappe.cache.delete_key("desktop_icons")

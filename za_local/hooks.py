@@ -22,6 +22,7 @@ add_to_apps_screen = [
 		"title": "SA Localisation",
 		"logo": "/assets/za_local/images/sa_map_icon.png",
 		"route": "/desk/sa-overview",
+		"has_permission": "za_local.api.check_app_permission",
 	}
 ]
 
