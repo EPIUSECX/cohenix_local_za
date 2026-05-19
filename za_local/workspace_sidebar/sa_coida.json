@@ -21,29 +21,6 @@
   {
    "child": 0,
    "collapsible": 1,
-   "icon": "database",
-   "indent": 1,
-   "keep_closed": 1,
-   "label": "Setup",
-   "link_type": "DocType",
-   "show_arrow": 0,
-   "type": "Section Break"
-  },
-  {
-   "child": 1,
-   "collapsible": 1,
-   "icon": "",
-   "indent": 0,
-   "keep_closed": 0,
-   "label": "COIDA Industry Rate",
-   "link_to": "COIDA Industry Rate",
-   "link_type": "DocType",
-   "show_arrow": 0,
-   "type": "Link"
-  },
-  {
-   "child": 0,
-   "collapsible": 1,
    "icon": "life-buoy",
    "indent": 1,
    "keep_closed": 1,
@@ -101,7 +78,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-05-19 17:40:18.315060",
+ "modified": "2026-05-19 17:43:59.178021",
  "modified_by": "Administrator",
  "module": "SA Localisation",
  "module_onboarding": "SA COIDA Onboarding",
