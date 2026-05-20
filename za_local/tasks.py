@@ -12,11 +12,12 @@ Background jobs for monitoring SA compliance requirements:
 - EEA reporting reminders
 """
 
-from datetime import date
-
 import frappe
 from frappe import _
-from frappe.utils import add_days, add_months, get_datetime, getdate, today
+from frappe.utils import add_days, add_months, cint, getdate, today
+from frappe.utils.user import get_users_with_role
+
+HR_NOTIFICATION_ROLES = ("HR Manager", "HR User", "System Manager")
 
 
 def all():
@@ -55,6 +56,13 @@ def check_tax_directive_expiry():
 
 	Creates notifications for HR Admin to renew directives before expiry.
 	"""
+	if not _doctype_has_fields(
+		"Tax Directive",
+		("status", "effective_to", "employee", "employee_name"),
+		"Tax Directive Expiry Check",
+	):
+		return
+
 	# Get directives expiring in next 30 days
 	thirty_days_from_now = add_days(today(), 30)
 
@@ -74,23 +82,21 @@ def check_tax_directive_expiry():
 	for directive in expiring_directives:
 		days_until_expiry = (getdate(directive.effective_to) - getdate(today())).days
 
-		# Create notification
-		notification = frappe.new_doc("Notification Log")
-		notification.subject = _("Tax Directive Expiring Soon: {0}").format(directive.employee_name)
-		notification.email_content = _(
-			"Tax Directive {0} for employee {1} ({2}) will expire in {3} days on {4}. "
-			"Please renew the directive before expiry."
-		).format(
-			directive.name,
-			directive.employee_name,
-			directive.employee,
-			days_until_expiry,
-			directive.effective_to
+		notify_hr_admin(
+			subject=_("Tax Directive Expiring Soon: {0}").format(directive.employee_name),
+			message=_(
+				"Tax Directive {0} for employee {1} ({2}) will expire in {3} days on {4}. "
+				"Please renew the directive before expiry."
+			).format(
+				directive.name,
+				directive.employee_name,
+				directive.employee,
+				days_until_expiry,
+				directive.effective_to,
+			),
+			doctype="Tax Directive",
+			docname=directive.name,
 		)
-		notification.document_type = "Tax Directive"
-		notification.document_name = directive.name
-		notification.for_user = get_hr_admin_users()
-		notification.insert(ignore_permissions=True)
 
 	print(f"✓ Tax Directive Expiry Check: {len(expiring_directives)} directive(s) expiring soon")
 
@@ -105,15 +111,28 @@ def check_eti_eligibility_changes():
 
 	Logs changes and creates notifications.
 	"""
+	if not _doctype_has_fields(
+		"Employee",
+		("status", "employee_name", "date_of_birth", "date_of_joining"),
+		"ETI Eligibility Check",
+	):
+		return
+
 	# Check employees turning 30 today
-	employees_turning_30 = frappe.db.sql("""
-		SELECT name, employee_name, date_of_birth, date_of_joining
-		FROM `tabEmployee`
-		WHERE status = 'Active'
-		AND MONTH(date_of_birth) = MONTH(CURDATE())
-		AND DAY(date_of_birth) = DAY(CURDATE())
-		AND TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) = 30
-	""", as_dict=True)
+	today_date = getdate(today())
+	employees_with_birthdays = frappe.get_all(
+		"Employee",
+		filters={"status": "Active", "date_of_birth": ["is", "set"]},
+		fields=["name", "employee_name", "date_of_birth", "date_of_joining"],
+	)
+	employees_turning_30 = []
+	for emp in employees_with_birthdays:
+		birth_date = getdate(emp.date_of_birth)
+		age = today_date.year - birth_date.year - (
+			(today_date.month, today_date.day) < (birth_date.month, birth_date.day)
+		)
+		if age == 30 and birth_date.month == today_date.month and birth_date.day == today_date.day:
+			employees_turning_30.append(emp)
 
 	for emp in employees_turning_30:
 		# Create notification
@@ -158,6 +177,13 @@ def validate_employee_id_numbers():
 	3. Flag invalid entries
 	"""
 	from za_local.utils.tax_utils import validate_south_african_id
+
+	if not _doctype_has_fields(
+		"Employee",
+		("status", "employee_name", "za_id_number"),
+		"Employee ID Validation",
+	):
+		return
 
 	employees = frappe.get_all(
 		"Employee",
@@ -285,19 +311,53 @@ def reminder_for_eea_reporting():
 
 # ==================== Helper Functions ====================
 
+def _skip_scheduler_check(check_name, reason):
+	print(f"⊙ {check_name} skipped: {reason}")
+
+
+def _doctype_has_fields(doctype, fields, check_name):
+	try:
+		if not frappe.db.exists("DocType", doctype):
+			_skip_scheduler_check(check_name, f"{doctype} DocType is not available")
+			return False
+
+		missing_fields = [field for field in fields if not frappe.db.has_column(doctype, field)]
+		if missing_fields:
+			_skip_scheduler_check(
+				check_name,
+				f"{doctype} is missing field(s): {', '.join(missing_fields)}",
+			)
+			return False
+	except Exception as e:
+		_skip_scheduler_check(check_name, f"could not inspect {doctype}: {e}")
+		return False
+
+	return True
+
+
 def get_hr_admin_users():
-	"""Get list of users with HR Manager or System Manager role"""
-	hr_users = frappe.get_all(
-		"Has Role",
-		filters={"role": ["in", ["HR Manager", "System Manager"]]},
-		fields=["parent"],
-		distinct=True,
-		pluck="parent"
-	)
-	return hr_users[0] if hr_users else "Administrator"
+	"""Get enabled System Users with HR or System Manager roles."""
+	candidates = []
+	seen = set()
+
+	for role in HR_NOTIFICATION_ROLES:
+		for user in get_users_with_role(role):
+			if user in seen:
+				continue
+			seen.add(user)
+			candidates.append(user)
+
+	recipients = _get_valid_notification_users(candidates)
+	if recipients:
+		return recipients
+
+	if _is_enabled_user("Administrator", require_system_user=False):
+		return ["Administrator"]
+
+	return []
 
 
-def notify_hr_admin(subject, message, doctype=None, docname=None):
+def notify_hr_admin(subject, message, doctype=None, docname=None, recipients=None):
 	"""
 	Create notification for HR Admin users.
 
@@ -306,15 +366,98 @@ def notify_hr_admin(subject, message, doctype=None, docname=None):
 		message: Notification message
 		doctype: Related DocType (optional)
 		docname: Related document name (optional)
+		recipients: Optional explicit recipient list for tests/custom callers
 	"""
-	notification = frappe.new_doc("Notification Log")
-	notification.subject = subject
-	notification.email_content = message
+	valid_recipients = _get_valid_notification_users(
+		recipients if recipients is not None else get_hr_admin_users(),
+		log_invalid=True,
+		allow_administrator=True,
+	)
 
-	if doctype:
-		notification.document_type = doctype
-	if docname:
-		notification.document_name = docname
+	if not valid_recipients:
+		frappe.log_error(
+			title="ZA Local HR notification skipped",
+			message=f"No valid notification recipients found for subject: {subject}",
+		)
+		return 0
 
-	notification.for_user = get_hr_admin_users()
-	notification.insert(ignore_permissions=True)
+	created = 0
+	for user in valid_recipients:
+		try:
+			notification = frappe.new_doc("Notification Log")
+			notification.subject = subject
+			notification.email_content = message
+			notification.type = "Alert"
+
+			if doctype:
+				notification.document_type = doctype
+			if docname:
+				notification.document_name = docname
+
+			notification.for_user = user
+			notification.insert(ignore_permissions=True)
+			created += 1
+		except Exception:
+			frappe.log_error(
+				title="ZA Local HR notification failed",
+				message=frappe.get_traceback(),
+			)
+
+	return created
+
+
+def _as_list(value):
+	if not value:
+		return []
+	if isinstance(value, str):
+		return [value]
+	return list(value)
+
+
+def _get_valid_notification_users(users, log_invalid=False, allow_administrator=False):
+	valid_users = []
+	seen = set()
+
+	for user in _as_list(users):
+		if user in seen:
+			continue
+		seen.add(user)
+
+		if _is_enabled_user(
+			user,
+			require_system_user=not (allow_administrator and user == "Administrator"),
+			log_invalid=log_invalid,
+		):
+			valid_users.append(user)
+
+	return valid_users
+
+
+def _is_enabled_user(user, require_system_user=True, log_invalid=False):
+	if not user:
+		return False
+
+	user_doc = frappe.db.get_value("User", user, ["name", "enabled", "user_type"], as_dict=True)
+	if not user_doc:
+		if log_invalid:
+			_log_invalid_notification_recipient(user, "User does not exist")
+		return False
+
+	if not cint(user_doc.enabled):
+		if log_invalid:
+			_log_invalid_notification_recipient(user, "User is disabled")
+		return False
+
+	if require_system_user and user_doc.get("user_type") != "System User":
+		if log_invalid:
+			_log_invalid_notification_recipient(user, "User is not a System User")
+		return False
+
+	return True
+
+
+def _log_invalid_notification_recipient(user, reason):
+	frappe.log_error(
+		title="Invalid HR notification recipient",
+		message=f"Configured notification recipient is invalid: {user}. Reason: {reason}",
+	)
