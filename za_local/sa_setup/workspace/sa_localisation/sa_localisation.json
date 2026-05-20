@@ -41,26 +41,6 @@
    "label": "SA COIDA",
    "type": "URL",
    "url": "/desk/sa-coida"
-  },
-  {
-   "label": "User Guide",
-   "type": "URL",
-   "url": "/desk/sa-local-help#user-guide"
-  },
-  {
-   "label": "Setup Checklist",
-   "type": "URL",
-   "url": "/desk/sa-local-help#setup-checklist"
-  },
-  {
-   "label": "VAT 201 Flow",
-   "type": "URL",
-   "url": "/desk/sa-local-help#vat201-flow"
-  },
-  {
-   "label": "Sales Invoice Tax Invoice Checks",
-   "type": "URL",
-   "url": "/desk/sa-local-help#tax-invoice-checks"
   }
  ],
  "type": "Workspace",
