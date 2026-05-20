@@ -234,6 +234,8 @@ def _add_sa_tax_accounts(company):
 	)
 
 	for account_name in (
+		"Salaries and Wages",
+		"COIDA Expense",
 		"UIF Employer Expense",
 		"SDL Expense",
 		"Pension Fund Employer Expense",

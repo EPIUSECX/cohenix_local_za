@@ -30,8 +30,59 @@ class TestSetupWizardStabilisation(UnitTestCase):
 	def test_setup_stage_is_only_registered_for_south_africa(self):
 		from za_local.sa_setup.setup_wizard import get_sa_localization_stages
 
-		self.assertEqual(get_sa_localization_stages(frappe._dict(country="United States")), [])
-		self.assertEqual(len(get_sa_localization_stages(frappe._dict(country="South Africa"))), 1)
+		with patch("za_local.sa_setup.install.start_setup_warning_suppression") as suppress:
+			self.assertEqual(get_sa_localization_stages(frappe._dict(country="United States")), [])
+			suppress.assert_not_called()
+
+		with patch("za_local.sa_setup.install.start_setup_warning_suppression") as suppress:
+			self.assertEqual(len(get_sa_localization_stages(frappe._dict(country="South Africa"))), 1)
+			suppress.assert_called_once()
+
+	def test_known_setup_warning_filter_is_flag_gated(self):
+		from za_local.sa_setup.install import (
+			suppress_known_setup_warnings,
+			enable_known_setup_warning_filter,
+			stop_setup_warning_suppression,
+		)
+
+		delivered = []
+
+		def collect_msgprint(msg=None, *args, **kwargs):
+			delivered.append(msg)
+
+		stop_setup_warning_suppression()
+		with patch.object(frappe, "msgprint", new=collect_msgprint):
+			enable_known_setup_warning_filter()
+
+			frappe.msgprint("Accounts not set for Salary Component Basic")
+			with suppress_known_setup_warnings():
+				frappe.msgprint("Accounts not set for Salary Component Income Tax")
+				frappe.msgprint(
+					"Rule for this doctype, role, permlevel and if-owner combination already exists."
+				)
+				frappe.msgprint(
+					"User user@example.com: Removed Employee Self Service role as there is no mapped employee."
+				)
+				frappe.msgprint("Keep this warning")
+			frappe.msgprint("Rule for this doctype, role, permlevel and if-owner combination already exists.")
+
+		self.assertEqual(
+			delivered,
+			[
+				"Accounts not set for Salary Component Basic",
+				"Keep this warning",
+				"Rule for this doctype, role, permlevel and if-owner combination already exists.",
+			],
+		)
+
+	def test_salary_component_account_defaults_cover_hrms_and_za_components(self):
+		from za_local.sa_setup.install import DEFAULT_SALARY_COMPONENT_ACCOUNT_NAMES
+
+		for component in ("Income Tax", "Basic", "Arrear", "Leave Encashment"):
+			self.assertIn(component, DEFAULT_SALARY_COMPONENT_ACCOUNT_NAMES)
+
+		for component in ("PAYE", "UIF Employee Contribution", "UIF Employer Contribution", "SDL Contribution"):
+			self.assertIn(component, DEFAULT_SALARY_COMPONENT_ACCOUNT_NAMES)
 
 	def test_first_run_setup_skips_hrms_master_loaders(self):
 		from za_local.sa_setup.setup_wizard import setup_za_localization
@@ -42,8 +93,10 @@ class TestSetupWizardStabilisation(UnitTestCase):
 			patch("frappe.db.count", return_value=1),
 			patch("za_local.accounts.setup_chart.load_sa_chart_of_accounts", return_value=True) as chart,
 			patch("za_local.sa_setup.install.ensure_sa_print_formats") as ensure_print_formats,
+			patch("za_local.sa_setup.install.repair_salary_component_accounts") as repair_accounts,
 			patch("za_local.sa_setup.setup_wizard.setup_sa_print_formats") as setup_print_formats,
 			patch("za_local.sa_setup.install.sync_sa_navigation") as sync_navigation,
+			patch("za_local.sa_setup.install.stop_setup_warning_suppression") as stop_suppression,
 			patch("za_local.sa_setup.install.load_data_from_json") as load_json,
 		):
 			setup_za_localization(
@@ -56,9 +109,11 @@ class TestSetupWizardStabilisation(UnitTestCase):
 			)
 
 		chart.assert_called_once_with("Test ZA Company")
+		repair_accounts.assert_called_once_with("Test ZA Company")
 		ensure_print_formats.assert_called_once()
 		setup_print_formats.assert_called_once_with(include_hrms=False)
 		sync_navigation.assert_called_once()
+		stop_suppression.assert_called_once()
 		load_json.assert_not_called()
 
 	def test_first_run_setup_does_not_augment_chart_before_accounts_exist(self):
@@ -70,15 +125,19 @@ class TestSetupWizardStabilisation(UnitTestCase):
 			patch("frappe.db.count", return_value=0),
 			patch("za_local.accounts.setup_chart.load_sa_chart_of_accounts") as chart,
 			patch("za_local.sa_setup.install.ensure_sa_print_formats") as ensure_print_formats,
+			patch("za_local.sa_setup.install.repair_salary_component_accounts") as repair_accounts,
 			patch("za_local.sa_setup.setup_wizard.setup_sa_print_formats") as setup_print_formats,
 			patch("za_local.sa_setup.install.sync_sa_navigation") as sync_navigation,
+			patch("za_local.sa_setup.install.stop_setup_warning_suppression") as stop_suppression,
 		):
 			setup_za_localization(frappe._dict(country="South Africa", company_name="Test ZA Company"))
 
 		chart.assert_not_called()
+		repair_accounts.assert_not_called()
 		ensure_print_formats.assert_not_called()
 		setup_print_formats.assert_not_called()
 		sync_navigation.assert_not_called()
+		stop_suppression.assert_called_once()
 
 
 class TestNavigationStabilisation(UnitTestCase):

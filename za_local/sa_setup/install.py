@@ -29,6 +29,94 @@ from za_local.utils.file_utils import read_app_json, resolve_app_path
 from za_local.utils.hrms_detection import is_hrms_installed
 
 _MISSING = object()
+_SUPPRESS_SETUP_WARNING_FLAG = "za_local_suppress_setup_warnings"
+_DUPLICATE_PERMISSION_MESSAGE = (
+	"Rule for this doctype, role, permlevel and if-owner combination already exists."
+)
+
+
+def _normalise_message_text(message) -> str:
+	if isinstance(message, dict):
+		message = message.get("message") or message.get("msg") or message.get("title")
+
+	text = str(message or "")
+	text = re.sub(r"<[^>]*>", " ", text)
+	return " ".join(text.split())
+
+
+def _is_known_benign_setup_warning(message) -> bool:
+	text = _normalise_message_text(message)
+
+	if not text:
+		return False
+
+	return (
+		text.startswith("Accounts not set for Salary Component ")
+		or _DUPLICATE_PERMISSION_MESSAGE == text
+		or (
+			text.startswith("User ")
+			and (
+				"Removed Employee role as there is no mapped employee." in text
+				or "Removed Employee Self Service role as there is no mapped employee." in text
+			)
+		)
+	)
+
+
+def _get_local_flags():
+	if not getattr(frappe.local, "flags", None):
+		frappe.local.flags = frappe._dict()
+	return frappe.local.flags
+
+
+def _setup_warning_suppression_enabled() -> bool:
+	try:
+		return bool(getattr(_get_local_flags(), _SUPPRESS_SETUP_WARNING_FLAG, False))
+	except Exception:
+		return False
+
+
+def _set_setup_warning_suppression(enabled: bool) -> bool:
+	flags = _get_local_flags()
+	previous = bool(getattr(flags, _SUPPRESS_SETUP_WARNING_FLAG, False))
+	setattr(flags, _SUPPRESS_SETUP_WARNING_FLAG, bool(enabled))
+	return previous
+
+
+def enable_known_setup_warning_filter() -> None:
+	"""Install a flag-gated msgprint filter for noisy core/HRMS setup messages."""
+	if getattr(frappe.msgprint, "_za_local_setup_warning_filter", False):
+		return
+
+	original_msgprint = frappe.msgprint
+
+	def filtered_msgprint(msg=None, *args, **kwargs):
+		if _setup_warning_suppression_enabled() and _is_known_benign_setup_warning(msg):
+			return None
+		return original_msgprint(msg, *args, **kwargs)
+
+	filtered_msgprint._za_local_setup_warning_filter = True
+	filtered_msgprint._za_local_original_msgprint = original_msgprint
+	frappe.msgprint = filtered_msgprint
+
+
+def start_setup_warning_suppression() -> None:
+	enable_known_setup_warning_filter()
+	_set_setup_warning_suppression(True)
+
+
+def stop_setup_warning_suppression() -> None:
+	_set_setup_warning_suppression(False)
+
+
+@contextmanager
+def suppress_known_setup_warnings():
+	enable_known_setup_warning_filter()
+	previous = _set_setup_warning_suppression(True)
+	try:
+		yield
+	finally:
+		_set_setup_warning_suppression(previous)
 
 UIF_FORMULA = "(gross_pay * 0.01) if (gross_pay * 0.01) <= 177.12 else 177.12"
 SDL_FORMULA = "gross_pay * 0.01"
@@ -266,6 +354,22 @@ DEFAULT_IRP5_EXCLUDED_SALARY_COMPONENTS = {
 	"Union Subscription",
 }
 
+DEFAULT_SALARY_COMPONENT_ACCOUNT_NAMES = {
+	"Basic": "Salaries and Wages",
+	"Basic Salary": "Salaries and Wages",
+	"Arrear": "Salaries and Wages",
+	"Leave Encashment": "Salaries and Wages",
+	"PAYE": "PAYE Payable - SARS",
+	"Income Tax": "PAYE Payable - SARS",
+	"UIF": "UIF Employee Contribution",
+	"UIF Employee Contribution": "UIF Employee Contribution",
+	"UIF Employer Contribution": "UIF Employer Expense",
+	"SDL": "SDL Expense",
+	"SDL Contribution": "SDL Expense",
+	"COIDA": "COIDA Expense",
+	"COIDA Contribution": "COIDA Expense",
+}
+
 
 def sync_za_local():
 	"""
@@ -298,6 +402,11 @@ def before_install():
 
 
 def after_install():
+	with suppress_known_setup_warnings():
+		return _after_install()
+
+
+def _after_install():
 	"""
 	Run after app installation.
 
@@ -315,6 +424,7 @@ def after_install():
 	seed_vat_vendor_types()
 	migrate_legacy_vat_account_rows()
 	apply_statutory_formulas()
+	repair_salary_component_accounts()
 	import_master_data()
 	seed_sars_payroll_codes()
 	migrate_irp5_legacy_source_fields()
@@ -343,6 +453,11 @@ def after_install():
 
 
 def after_migrate():
+	with suppress_known_setup_warnings():
+		return _after_migrate()
+
+
+def _after_migrate():
 	"""
 	Run after migrations.
 
@@ -354,6 +469,7 @@ def after_migrate():
 	make_property_setters()
 	setup_all_monkey_patches()
 	apply_statutory_formulas()
+	repair_salary_component_accounts()
 	seed_vat_vendor_types()
 	migrate_legacy_vat_account_rows()
 	seed_sars_payroll_codes()
@@ -2310,6 +2426,74 @@ def _create_irp5_address_from_legacy_text(
 	return address.name
 
 
+def repair_salary_component_accounts(company: str | None = None):
+	"""Map HRMS/ZA salary components to ZA statutory accounts when accounts exist."""
+	if not is_hrms_installed():
+		return
+	if not frappe.db.table_exists("Salary Component") or not frappe.db.table_exists(
+		"Salary Component Account"
+	):
+		return
+
+	companies = [company] if company else frappe.get_all(
+		"Company",
+		filters={"country": "South Africa"},
+		pluck="name",
+	)
+	if not companies:
+		return
+
+	try:
+		from za_local.accounts.setup_chart import load_sa_chart_of_accounts
+	except Exception:
+		load_sa_chart_of_accounts = None
+
+	repaired = 0
+	for company_name in companies:
+		if not company_name or not frappe.db.exists("Company", company_name):
+			continue
+
+		if load_sa_chart_of_accounts:
+			load_sa_chart_of_accounts(company_name)
+
+		for component, account_name in DEFAULT_SALARY_COMPONENT_ACCOUNT_NAMES.items():
+			if not frappe.db.exists("Salary Component", component):
+				continue
+
+			account = frappe.db.get_value(
+				"Account",
+				{"company": company_name, "account_name": account_name, "is_group": 0},
+				"name",
+			)
+			if not account:
+				continue
+
+			row_name = frappe.db.get_value(
+				"Salary Component Account",
+				{"parent": component, "company": company_name},
+				"name",
+			)
+			if row_name:
+				frappe.db.set_value(
+					"Salary Component Account",
+					row_name,
+					"account",
+					account,
+					update_modified=False,
+				)
+				repaired += 1
+				continue
+
+			with suppress_known_setup_warnings():
+				doc = frappe.get_doc("Salary Component", component)
+				doc.append("accounts", {"company": company_name, "account": account})
+				doc.save(ignore_permissions=True)
+			repaired += 1
+
+	if repaired:
+		print(f"  ✓ Repaired Salary Component account mappings ({repaired})")
+
+
 def create_salary_component_if_not_exists(component_data):
 	"""
 	Helper function to create a salary component if it doesn't exist.
@@ -2318,8 +2502,9 @@ def create_salary_component_if_not_exists(component_data):
 		component_data (dict): Salary component configuration
 	"""
 	if not frappe.db.exists("Salary Component", component_data["name"]):
-		doc = frappe.get_doc({"doctype": "Salary Component", **component_data})
-		doc.insert(ignore_permissions=True)
+		with suppress_known_setup_warnings():
+			doc = frappe.get_doc({"doctype": "Salary Component", **component_data})
+			doc.insert(ignore_permissions=True)
 		print(f"✓ Created Salary Component: {component_data['name']}")
 	else:
 		print(f"  Salary Component already exists: {component_data['name']}")
@@ -2546,45 +2731,49 @@ def run_za_local_setup(setup_doc):
 	setup_doc.save()
 
 	try:
-		data_dir = resolve_app_path("sa_setup", "data")
+		with suppress_known_setup_warnings():
+			data_dir = resolve_app_path("sa_setup", "data")
 
-		# Load salary components
-		if setup_doc.load_salary_components:
-			load_data_from_json(data_dir / "salary_components.json")
-			print("✓ Loaded statutory salary components")
+			# Load salary components
+			if setup_doc.load_salary_components:
+				load_data_from_json(data_dir / "salary_components.json")
+				print("✓ Loaded statutory salary components")
 
-		if setup_doc.load_earnings_components:
-			load_data_from_json(data_dir / "earnings_components.json")
-			print("✓ Loaded earnings components")
+			if setup_doc.load_earnings_components:
+				load_data_from_json(data_dir / "earnings_components.json")
+				print("✓ Loaded earnings components")
 
-		# Load tax configuration
-		if setup_doc.load_tax_slabs:
-			load_data_from_json(data_dir / "tax_slabs_2025.json")  # 2024-2025 (2025 tax year)
-			print("✓ Loaded 2024-2025 tax slabs")
+			# Load tax configuration
+			if setup_doc.load_tax_slabs:
+				load_data_from_json(data_dir / "tax_slabs_2025.json")  # 2024-2025 (2025 tax year)
+				print("✓ Loaded 2024-2025 tax slabs")
 
-		if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
-			load_data_from_json(data_dir / "tax_rebates_2025.json")  # 2024-2025 (2025 tax year)
-			print("✓ Loaded tax rebates and medical tax credits")
+			if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
+				load_data_from_json(data_dir / "tax_rebates_2025.json")  # 2024-2025 (2025 tax year)
+				print("✓ Loaded tax rebates and medical tax credits")
 
-		# Load master data
-		if setup_doc.load_business_trip_regions:
-			from za_local.utils.csv_importer import import_csv_data
+			# Load master data
+			if setup_doc.load_business_trip_regions:
+				from za_local.utils.csv_importer import import_csv_data
 
-			import_csv_data("Business Trip Region", "business_trip_region.csv")
-			print("✓ Loaded business trip regions")
+				import_csv_data("Business Trip Region", "business_trip_region.csv")
+				print("✓ Loaded business trip regions")
 
-		# Load Chart of Accounts
-		if setup_doc.load_chart_of_accounts and setup_doc.company:
-			print("Loading South African Chart of Accounts...")
-			try:
-				from za_local.accounts.setup_chart import load_sa_chart_of_accounts
+			# Load Chart of Accounts
+			if setup_doc.load_chart_of_accounts and setup_doc.company:
+				print("Loading South African Chart of Accounts...")
+				try:
+					from za_local.accounts.setup_chart import load_sa_chart_of_accounts
 
-				load_sa_chart_of_accounts(setup_doc.company)
-				print("✓ Loaded Chart of Accounts")
-			except Exception as e:
-				print(f"  ! Warning: Could not load Chart of Accounts: {e}")
-				print("  Note: Chart of Accounts can be loaded manually later")
-				frappe.log_error(f"Chart of Accounts loading failed: {e!s}", "ZA Local Setup")
+					load_sa_chart_of_accounts(setup_doc.company)
+					print("✓ Loaded Chart of Accounts")
+				except Exception as e:
+					print(f"  ! Warning: Could not load Chart of Accounts: {e}")
+					print("  Note: Chart of Accounts can be loaded manually later")
+					frappe.log_error(f"Chart of Accounts loading failed: {e!s}", "ZA Local Setup")
+
+			if setup_doc.company:
+				repair_salary_component_accounts(setup_doc.company)
 
 		# Mark as completed
 		setup_doc.setup_status = "Completed"
@@ -2819,7 +3008,11 @@ def insert_record(record):
 				# For Holiday List, the "holidays" array will be automatically converted to child table rows
 				# Each item in the "holidays" array becomes a row in the Holiday child table
 				doc = frappe.get_doc(record)
-				doc.insert(ignore_permissions=True, ignore_mandatory=True)
+				if doctype == "Salary Component":
+					with suppress_known_setup_warnings():
+						doc.insert(ignore_permissions=True, ignore_mandatory=True)
+				else:
+					doc.insert(ignore_permissions=True, ignore_mandatory=True)
 
 				created_name = name or doc.name
 				print(f"  ✓ Created {doctype}: {created_name}")

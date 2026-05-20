@@ -318,6 +318,10 @@ def get_sa_localization_stages(args):
 	if country != "South Africa":
 		return []
 
+	from za_local.sa_setup.install import start_setup_warning_suppression
+
+	start_setup_warning_suppression()
+
 	return [
 		{
 			"status": _("Configuring South African Localization"),
@@ -349,6 +353,8 @@ def setup_za_localization(args):
 	from za_local.accounts.setup_chart import load_sa_chart_of_accounts
 	from za_local.sa_setup.install import (
 		ensure_sa_print_formats,
+		repair_salary_component_accounts,
+		stop_setup_warning_suppression,
 		sync_sa_navigation,
 	)
 
@@ -379,6 +385,7 @@ def setup_za_localization(args):
 			added = load_sa_chart_of_accounts(company)
 			if added:
 				print("  ✓ ZA statutory accounts added to ERPNext Chart of Accounts")
+			repair_salary_component_accounts(company)
 
 		ensure_sa_print_formats()
 		setup_sa_print_formats(include_hrms=False)
@@ -392,3 +399,5 @@ def setup_za_localization(args):
 		print(f"✗ SA Localization setup encountered errors: {e}")
 		print("  Note: Some features may not be configured. Check error logs for details.")
 		# Don't raise - let setup wizard complete even if some steps failed
+	finally:
+		stop_setup_warning_suppression()
