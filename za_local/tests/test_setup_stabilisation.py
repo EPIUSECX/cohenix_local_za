@@ -40,9 +40,9 @@ class TestSetupWizardStabilisation(UnitTestCase):
 
 	def test_known_setup_warning_filter_is_flag_gated(self):
 		from za_local.sa_setup.install import (
-			suppress_known_setup_warnings,
 			enable_known_setup_warning_filter,
 			stop_setup_warning_suppression,
+			suppress_known_setup_warnings,
 		)
 
 		delivered = []
