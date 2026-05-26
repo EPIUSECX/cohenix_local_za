@@ -96,8 +96,12 @@ class TestSetupWizardStabilisation(UnitTestCase):
 			def insert(self, **kwargs):
 				captured.update(self.data)
 
+		def exists(doctype, name=None, *args, **kwargs):
+			return doctype == "DocType" and name == "Salary Component"
+
 		with (
-			patch("za_local.sa_setup.install.frappe.db.exists", return_value=False),
+			patch("za_local.sa_setup.install.is_hrms_installed", return_value=True),
+			patch("za_local.sa_setup.install.frappe.db.exists", side_effect=exists),
 			patch(
 				"za_local.sa_setup.install.frappe.get_doc",
 				side_effect=lambda data: FakeSalaryComponent(data),
@@ -113,6 +117,17 @@ class TestSetupWizardStabilisation(UnitTestCase):
 
 		self.assertEqual(captured["name"], "PAYE")
 		self.assertEqual(captured["salary_component"], "PAYE")
+
+	def test_salary_component_setup_skips_without_hrms(self):
+		from za_local.sa_setup.install import setup_default_salary_components
+
+		with (
+			patch("za_local.sa_setup.install.is_hrms_installed", return_value=False),
+			patch("za_local.sa_setup.install.frappe.get_doc") as get_doc,
+		):
+			setup_default_salary_components()
+
+		get_doc.assert_not_called()
 
 	def test_first_run_setup_skips_hrms_master_loaders(self):
 		from za_local.sa_setup.setup_wizard import setup_za_localization

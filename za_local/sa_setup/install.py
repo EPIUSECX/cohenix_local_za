@@ -2775,6 +2775,10 @@ def create_salary_component_if_not_exists(component_data):
 	Args:
 		component_data (dict): Salary component configuration
 	"""
+	if not is_hrms_installed() or not frappe.db.exists("DocType", "Salary Component"):
+		print("  ⊙ Skipping Salary Component seed (HRMS not installed)")
+		return
+
 	component_data = dict(component_data or {})
 	component_name = component_data.get("salary_component") or component_data.get("name")
 	if not component_name:
@@ -2803,6 +2807,10 @@ def setup_default_salary_components():
 	- SDL Contribution
 	- COIDA
 	"""
+	if not is_hrms_installed() or not frappe.db.exists("DocType", "Salary Component"):
+		print("  ⊙ Skipping default Salary Components (HRMS not installed)")
+		return
+
 	components = [
 		{
 			"name": "PAYE",
