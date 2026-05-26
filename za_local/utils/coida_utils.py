@@ -7,6 +7,8 @@ Utilities for Compensation for Occupational Injuries and Diseases Act (COIDA) co
 import frappe
 from frappe.utils import flt
 
+from za_local.utils.statutory_rates import get_coida_annual_earnings_cap
+
 
 def calculate_coida_contribution(gross_remuneration, industry_rate):
     """
@@ -116,7 +118,13 @@ def calculate_annual_coida(company, from_date, to_date):
         fields=["gross_pay", "employee"]
     )
 
-    total_remuneration = sum(flt(slip.gross_pay) for slip in salary_slips)
+    cap = get_coida_annual_earnings_cap(to_date)
+    totals_by_employee = {}
+    for slip in salary_slips:
+        totals_by_employee[slip.employee] = totals_by_employee.get(slip.employee, 0) + flt(slip.gross_pay)
+
+    uncapped_remuneration = sum(totals_by_employee.values())
+    total_remuneration = sum(min(amount, cap) for amount in totals_by_employee.values())
 
     # Get company industry rate
     industry_rate = get_company_industry_rate(company)
@@ -124,12 +132,13 @@ def calculate_annual_coida(company, from_date, to_date):
     total_coida = calculate_coida_contribution(total_remuneration, industry_rate)
 
     # Count unique employees
-    unique_employees = set(slip.employee for slip in salary_slips)
-
     return {
         "total_remuneration": flt(total_remuneration, 2),
+        "uncapped_remuneration": flt(uncapped_remuneration, 2),
+        "excluded_remuneration": flt(max(0, uncapped_remuneration - total_remuneration), 2),
         "total_coida": flt(total_coida, 2),
-        "employee_count": len(unique_employees),
+        "employee_count": len(totals_by_employee),
+        "earnings_cap": cap,
         "industry_rate": industry_rate
     }
 
@@ -188,4 +197,3 @@ def get_oid_claims_for_period(company, from_date, to_date, status=None):
     )
 
     return claims
-

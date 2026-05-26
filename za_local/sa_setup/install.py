@@ -27,6 +27,14 @@ from za_local.sa_vat.setup import (
 )
 from za_local.utils.file_utils import read_app_json, resolve_app_path
 from za_local.utils.hrms_detection import is_hrms_installed
+from za_local.utils.statutory_rates import (
+	clear_rate_pack_cache,
+	get_default_travel_paye_inclusion_percentage,
+	get_reimbursive_travel_rate,
+	get_sdl_rate,
+	get_uif_employee_rate,
+	get_uif_monthly_cap,
+)
 
 _MISSING = object()
 _SUPPRESS_SETUP_WARNING_FLAG = "za_local_suppress_setup_warnings"
@@ -179,6 +187,20 @@ DEFAULT_SARS_PAYROLL_CODES = [
 		"print_sequence": 80,
 	},
 	{
+		"code": "3901",
+		"description": "Income - Gratuities / Severance Benefits",
+		"category": "Income",
+		"tax_treatment": "Reference",
+		"print_sequence": 90,
+	},
+	{
+		"code": "3907",
+		"description": "Income - Other Lump Sums",
+		"category": "Income",
+		"tax_treatment": "Reference",
+		"print_sequence": 95,
+	},
+	{
 		"code": "4001",
 		"description": "Deduction - Pension / Provident Fund",
 		"category": "Deduction",
@@ -240,6 +262,13 @@ DEFAULT_SARS_PAYROLL_CODES = [
 		"category": "Tax Credit",
 		"tax_treatment": "Reference",
 		"print_sequence": 175,
+	},
+	{
+		"code": "4115",
+		"description": "Tax on Retirement Lump Sum and Severance Benefits",
+		"category": "Deduction",
+		"tax_treatment": "Reference",
+		"print_sequence": 176,
 	},
 	{
 		"code": "4120",
@@ -341,8 +370,13 @@ DEFAULT_SALARY_COMPONENT_SARS_CODES = {
 	"Retirement Fund": "4001",
 	"Retirement Annuity Fund": "4006",
 	"Medical Aid": "4005",
+	"Medical Aid Contribution": "4005",
 	"Medical Scheme": "4005",
 	"Medical Insurance": "4005",
+	"Severance Benefit": "3901",
+	"Leave Payout": "3907",
+	"Notice Pay": "3601",
+	"Tax on Lump Sum": "4115",
 	"Group Life Insurance": "4007",
 	"Disability Insurance": "4008",
 	"Loan Repayment": "4010",
@@ -352,6 +386,128 @@ DEFAULT_SALARY_COMPONENT_SARS_CODES = {
 DEFAULT_IRP5_EXCLUDED_SALARY_COMPONENTS = {
 	"Garnishee Order",
 	"Union Subscription",
+}
+
+DEFAULT_SALARY_COMPONENT_TREATMENTS = {
+	"Basic Salary": {
+		"za_payroll_treatment": "Regular Remuneration",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+	},
+	"PAYE": {
+		"za_payroll_treatment": "PAYE",
+		"za_paye_inclusion_percentage": 0,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"UIF Employee Contribution": {
+		"za_payroll_treatment": "UIF",
+		"za_paye_inclusion_percentage": 0,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"UIF Employer Contribution": {
+		"za_payroll_treatment": "UIF",
+		"za_paye_inclusion_percentage": 0,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"SDL Contribution": {
+		"za_payroll_treatment": "SDL",
+		"za_paye_inclusion_percentage": 0,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"Transport Allowance": {
+		"za_payroll_treatment": "Fixed Travel Allowance",
+		"za_paye_inclusion_percentage": 80,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+	},
+	"Travel Allowance": {
+		"za_payroll_treatment": "Fixed Travel Allowance",
+		"za_paye_inclusion_percentage": 80,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+	},
+	"Performance Bonus": {
+		"za_payroll_treatment": "Annual Payment",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+		"za_variable_pay_treatment": "Once-Off Full Tax",
+	},
+	"13th Cheque": {
+		"za_payroll_treatment": "Annual Payment",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+		"za_variable_pay_treatment": "Once-Off Full Tax",
+	},
+	"Commission": {
+		"za_payroll_treatment": "Commission",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+		"za_variable_pay_treatment": "Once-Off Full Tax",
+	},
+	"Overtime": {
+		"za_payroll_treatment": "Overtime",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+		"za_variable_pay_treatment": "Once-Off Full Tax",
+	},
+	"Medical Aid Contribution": {
+		"za_payroll_treatment": "Medical Aid",
+		"za_paye_inclusion_percentage": 0,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"Employee Pension Fund Contribution": {
+		"za_payroll_treatment": "Retirement Fund",
+		"za_paye_inclusion_percentage": 0,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"Severance Benefit": {
+		"za_payroll_treatment": "Severance Benefit",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+		"za_variable_pay_treatment": "Manual Review",
+	},
+	"Leave Payout": {
+		"za_payroll_treatment": "Leave Payout",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+		"za_variable_pay_treatment": "Once-Off Full Tax",
+	},
+	"Notice Pay": {
+		"za_payroll_treatment": "Notice Pay",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+		"za_variable_pay_treatment": "Once-Off Full Tax",
+	},
 }
 
 DEFAULT_SALARY_COMPONENT_ACCOUNT_NAMES = {
@@ -421,12 +577,16 @@ def _after_install():
 	make_property_setters()
 	setup_all_monkey_patches()
 	setup_default_data()
+	seed_statutory_rate_packs()
+	if is_hrms_installed():
+		setup_default_salary_components()
 	seed_vat_vendor_types()
 	migrate_legacy_vat_account_rows()
 	apply_statutory_formulas()
 	repair_salary_component_accounts()
 	import_master_data()
 	seed_sars_payroll_codes()
+	seed_salary_component_classifications()
 	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()
 	ensure_sa_localisation_module_def()
@@ -468,11 +628,15 @@ def _after_migrate():
 	sync_za_local()  # fixtures → custom fields (cleanup + property setters) → custom records
 	make_property_setters()
 	setup_all_monkey_patches()
+	if is_hrms_installed():
+		setup_default_salary_components()
 	apply_statutory_formulas()
+	seed_statutory_rate_packs()
 	repair_salary_component_accounts()
 	seed_vat_vendor_types()
 	migrate_legacy_vat_account_rows()
 	seed_sars_payroll_codes()
+	seed_salary_component_classifications()
 	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()
 	ensure_sa_localisation_module_def()
@@ -2323,6 +2487,116 @@ def seed_sars_payroll_codes():
 	print("  ✓ SARS Payroll Codes seeded")
 
 
+def seed_salary_component_classifications():
+	"""Apply South African payroll treatment metadata to known salary components."""
+	if not frappe.db.exists("DocType", "Salary Component"):
+		return
+
+	fields = set(frappe.db.get_table_columns("Salary Component"))
+	for component, values in DEFAULT_SALARY_COMPONENT_TREATMENTS.items():
+		if not frappe.db.exists("Salary Component", component):
+			continue
+		update_values = {field: value for field, value in values.items() if field in fields}
+		if update_values:
+			frappe.db.set_value("Salary Component", component, update_values, update_modified=False)
+
+	print("  ✓ Salary Component SA payroll classifications seeded")
+
+
+def seed_statutory_rate_packs():
+	"""Seed Desk-reviewable records from annual statutory rate packs."""
+	clear_rate_pack_cache()
+	if not is_hrms_installed():
+		return
+
+	data_dir = resolve_app_path("sa_setup", "data")
+	for path in sorted(data_dir.glob("statutory_rates_*.json")):
+		try:
+			pack = read_app_json(path)
+			_seed_eti_slabs_from_rate_pack(pack)
+			_seed_travel_rate_from_rate_pack(pack)
+		except Exception as e:
+			print(f"  ! Could not seed statutory rate pack {path.name}: {e}")
+
+	print("  ✓ Statutory rate packs seeded")
+
+
+def _seed_eti_slabs_from_rate_pack(pack: dict):
+	if not frappe.db.exists("DocType", "ETI Slab"):
+		return
+	eti = pack.get("eti") or {}
+	for period_key, title_suffix in (
+		("first_12_months", "First 12 Months"),
+		("second_12_months", "Second 12 Months"),
+	):
+		title = f"ETI {pack.get('tax_year')} {title_suffix}"
+		existing = frappe.db.exists("ETI Slab", {"title": title})
+		doc = frappe.get_doc("ETI Slab", existing) if existing else frappe.new_doc("ETI Slab")
+		doc.title = title
+		doc.start_date = pack.get("effective_from")
+		doc.minimum_age = eti.get("minimum_age", 18)
+		doc.maximum_age = eti.get("maximum_age", 29)
+		doc.hours_in_a_month = eti.get("hours_in_a_month", 160)
+		doc.set("eti_slab_details", [])
+		for row in eti.get(period_key) or []:
+			doc.append(
+				"eti_slab_details",
+				{
+					"from_amount": row.get("from_amount"),
+					"to_amount": row.get("to_amount") or 999999999,
+					"eti_amount": row.get("amount"),
+					"percentage": row.get("percentage"),
+					"first_qualifying_12_months": (
+						_format_eti_formula(row) if period_key == "first_12_months" else ""
+					),
+					"second_qualifying_12_months": (
+						_format_eti_formula(row) if period_key == "second_12_months" else ""
+					),
+				},
+			)
+		doc.flags.ignore_permissions = True
+		if existing:
+			if doc.docstatus == 1:
+				doc.flags.ignore_validate_update_after_submit = True
+			doc.save(ignore_permissions=True)
+		else:
+			doc.insert(ignore_permissions=True)
+		if doc.docstatus == 0:
+			doc.submit()
+
+
+def _format_eti_formula(row: dict) -> str:
+	if row.get("formula_type") == "percentage":
+		return f"{row.get('percentage')}% of monthly remuneration"
+	if row.get("formula_type") == "declining":
+		return f"R{row.get('amount')} - ({row.get('percentage')}% x remuneration above R{row.get('from_amount')})"
+	return f"R{row.get('amount')}"
+
+
+def _seed_travel_rate_from_rate_pack(pack: dict):
+	if not frappe.db.exists("DocType", "Travel Allowance Rate"):
+		return
+	travel = pack.get("travel") or {}
+	rate_name = f"Travel Allowance {pack.get('tax_year')}"
+	existing = frappe.db.exists("Travel Allowance Rate", {"rate_name": rate_name})
+	doc = frappe.get_doc("Travel Allowance Rate", existing) if existing else frappe.new_doc("Travel Allowance Rate")
+	doc.rate_name = rate_name
+	doc.effective_from = pack.get("effective_from")
+	doc.reimbursive_rate_per_km = travel.get("reimbursive_rate_per_km")
+	doc.fixed_allowance_rate = travel.get("fixed_allowance_default_paye_inclusion_percentage")
+	if not getattr(doc, "company", None):
+		doc.company = frappe.defaults.get_defaults().get("company")
+	doc.flags.ignore_permissions = True
+	if existing:
+		if doc.docstatus == 1:
+			doc.flags.ignore_validate_update_after_submit = True
+		doc.save(ignore_permissions=True)
+	else:
+		doc.insert(ignore_permissions=True, ignore_mandatory=True)
+	if doc.docstatus == 0:
+		doc.submit()
+
+
 def migrate_irp5_legacy_source_fields():
 	"""Move legacy site-specific IRP5 source fields into app-owned za_local fields."""
 	if frappe.db.exists("DocType", "Company") and frappe.db.has_column(
@@ -2557,6 +2831,38 @@ def setup_default_salary_components():
 			"formula": SDL_FORMULA,
 			"amount_based_on_formula": 1,
 		},
+		{
+			"name": "Severance Benefit",
+			"salary_component": "Severance Benefit",
+			"salary_component_abbr": "SEV",
+			"type": "Earning",
+			"description": "Severance benefit lump sum subject to SARS tax directive",
+			"is_tax_applicable": 1,
+		},
+		{
+			"name": "Leave Payout",
+			"salary_component": "Leave Payout",
+			"salary_component_abbr": "LEAVE",
+			"type": "Earning",
+			"description": "Termination leave payout",
+			"is_tax_applicable": 1,
+		},
+		{
+			"name": "Notice Pay",
+			"salary_component": "Notice Pay",
+			"salary_component_abbr": "NOTICE",
+			"type": "Earning",
+			"description": "Termination notice pay",
+			"is_tax_applicable": 1,
+		},
+		{
+			"name": "Tax on Lump Sum",
+			"salary_component": "Tax on Lump Sum",
+			"salary_component_abbr": "LSTAX",
+			"type": "Deduction",
+			"description": "PAYE on severance or lump sum benefit as per SARS directive",
+			"is_tax_applicable": 0,
+		},
 	]
 
 	for component in components:
@@ -2580,19 +2886,29 @@ def apply_statutory_formulas():
 		print("  ⊙ Skipping statutory formula updates (Salary Component DocType not available)")
 		return
 
+	uif_monthly_cap = get_uif_monthly_cap()
+	uif_employee_rate = get_uif_employee_rate()
+	sdl_rate = get_sdl_rate()
+	uif_cap_amount = uif_monthly_cap * uif_employee_rate
+	uif_formula = (
+		f"(gross_pay * {uif_employee_rate}) if (gross_pay * {uif_employee_rate}) <= "
+		f"{uif_cap_amount} else {uif_cap_amount}"
+	)
+	sdl_formula = f"gross_pay * {sdl_rate}"
+
 	component_updates = {
 		"UIF Employee Contribution": {
 			"amount_based_on_formula": 1,
-			"formula": UIF_FORMULA,
+			"formula": uif_formula,
 		},
 		"UIF Employer Contribution": {
 			"amount_based_on_formula": 1,
-			"formula": UIF_FORMULA,
+			"formula": uif_formula,
 			"type": "Company Contribution",
 		},
 		"SDL Contribution": {
 			"amount_based_on_formula": 1,
-			"formula": SDL_FORMULA,
+			"formula": sdl_formula,
 			"type": "Company Contribution",
 		},
 	}
@@ -2662,8 +2978,8 @@ def import_master_data():
 def setup_default_retirement_funds():
 	"""Create default retirement fund types for South African retirement planning"""
 	retirement_funds = [
-		{"fund_name": "Company Pension Fund", "fund_type": "Pension"},
-		{"fund_name": "Company Provident Fund", "fund_type": "Provident"},
+		{"fund_name": "Company Pension Fund", "fund_type": "Pension Fund"},
+		{"fund_name": "Company Provident Fund", "fund_type": "Provident Fund"},
 		{"fund_name": "Retirement Annuity", "fund_type": "Retirement Annuity"},
 	]
 
@@ -2869,6 +3185,8 @@ def refresh_sa_tax_tables():
         except Exception as e:
             print(f"  ! Error loading {filename}: {e}")
 
+    seed_statutory_rate_packs()
+    seed_salary_component_classifications()
     print("✓ SA payroll periods and tax tables refresh complete\n")
 
 

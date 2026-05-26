@@ -6,7 +6,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_months, get_first_day, get_last_day, getdate
 
-PAYE_CODES = {"4102"}
+PAYE_CODES = {"4102", "4115"}
 UIF_CODES = {"4141"}
 SDL_CODES = {"4142"}
 ETI_CODES = {"4118"}

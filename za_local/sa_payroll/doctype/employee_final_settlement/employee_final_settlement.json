@@ -9,6 +9,8 @@
   "employee_name",
   "separation_date",
   "termination_type",
+  "tax_directive",
+  "previous_lump_sum_benefits",
   "notice_period_days",
   "notice_pay",
   "severance_pay",
@@ -54,6 +56,19 @@
    "fieldtype": "Select",
    "label": "Termination Type",
    "options": "Resignation\nDismissal - Misconduct\nDismissal - Operational\nMutual Agreement\nEnd of Contract"
+  },
+  {
+   "description": "Required before submitting a settlement with severance or lump-sum values.",
+   "fieldname": "tax_directive",
+   "fieldtype": "Link",
+   "label": "Tax Directive",
+   "options": "Tax Directive"
+  },
+  {
+   "description": "Previous retirement/severance lump-sum benefits used to estimate cumulative tax before the SARS directive amount is captured.",
+   "fieldname": "previous_lump_sum_benefits",
+   "fieldtype": "Currency",
+   "label": "Previous Lump Sum Benefits"
   },
   {
    "fieldname": "notice_period_days",

@@ -172,6 +172,27 @@ class ZAPayrollEntry(PayrollEntry):
                 "Payroll Entry Validation Unexpected Error"
             )
 
+    def before_save(self):
+        self.ensure_consistent_status()
+
+    def on_submit(self):
+        if hasattr(super(), "on_submit"):
+            super().on_submit()
+        self.status = "Submitted"
+
+    def on_cancel(self):
+        if hasattr(super(), "on_cancel"):
+            super().on_cancel()
+        self.status = "Cancelled"
+
+    def ensure_consistent_status(self):
+        if self.docstatus == 0 and self.get("status") == "Submitted":
+            self.status = "Draft"
+        elif self.docstatus == 1:
+            self.status = "Submitted"
+        elif self.docstatus == 2:
+            self.status = "Cancelled"
+
     def validate_employee_requirements(self):
         """
         Validate that all employees have required SA fields populated.
@@ -545,100 +566,13 @@ class ZAPayrollEntry(PayrollEntry):
                         alert=True
                     )
                 else:
-                    # create_salary_slips_for_employees doesn't return a value
-                    # It handles errors internally and shows messages
-                    # Temporarily suppress ALL messages to prevent error sounds
-                    # We'll show our own success message after
-                    original_msgprint = frappe.msgprint
-                    original_throw = frappe.throw
-                    suppressed_warnings = []
-                    suppressed_errors = []
-
-                    def silent_msgprint(*args, **kwargs):
-                        # Suppress all messages during creation to prevent error sounds
-                        message = args[0] if args else kwargs.get('title', 'Message')
-                        indicator = kwargs.get("indicator", "blue")
-
-                        if indicator == "orange":
-                            suppressed_warnings.append(str(message))
-                            # Log but don't show/sound
-                            frappe.log_error(
-                                f"Suppressed warning: {message}",
-                                "Payroll Entry Suppressed Warning"
-                            )
-                        elif indicator == "red":
-                            suppressed_errors.append(str(message))
-                            frappe.log_error(
-                                f"Suppressed error: {message}",
-                                "Payroll Entry Suppressed Error"
-                            )
-                        # Don't show any messages - suppress all
-                        return
-
-                    def silent_throw(*args, **kwargs):
-                        # Suppress throws temporarily - log instead
-                        message = args[0] if args else kwargs.get('title', 'Error')
-                        suppressed_errors.append(str(message))
-                        frappe.log_error(
-                            f"Suppressed throw: {message}",
-                            "Payroll Entry Suppressed Throw"
-                        )
-                        # Don't actually throw - just log
-                        return
-
-                    try:
-                        # Clear any existing messages first
-                        frappe.clear_messages()
-
-                        # Monkey-patch to suppress all messages
-                        frappe.msgprint = silent_msgprint
-                        frappe.throw = silent_throw
-
-                        # Create salary slips
-                        create_salary_slips_for_employees(employees, args, publish_progress=False)
-
-                        # Restore original functions
-                        frappe.msgprint = original_msgprint
-                        frappe.throw = original_throw
-
-                        # Clear messages again after creation
-                        frappe.clear_messages()
-
-                        self.reload()
-
-                        # Show our own success message
-                        frappe.msgprint(
-                            _("Salary slips created successfully."),
-                            indicator="green",
-                            alert=True
-                        )
-
-                        # Log summary of suppressed messages
-                        if suppressed_warnings or suppressed_errors:
-                            summary = []
-                            if suppressed_warnings:
-                                summary.append(f"{len(suppressed_warnings)} warning(s)")
-                            if suppressed_errors:
-                                summary.append(f"{len(suppressed_errors)} error(s)")
-                            frappe.log_error(
-                                f"Suppressed {', '.join(summary)} during salary slip creation for Payroll Entry {self.name}. Check Error Log for details.",
-                                "Payroll Entry Message Suppression Summary"
-                            )
-
-                    except Exception:
-                        # Restore original functions on error
-                        frappe.msgprint = original_msgprint
-                        frappe.throw = original_throw
-
-                        # Log the actual error
-                        import traceback
-                        error_details = traceback.format_exc()
-                        frappe.log_error(
-                            f"Error in create_salary_slips_for_employees for Payroll Entry {self.name}:\n{error_details}",
-                            "Payroll Entry Salary Slip Creation Error"
-                        )
-                        # Re-raise so user sees the error
-                        raise
+                    create_salary_slips_for_employees(employees, args, publish_progress=False)
+                    self.reload()
+                    frappe.msgprint(
+                        _("Salary slips created successfully."),
+                        indicator="green",
+                        alert=True
+                    )
 
                 return True
             except Exception as e:

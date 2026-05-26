@@ -3,6 +3,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate
 
+from za_local.utils.statutory_rates import get_coida_annual_earnings_cap
+
 
 class COIDAAnnualReturn(Document):
     def validate(self):
@@ -56,31 +58,25 @@ class COIDAAnnualReturn(Document):
             self.calculate_assessment_fee()
             return self
 
-        # Get total employees
-        employees = frappe.db.sql("""
-            SELECT COUNT(DISTINCT employee) as count
+        cap = get_coida_annual_earnings_cap(self.to_date)
+        rows = frappe.db.sql("""
+            SELECT employee, SUM(gross_pay) as total
             FROM `tabSalary Slip`
             WHERE company = %s
             AND start_date >= %s
             AND end_date <= %s
             AND docstatus = 1
+            GROUP BY employee
         """, (self.company, self.from_date, self.to_date), as_dict=True)
 
-        if employees and employees[0].count:
-            self.total_employees = employees[0].count
+        uncapped_total = sum(flt(row.total) for row in rows)
+        capped_total = sum(min(flt(row.total), cap) for row in rows)
 
-        # Get total earnings
-        earnings = frappe.db.sql("""
-            SELECT SUM(gross_pay) as total
-            FROM `tabSalary Slip`
-            WHERE company = %s
-            AND start_date >= %s
-            AND end_date <= %s
-            AND docstatus = 1
-        """, (self.company, self.from_date, self.to_date), as_dict=True)
-
-        if earnings and earnings[0].total:
-            self.total_annual_earnings = earnings[0].total
+        self.total_employees = len(rows)
+        self.uncapped_annual_earnings = flt(uncapped_total, 2)
+        self.coida_annual_earnings_cap = cap
+        self.total_annual_earnings = flt(capped_total, 2)
+        self.excluded_annual_earnings = flt(max(0, uncapped_total - capped_total), 2)
 
         # Get director earnings if applicable
         director_earnings = frappe.db.sql("""

@@ -67,6 +67,7 @@ def test_json_files_syntax():
 		"earnings_components.json",
 		"tax_slabs_2025.json",
 		"tax_rebates_2025.json",
+		"statutory_rates_2027.json",
 	]
 
 	for filename in json_files:

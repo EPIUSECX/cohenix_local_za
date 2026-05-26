@@ -37,9 +37,9 @@ class TaxDirective(Document):
 			if not self.tax_rate_override and self.tax_rate_override != 0:
 				frappe.throw(_("Tax Rate Override is required for Reduced Tax Rate directive"))
 
-		elif self.directive_type == "Fixed Amount":
+		elif self.directive_type in {"Fixed Amount", "Severance / Lump Sum"}:
 			if not self.fixed_amount:
-				frappe.throw(_("Fixed Monthly Amount is required for Fixed Amount directive"))
+				frappe.throw(_("Fixed Amount is required for this directive"))
 
 		elif self.directive_type == "Garnishee Order":
 			if not self.garnishee_creditor:
@@ -116,7 +116,7 @@ class TaxDirective(Document):
 		if self.directive_type == "Reduced Tax Rate":
 			result["tax_rate_override"] = flt(self.tax_rate_override)
 
-		elif self.directive_type == "Fixed Amount":
+		elif self.directive_type in {"Fixed Amount", "Severance / Lump Sum"}:
 			result["fixed_tax_amount"] = flt(self.fixed_amount)
 
 		elif self.directive_type == "Garnishee Order":

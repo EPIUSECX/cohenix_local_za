@@ -10,6 +10,21 @@ HRMS is required for payroll execution. ZA Local does not replace HRMS payroll; 
 
 Direct SARS electronic submission is not supported. Practitioners must review working papers, exports, PDFs, and reports before manual SARS submission.
 
+## Annual Statutory Update Checklist
+
+ZA Local is designed so a new South African payroll year is primarily a statutory data update, not a rewrite of payroll logic.
+
+Each year, before the first March payroll:
+
+1. Add a new `statutory_rates_YYYY.json` rate pack under `za_local/sa_setup/data`.
+2. Capture PAYE brackets, rebates, tax thresholds, medical tax credits, UIF cap and rates, ETI brackets, reimbursive travel rate, subsistence rates, retirement cap, COIDA earnings cap, source reference, and effective dates.
+3. Add or update Payroll Period, Income Tax Slab, and Tax Rebates fixtures for the new year.
+4. Run setup/migrate or `refresh_sa_tax_tables` to seed the Desk-reviewable records.
+5. Run the payroll compliance tests and compare golden fictional payroll cases for the new year.
+6. Practitioner signs off the new pack before processing March payroll.
+
+Do not edit old statutory packs after payroll has been processed for that year. If SARS republishes a correction, add a new dated correction pack or document the adjustment in the source reference and rerun the affected regression tests.
+
 ## Prerequisites
 
 Before configuring SA Payroll:
@@ -95,6 +110,9 @@ For each component, confirm:
 - Account row exists for the company.
 - SARS payroll code is mapped where the component must appear on EMP201, IRP5, or deduction reports.
 - Components that must not appear on IRP5 are explicitly excluded where the app provides that option.
+- SA Payroll Treatment, PAYE Inclusion %, UIF Applicable, SDL Applicable, COIDA Applicable, Reimbursement, and Variable Pay Treatment are configured.
+- Fixed travel allowances use 80% PAYE inclusion by default unless the 20% statutory rule is explicitly supportable and documented.
+- Reimbursive travel components are separated from fixed travel allowances and reviewed against the prescribed rate for the tax year.
 
 ### 4. Review Tax Tables And Credits
 
@@ -441,4 +459,3 @@ Print formats:
 ## Practitioner Responsibility
 
 Payroll practitioners must validate every statutory rate, employee classification, PAYE value, UIF value, SDL value, ETI value, EMP201 value, EMP501 value, IRP5 / IT3(a) certificate, and GL posting before filing or payment. ZA Local supports calculation and review; it does not remove practitioner responsibility.
-

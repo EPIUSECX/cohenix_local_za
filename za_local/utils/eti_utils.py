@@ -17,6 +17,8 @@ from datetime import date, timedelta
 import frappe
 from frappe.utils import date_diff, flt, getdate
 
+from za_local.utils.statutory_rates import calculate_eti_from_pack
+
 
 def check_eti_eligibility(employee, salary_slip):
     """
@@ -145,6 +147,24 @@ def calculate_eti_amount(employee, salary_slip, monthly_remuneration):
     months_employed = eligibility["months_employed"]
     remuneration = flt(monthly_remuneration)
 
+    hours_per_month = frappe.db.get_value("Employee", employee, "za_hours_per_month")
+
+    # Prefer the annual statutory rate pack. ETI Slab documents are still
+    # seeded for Desk review and legacy compatibility.
+    try:
+        rate_pack_amount = calculate_eti_from_pack(
+            remuneration,
+            months_employed,
+            getattr(salary_slip, "end_date", None),
+            hours_per_month=hours_per_month,
+        )
+        return flt(rate_pack_amount, 2)
+    except Exception:
+        # Older sites may still rely on submitted ETI Slab documents for prior
+        # tax years. Fall through to the legacy slab lookup if no statutory pack
+        # exists for the salary slip date.
+        pass
+
     # Get ETI slab for calculation (based on employment period)
     eti_slab = get_eti_slab(months_employed)
 
@@ -194,7 +214,6 @@ def calculate_eti_amount(employee, salary_slip, monthly_remuneration):
             break
 
     # Pro-rate based on hours if applicable
-    hours_per_month = frappe.db.get_value("Employee", employee, "za_hours_per_month")
     if hours_per_month and hours_per_month > 0:
         # Standard month is typically 160-173 hours
         standard_hours = 160

@@ -78,7 +78,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Directive Type",
-   "options": "Standard Directive\nReduced Tax Rate\nGarnishee Order\nFixed Amount",
+   "options": "Standard Directive\nReduced Tax Rate\nGarnishee Order\nFixed Amount\nSeverance / Lump Sum",
    "reqd": 1
   },
   {
@@ -86,7 +86,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Active\nExpired\nCancelled"
+   "options": "Pending\nActive\nExpired\nCancelled"
   },
   {
    "fieldname": "section_break_7",
@@ -209,4 +209,3 @@
  "states": [],
  "track_changes": 1
 }
-

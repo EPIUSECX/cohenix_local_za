@@ -1,0 +1,84 @@
+{
+  "tax_year": "2026-2027",
+  "year_of_assessment": "2027",
+  "effective_from": "2026-03-01",
+  "effective_to": "2027-02-28",
+  "source_reference": "South Africa Payroll Tax Guide 2026-27",
+  "is_active": 1,
+  "paye": {
+    "rebates": {
+      "primary": 17820,
+      "secondary": 9765,
+      "tertiary": 3249
+    },
+    "thresholds": {
+      "under_65": 99000,
+      "age_65_to_74": 153250,
+      "age_75_plus": 171300
+    },
+    "brackets": [
+      {"from_amount": 0, "to_amount": 245100, "base_tax": 0, "rate": 18, "amount_over": 0},
+      {"from_amount": 245100, "to_amount": 383100, "base_tax": 44118, "rate": 26, "amount_over": 245100},
+      {"from_amount": 383100, "to_amount": 530200, "base_tax": 79998, "rate": 31, "amount_over": 383100},
+      {"from_amount": 530200, "to_amount": 695800, "base_tax": 125599, "rate": 36, "amount_over": 530200},
+      {"from_amount": 695800, "to_amount": 887000, "base_tax": 185215, "rate": 39, "amount_over": 695800},
+      {"from_amount": 887000, "to_amount": 1878600, "base_tax": 259783, "rate": 41, "amount_over": 887000},
+      {"from_amount": 1878600, "to_amount": null, "base_tax": 666339, "rate": 45, "amount_over": 1878600}
+    ]
+  },
+  "medical_tax_credit": {
+    "main_member": 376,
+    "first_dependant": 376,
+    "additional_dependant": 254
+  },
+  "uif": {
+    "monthly_remuneration_cap": 17712,
+    "employee_rate": 1,
+    "employer_rate": 1
+  },
+  "sdl": {
+    "rate": 1
+  },
+  "eti": {
+    "minimum_age": 18,
+    "maximum_age": 29,
+    "hours_in_a_month": 160,
+    "first_12_months": [
+      {"from_amount": 0, "to_amount": 2499.99, "amount": 0, "percentage": 60, "formula_type": "percentage"},
+      {"from_amount": 2500, "to_amount": 5499.99, "amount": 1500, "percentage": 0, "formula_type": "fixed"},
+      {"from_amount": 5500, "to_amount": 7499.99, "amount": 1500, "percentage": 75, "formula_type": "declining"},
+      {"from_amount": 7500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
+    ],
+    "second_12_months": [
+      {"from_amount": 0, "to_amount": 2499.99, "amount": 0, "percentage": 30, "formula_type": "percentage"},
+      {"from_amount": 2500, "to_amount": 5499.99, "amount": 750, "percentage": 0, "formula_type": "fixed"},
+      {"from_amount": 5500, "to_amount": 7499.99, "amount": 750, "percentage": 37.5, "formula_type": "declining"},
+      {"from_amount": 7500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
+    ]
+  },
+  "travel": {
+    "reimbursive_rate_per_km": 4.95,
+    "fixed_allowance_default_paye_inclusion_percentage": 80,
+    "fixed_allowance_reduced_paye_inclusion_percentage": 20
+  },
+  "subsistence": {
+    "rsa_incidental_only_per_day": 184,
+    "rsa_meals_and_incidentals_per_day": 595
+  },
+  "retirement": {
+    "annual_deduction_cap": 350000,
+    "deduction_percentage": 27.5
+  },
+  "coida": {
+    "annual_earnings_cap": 688000
+  },
+  "lump_sum_benefits": {
+    "cumulative_exemption": 550000,
+    "brackets": [
+      {"from_amount": 0, "to_amount": 550000, "base_tax": 0, "rate": 0, "amount_over": 0},
+      {"from_amount": 550000, "to_amount": 770000, "base_tax": 0, "rate": 18, "amount_over": 550000},
+      {"from_amount": 770000, "to_amount": 1155000, "base_tax": 39600, "rate": 27, "amount_over": 770000},
+      {"from_amount": 1155000, "to_amount": null, "base_tax": 143550, "rate": 36, "amount_over": 1155000}
+    ]
+  }
+}

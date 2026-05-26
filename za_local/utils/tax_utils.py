@@ -13,6 +13,15 @@ from datetime import date
 import frappe
 from frappe.utils import date_diff, flt, getdate
 
+from za_local.utils.statutory_rates import (
+	get_retirement_annual_cap,
+	get_retirement_deduction_percentage,
+	get_sdl_rate,
+	get_uif_employee_rate,
+	get_uif_employer_rate,
+	get_uif_monthly_cap,
+)
+
 
 def calculate_south_african_tax(annual_taxable_income, tax_slab=None):
     """
@@ -230,9 +239,9 @@ def calculate_retirement_annuity_deduction(salary_slip, retirement_contribution)
 
     if not ra_slabs:
         frappe.log_error("Retirement annuity slabs not configured", "Tax Calculation")
-        # Use default limits
-        max_percentage = 0.275  # 27.5%
-        max_annual_limit = 350000
+        # Use current statutory limits
+        max_percentage = get_retirement_deduction_percentage(getattr(salary_slip, "end_date", None))
+        max_annual_limit = get_retirement_annual_cap(getattr(salary_slip, "end_date", None))
     else:
         slab = ra_slabs[0]
         max_percentage = flt(slab.maximum_percentage) / 100
@@ -270,16 +279,18 @@ def calculate_uif_contribution(gross_pay):
     Returns:
         tuple: (employee_uif, employer_uif)
     """
-    UIF_RATE = 0.01  # 1%
-    UIF_MAX_MONTHLY = 17712.00  # Maximum monthly remuneration
+    UIF_MAX_MONTHLY = get_uif_monthly_cap()
+    employee_rate = get_uif_employee_rate()
+    employer_rate = get_uif_employer_rate()
 
     # Cap gross pay at maximum
     capped_gross = min(flt(gross_pay), UIF_MAX_MONTHLY)
 
     # Calculate contributions
-    uif_amount = capped_gross * UIF_RATE
+    employee_uif = capped_gross * employee_rate
+    employer_uif = capped_gross * employer_rate
 
-    return (uif_amount, uif_amount)
+    return (employee_uif, employer_uif)
 
 
 def calculate_sdl_contribution(gross_pay):
@@ -294,7 +305,7 @@ def calculate_sdl_contribution(gross_pay):
     Returns:
         float: SDL amount
     """
-    SDL_RATE = 0.01  # 1%
+    SDL_RATE = get_sdl_rate()
 
     sdl_amount = flt(gross_pay) * SDL_RATE
 

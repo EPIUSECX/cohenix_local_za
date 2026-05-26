@@ -5,6 +5,10 @@ from frappe import _  # Ensure _ is imported for translations
 from frappe.model.document import Document
 from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate
 
+DIRECTIVE_INCOME_CODES = {"3901", "3907", "3908", "3915", "3920"}
+DIRECTIVE_DEDUCTION_CODES = {"4115"}
+TOTAL_TOLERANCE = 0.01
+
 
 @frappe.whitelist()
 def get_company_tax_details(company):
@@ -186,6 +190,85 @@ class EMP501Reconciliation(Document):
 				title=_("Incomplete IRP5 Coverage"),
 			)
 
+	def validate_irp5_certificate_readiness(self):
+		errors = []
+		certificate_totals = frappe._dict(paye=0, uif=0, sdl=0, eti=0, tax_payable=0)
+
+		for row in self.irp5_certificates or []:
+			if not row.irp5_certificate or not frappe.db.exists("IRP5 Certificate", row.irp5_certificate):
+				continue
+
+			certificate = frappe.get_doc("IRP5 Certificate", row.irp5_certificate)
+			label = certificate.employee_name or certificate.employee or certificate.name
+
+			if hasattr(certificate, "validate_statutory_readiness"):
+				missing = certificate.validate_statutory_readiness(throw=False)
+				if missing:
+					errors.append(
+						_("{0}: missing SARS readiness fields: {1}").format(
+							label,
+							", ".join(sorted(set(missing))),
+						)
+					)
+
+			missing_codes = []
+			has_directive_income = False
+			for income_row in certificate.income_details or []:
+				if flt(income_row.amount) and not income_row.income_code:
+					missing_codes.append(_("income line code"))
+				if income_row.income_code in DIRECTIVE_INCOME_CODES:
+					has_directive_income = True
+
+			has_directive_tax = False
+			for deduction_row in certificate.deduction_details or []:
+				if flt(deduction_row.amount) and not deduction_row.deduction_code:
+					missing_codes.append(_("deduction line code"))
+				if deduction_row.deduction_code in DIRECTIVE_DEDUCTION_CODES:
+					has_directive_tax = True
+
+			for contribution_row in certificate.company_contribution_details or []:
+				if flt(contribution_row.amount) and not contribution_row.contribution_code:
+					missing_codes.append(_("employer contribution line code"))
+
+			if missing_codes:
+				errors.append(
+					_("{0}: missing SARS payroll code on {1}").format(
+						label,
+						", ".join(sorted(set(missing_codes))),
+					)
+				)
+
+			if (has_directive_income or has_directive_tax) and not certificate.directive_numbers:
+				errors.append(
+					_("{0}: directive income or tax exists but no directive number is recorded").format(label)
+				)
+
+			expected_tax_payable = flt(certificate.paye) + flt(certificate.uif) + flt(certificate.sdl) - flt(
+				certificate.eti
+			)
+			if abs(flt(certificate.total_tax_payable) - expected_tax_payable) > TOTAL_TOLERANCE:
+				errors.append(
+					_(
+						"{0}: certificate total tax payable does not reconcile to PAYE + UIF + SDL - ETI"
+					).format(label)
+				)
+
+			certificate_totals.paye += flt(certificate.paye)
+			certificate_totals.uif += flt(certificate.uif)
+			certificate_totals.sdl += flt(certificate.sdl)
+			certificate_totals.eti += flt(certificate.eti)
+			certificate_totals.tax_payable += flt(certificate.total_tax_payable)
+
+		if errors:
+			frappe.throw(
+				_("EMP501 cannot be submitted until linked IRP5/IT3(a) certificates are filing-ready:<br><br>{0}").format(
+					"<br>".join(f"• {frappe.bold(error)}" for error in errors)
+				),
+				title=_("IRP5 Certificate Readiness Required"),
+			)
+
+		return certificate_totals
+
 	def validate_dates(self):
 		"""
 		Validate date ranges for EMP501 Reconciliation based on selected Tax Year and Period.
@@ -294,6 +377,7 @@ class EMP501Reconciliation(Document):
 		self.validate_submission_readiness()
 		self.validate_emp201_period_coverage(throw=True)
 		self.validate_irp5_coverage()
+		self.validate_irp5_certificate_readiness()
 
 	def on_submit(self):
 		self.db_set("status", "Submitted", update_modified=False)

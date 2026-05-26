@@ -6,6 +6,8 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, getdate
 
+from za_local.utils.statutory_rates import calculate_lump_sum_benefit_tax
+
 
 def calculate_bcea_notice_period(employee, termination_date):
 	"""
@@ -129,11 +131,12 @@ def calculate_leave_payout_on_termination(employee):
 	}
 
 
-def calculate_severance_tax(severance_amount):
+def calculate_severance_tax(severance_amount, date_value=None, previous_lump_sums=0):
 	"""
 	Calculate tax on severance pay.
 
-	SARS: First R500,000 is tax-free, remainder taxed at lump sum rates.
+	SARS: severance benefits are taxed using the retirement fund lump sum
+	benefits table on a cumulative basis.
 
 	Args:
 		severance_amount: Severance amount
@@ -141,13 +144,8 @@ def calculate_severance_tax(severance_amount):
 	Returns:
 		float: Tax amount
 	"""
-	tax_free_portion = 500000
-
-	if severance_amount <= tax_free_portion:
-		return 0.0
-
-	taxable = severance_amount - tax_free_portion
-
-	# Simplified lump sum tax (18% placeholder)
-	# TODO: Implement proper SARS lump sum tax tables
-	return taxable * 0.18
+	return calculate_lump_sum_benefit_tax(
+		severance_amount,
+		date_value=date_value,
+		previous_lump_sums=previous_lump_sums,
+	)

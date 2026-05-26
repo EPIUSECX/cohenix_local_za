@@ -16,7 +16,10 @@
   "from_date",
   "to_date",
   "earnings_section",
+  "uncapped_annual_earnings",
+  "coida_annual_earnings_cap",
   "total_annual_earnings",
+  "excluded_annual_earnings",
   "director_earnings",
   "column_break_11",
   "total_employees",
@@ -85,10 +88,32 @@
    "label": "Earnings Details"
   },
   {
+   "description": "Total submitted Salary Slip gross earnings before COIDA annual employee cap.",
+   "fieldname": "uncapped_annual_earnings",
+   "fieldtype": "Currency",
+   "label": "Uncapped Annual Earnings",
+   "read_only": 1
+  },
+  {
+   "description": "Annual COIDA earnings cap applied per employee for this assessment year.",
+   "fieldname": "coida_annual_earnings_cap",
+   "fieldtype": "Currency",
+   "label": "COIDA Annual Earnings Cap",
+   "read_only": 1
+  },
+  {
+   "description": "COIDA assessable earnings after applying the annual employee cap.",
    "fieldname": "total_annual_earnings",
    "fieldtype": "Currency",
-   "label": "Total Annual Earnings",
+   "label": "Capped Annual Earnings",
    "reqd": 1
+  },
+  {
+   "description": "Earnings excluded by COIDA cap or component classification.",
+   "fieldname": "excluded_annual_earnings",
+   "fieldtype": "Currency",
+   "label": "Excluded Annual Earnings",
+   "read_only": 1
   },
   {
    "fieldname": "director_earnings",
