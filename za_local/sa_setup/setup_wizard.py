@@ -395,7 +395,7 @@ def setup_za_localization(args):
 
 	except Exception as e:
 		# Log the error but don't raise - allow setup wizard to continue
-		frappe.log_error(f"SA Localization setup failed: {e!s}", "ZA Local Setup")
+		frappe.log_error(frappe.get_traceback(), "ZA Local Setup")
 		print(f"✗ SA Localization setup encountered errors: {e}")
 		print("  Note: Some features may not be configured. Check error logs for details.")
 		# Don't raise - let setup wizard complete even if some steps failed

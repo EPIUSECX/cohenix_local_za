@@ -184,6 +184,26 @@ class TestSetupWizardStabilisation(UnitTestCase):
 		sync_navigation.assert_not_called()
 		stop_suppression.assert_called_once()
 
+	def test_first_run_setup_logs_errors_without_blocking_erpnext_setup(self):
+		from za_local.sa_setup.setup_wizard import setup_za_localization
+
+		with (
+			patch("frappe.defaults.get_user_default", return_value=None),
+			patch("frappe.db.exists", return_value=True),
+			patch("frappe.db.count", return_value=1),
+			patch(
+				"za_local.accounts.setup_chart.load_sa_chart_of_accounts",
+				side_effect=RuntimeError("chart augmentation failed"),
+			),
+			patch("za_local.sa_setup.setup_wizard.frappe.log_error") as log_error,
+			patch("za_local.sa_setup.install.stop_setup_warning_suppression") as stop_suppression,
+		):
+			setup_za_localization(frappe._dict(country="South Africa", company_name="Test ZA Company"))
+
+		log_error.assert_called_once()
+		self.assertEqual(log_error.call_args.args[1], "ZA Local Setup")
+		stop_suppression.assert_called_once()
+
 
 class TestNavigationStabilisation(UnitTestCase):
 	def test_workspace_paths_exclude_payroll_without_hrms(self):
