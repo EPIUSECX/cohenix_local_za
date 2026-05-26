@@ -178,12 +178,12 @@ class ZAPayrollEntry(PayrollEntry):
     def on_submit(self):
         if hasattr(super(), "on_submit"):
             super().on_submit()
-        self.status = "Submitted"
+        self.db_set("status", "Submitted", update_modified=False)
 
     def on_cancel(self):
         if hasattr(super(), "on_cancel"):
             super().on_cancel()
-        self.status = "Cancelled"
+        self.db_set("status", "Cancelled", update_modified=False)
 
     def ensure_consistent_status(self):
         if self.docstatus == 0 and self.get("status") == "Submitted":
