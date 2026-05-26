@@ -68,7 +68,6 @@ class TestRepositoryHygiene(unittest.TestCase):
 
 	def test_expected_sa_workspace_sidebars_exist(self):
 		expected = {
-			"sa_overview.json",
 			"sa_vat.json",
 			"sa_payroll.json",
 			"sa_labour.json",
@@ -84,10 +83,14 @@ class TestRepositoryHygiene(unittest.TestCase):
 			found,
 			msg="SA Localisation is an App tile, not a Workspace Sidebar",
 		)
+		self.assertNotIn(
+			"sa_overview.json",
+			found,
+			msg="SA Overview is not a Workspace Sidebar",
+		)
 
 	def test_workspace_sidebars_use_boot_visible_area_modules(self):
 		expected_modules = {
-			"sa_overview.json": "SA Setup",
 			"sa_vat.json": "SA VAT",
 			"sa_payroll.json": "SA Payroll",
 			"sa_labour.json": "SA Labour",
@@ -125,7 +128,6 @@ class TestRepositoryHygiene(unittest.TestCase):
 
 	def test_module_sidebars_reference_module_onboarding(self):
 		expected = {
-			"sa_overview.json": "SA Overview Onboarding",
 			"sa_vat.json": "SA VAT Onboarding",
 			"sa_payroll.json": "SA Payroll Onboarding",
 			"sa_labour.json": "SA Labour Onboarding",

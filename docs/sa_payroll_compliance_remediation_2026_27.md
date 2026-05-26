@@ -23,7 +23,7 @@ Compliance reference: `/workspace/South Africa Payroll Tax Guide 2026-27 (1).pdf
 - Hardened EMP201 PAYE aggregation to include ordinary PAYE and lump-sum/directive PAYE from submitted slips only.
 - Hardened EMP501 submission readiness checks for employer references, EMP201 period coverage, IRP5 coverage, SARS code completeness, directive numbers, employee statutory readiness, and certificate internal totals.
 - Kept direct SARS/eCOID electronic submission disabled. Records remain manual filing working papers.
-- Added the missing `sa_overview.json` workspace sidebar fixture.
+- Updated repository hygiene expectations so `SA Overview` is not treated as a Workspace Sidebar fixture.
 - Added practitioner annual update guidance.
 
 ## Confirmed Test Evidence
@@ -67,7 +67,7 @@ Database spot checks:
 | Severance used placeholder tax logic | Replaced with 2026/27 lump-sum table support and directive requirement. |
 | Final payslip unavailable from settlement | Implemented final Salary Slip generation with separate final-pay components. |
 | Payroll Entry draft docstatus with Submitted status | Hardened save/submit/cancel status consistency and removed broad exception suppression. |
-| Missing `sa_overview.json` fixture | Added fixture; repository hygiene tests pass. |
+| Repository hygiene expected removed `sa_overview.json` fixture | Fixed hygiene tests to require only the active module workspace sidebars. |
 
 ## Confirmed Limits And Assumptions
 
