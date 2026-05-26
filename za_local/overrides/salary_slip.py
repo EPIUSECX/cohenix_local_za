@@ -48,24 +48,28 @@ if get_period_factor is None:
         return 1.0
 
 # Import ZA Local utilities
-from za_local.utils.eti_utils import calculate_eti_amount, check_eti_eligibility, log_eti_calculation
+from za_local.utils.eti_utils import (
+    calculate_eti_amount,
+    check_eti_eligibility,
+    log_eti_calculation,
+)
 from za_local.utils.payroll_utils import (
     get_additional_salaries,
     get_current_block_period,
     get_employee_frequency_map,
     is_payroll_processed,
 )
-from za_local.utils.tax_utils import (
-    calculate_sdl_contribution,
-    calculate_uif_contribution,
-    get_medical_aid_credit,
-    get_tax_rebate,
-)
 from za_local.utils.statutory_rates import (
     get_default_travel_paye_inclusion_percentage,
     get_retirement_annual_cap,
     get_retirement_deduction_percentage,
     get_sdl_rate,
+)
+from za_local.utils.tax_utils import (
+    calculate_sdl_contribution,
+    calculate_uif_contribution,
+    get_medical_aid_credit,
+    get_tax_rebate,
 )
 
 RETIREMENT_FUND_DEDUCTION_CODES = {"4001", "4003", "4006", "4007"}
