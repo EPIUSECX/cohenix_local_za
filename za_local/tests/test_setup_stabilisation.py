@@ -84,6 +84,36 @@ class TestSetupWizardStabilisation(UnitTestCase):
 		for component in ("PAYE", "UIF Employee Contribution", "UIF Employer Contribution", "SDL Contribution"):
 			self.assertIn(component, DEFAULT_SALARY_COMPONENT_ACCOUNT_NAMES)
 
+	def test_salary_component_seed_derives_required_component_field_from_name(self):
+		from za_local.sa_setup.install import create_salary_component_if_not_exists
+
+		captured = {}
+
+		class FakeSalaryComponent:
+			def __init__(self, data):
+				self.data = data
+
+			def insert(self, **kwargs):
+				captured.update(self.data)
+
+		with (
+			patch("za_local.sa_setup.install.frappe.db.exists", return_value=False),
+			patch(
+				"za_local.sa_setup.install.frappe.get_doc",
+				side_effect=lambda data: FakeSalaryComponent(data),
+			),
+		):
+			create_salary_component_if_not_exists(
+				{
+					"name": "PAYE",
+					"salary_component_abbr": "PAYE",
+					"type": "Deduction",
+				}
+			)
+
+		self.assertEqual(captured["name"], "PAYE")
+		self.assertEqual(captured["salary_component"], "PAYE")
+
 	def test_first_run_setup_skips_hrms_master_loaders(self):
 		from za_local.sa_setup.setup_wizard import setup_za_localization
 

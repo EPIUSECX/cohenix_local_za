@@ -2775,13 +2775,21 @@ def create_salary_component_if_not_exists(component_data):
 	Args:
 		component_data (dict): Salary component configuration
 	"""
-	if not frappe.db.exists("Salary Component", component_data["name"]):
+	component_data = dict(component_data or {})
+	component_name = component_data.get("salary_component") or component_data.get("name")
+	if not component_name:
+		frappe.throw(_("Salary Component seed is missing a component name."))
+
+	component_data.setdefault("name", component_name)
+	component_data.setdefault("salary_component", component_name)
+
+	if not frappe.db.exists("Salary Component", component_name):
 		with suppress_known_setup_warnings():
 			doc = frappe.get_doc({"doctype": "Salary Component", **component_data})
 			doc.insert(ignore_permissions=True)
-		print(f"✓ Created Salary Component: {component_data['name']}")
+		print(f"✓ Created Salary Component: {component_name}")
 	else:
-		print(f"  Salary Component already exists: {component_data['name']}")
+		print(f"  Salary Component already exists: {component_name}")
 
 
 def setup_default_salary_components():
@@ -2798,6 +2806,7 @@ def setup_default_salary_components():
 	components = [
 		{
 			"name": "PAYE",
+			"salary_component": "PAYE",
 			"salary_component_abbr": "PAYE",
 			"type": "Deduction",
 			"description": "Pay As You Earn - Income Tax",
@@ -2806,6 +2815,7 @@ def setup_default_salary_components():
 		},
 		{
 			"name": "UIF Employee Contribution",
+			"salary_component": "UIF Employee Contribution",
 			"salary_component_abbr": "UIF_EE",
 			"type": "Deduction",
 			"description": "Unemployment Insurance Fund - Employee Contribution (1%)",
@@ -2815,6 +2825,7 @@ def setup_default_salary_components():
 		},
 		{
 			"name": "UIF Employer Contribution",
+			"salary_component": "UIF Employer Contribution",
 			"salary_component_abbr": "UIF_ER",
 			"type": "Company Contribution",
 			"description": "Unemployment Insurance Fund - Employer Contribution (1%)",
@@ -2824,6 +2835,7 @@ def setup_default_salary_components():
 		},
 		{
 			"name": "SDL Contribution",
+			"salary_component": "SDL Contribution",
 			"salary_component_abbr": "SDL",
 			"type": "Company Contribution",
 			"description": "Skills Development Levy (1%)",
