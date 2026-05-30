@@ -327,7 +327,7 @@ def is_valid_item_tax_account(account: str | None, company: str | None) -> bool:
 def ensure_default_tax_templates(settings):
 	company = settings.company
 	if not company:
-		frappe.throw(_("Select a company before bootstrapping VAT templates."))
+		frappe.throw(_("Select a company before applying recommended VAT templates."))
 
 	created = {}
 	for spec in DEFAULT_TEMPLATE_SPECS["sales"]:
@@ -358,21 +358,9 @@ def ensure_default_tax_templates(settings):
 def ensure_item_tax_templates(settings, company):
 	item_tax_account = getattr(settings, "item_tax_template_account", None)
 	if not item_tax_account:
-		frappe.msgprint(
-			_(
-				"Automatic Item Tax Template creation is inactive because no Item Tax Template Account is set for company {0}. Select a valid tax, chargeable, income, or expense account if you want the templates generated automatically."
-			).format(frappe.bold(company)),
-			indicator="yellow",
-		)
 		return
 
 	if not is_valid_item_tax_account(item_tax_account, company):
-		frappe.msgprint(
-			_(
-				"Skipping automatic Item Tax Template creation because Item Tax Template Account {0} is not a valid Item Tax account for company {1}. Use an account of type Tax, Chargeable, Income, or Expense if you want item tax templates generated automatically."
-			).format(frappe.bold(item_tax_account), frappe.bold(company)),
-			indicator="yellow",
-		)
 		return
 
 	for title, rate in [("SA Item Tax 15%", 15), ("SA Item Tax 0%", 0)]:
@@ -435,18 +423,20 @@ def bootstrap_company_vat_setup(company: str | None = None):
 	if company and not settings.company:
 		settings.company = company
 	settings.default_vat_report_company = settings.company
-	ensure_default_tax_templates(settings)
+	templates = ensure_default_tax_templates(settings)
 	sync_vat_accounts(settings)
 	settings.flags.ignore_permissions = True
 	if settings.is_new():
 		settings.insert()
 	else:
 		settings.save()
-	return {
-		"settings": settings.name,
-		"vat_accounts": [row.account for row in settings.vat_accounts],
-		"tax_accounts": [row.account for row in settings.vat_accounts],
-	}
+	tracked = [row.account for row in settings.vat_accounts]
+	return settings.get_configuration_feedback(
+		title=_("Recommended VAT Setup Applied"),
+		message=_("Recommended VAT templates and VAT account tracking were applied for this company."),
+		tracked=tracked,
+		templates=templates,
+	)
 
 
 def migrate_legacy_vat_account_rows():

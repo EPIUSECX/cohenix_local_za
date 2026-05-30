@@ -70,6 +70,7 @@ fixtures = [
 # Includes in <head>
 # ------------------
 app_include_css = "/assets/za_local/css/za_local.css"
+app_include_js = "/assets/za_local/js/za_local_feedback.js"
 
 # Include JS in doctype views
 # ------------------

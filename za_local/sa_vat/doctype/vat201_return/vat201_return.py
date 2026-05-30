@@ -273,15 +273,42 @@ class VAT201Return(Document):
 		self.calculate_totals()
 		self.set_review_summary()
 		self.set_submission_period()
+		unclassified_count = len(
+			[
+				row
+				for row in rows
+				if row.get("classification_status") == NEEDS_REVIEW and not row.get("is_cancelled")
+			]
+		)
+		return self.get_vat_transactions_feedback(len(rows), unclassified_count)
+
+	def get_vat_transactions_feedback(self, transaction_count, unclassified_count):
+		warnings = []
+		if unclassified_count:
+			warnings.append(
+				_("{0} linked VAT transactions still need practitioner review.").format(unclassified_count)
+			)
+
 		return {
-			"transaction_count": len(rows),
-			"unclassified_count": len(
-				[
-					row
-					for row in rows
-					if row.get("classification_status") == NEEDS_REVIEW and not row.get("is_cancelled")
-				]
-			),
+			"title": _("VAT Transactions Fetched"),
+			"indicator": "orange" if warnings else "green",
+			"message": _("VAT transactions were fetched and classified for this VAT201 working paper."),
+			"details": [
+				{"label": _("Company"), "value": self.company},
+				{"label": _("Period"), "value": self.submission_period},
+				{"label": _("Linked Transactions"), "value": transaction_count},
+				{"label": _("Needs Review"), "value": unclassified_count},
+				{"label": _("VAT Payable"), "value": self.vat_payable},
+				{"label": _("VAT Refundable"), "value": self.vat_refundable},
+			],
+			"warnings": warnings,
+			"next_steps": [
+				_("Review any transactions marked Needs Review."),
+				_("Open the linked transactions report to inspect the VAT evidence."),
+				_("Export the VAT201 summary and linked transactions when the working paper is ready."),
+			],
+			"transaction_count": transaction_count,
+			"unclassified_count": unclassified_count,
 		}
 
 	def get_sales_invoice_rows(self, settings):

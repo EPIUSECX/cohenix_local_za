@@ -437,6 +437,28 @@ class TestNavigationStabilisation(UnitTestCase):
 		with patch("za_local.sa_setup.install.is_hrms_installed", return_value=True):
 			validate_za_local_setup_hrms_options(doc)
 
+	def test_manual_setup_feedback_identifies_erpnext_only_mode(self):
+		from za_local.sa_setup.install import build_za_local_setup_feedback
+
+		doc = frappe._dict(
+			company="Test Company",
+			setup_status="Completed",
+			setup_completed_on="2026-04-01 10:00:00",
+		)
+
+		result = build_za_local_setup_feedback(
+			doc,
+			applied=["VAT custom fields, vendor types, print formats, and navigation"],
+			warnings=[],
+			hrms_available=False,
+		)
+
+		self.assertEqual("ZA Local Setup Complete", result["title"])
+		self.assertEqual("orange", result["indicator"])
+		self.assertFalse(result["hrms_installed"])
+		self.assertTrue(any("HRMS is not installed" in warning for warning in result["warnings"]))
+		self.assertTrue(any(row["label"] == "Setup Mode" for row in result["details"]))
+
 
 class TestConnectionLinkStabilisation(UnitTestCase):
 	def test_doctype_connection_links_hide_hrms_targets_without_hrms(self):

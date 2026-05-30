@@ -3028,19 +3028,8 @@ def validate_za_local_setup_hrms_options(setup_doc):
 	if is_hrms_installed():
 		return
 
-	def get_field_label(fieldname: str) -> str:
-		meta = getattr(setup_doc, "meta", None)
-		if meta:
-			try:
-				field = meta.get_field(fieldname)
-				if field and field.label:
-					return field.label
-			except Exception:
-				pass
-		return fieldname
-
 	selected = [
-		get_field_label(field)
+		get_setup_field_label(setup_doc, field)
 		for field in sorted(_HRMS_SETUP_FIELDS)
 		if frappe.utils.cint(setup_doc.get(field))
 	]
@@ -3053,6 +3042,57 @@ def validate_za_local_setup_hrms_options(setup_doc):
 		)
 
 
+def get_setup_field_label(setup_doc, fieldname: str) -> str:
+	meta = getattr(setup_doc, "meta", None)
+	if meta:
+		try:
+			field = meta.get_field(fieldname)
+			if field and field.label:
+				return field.label
+		except Exception:
+			pass
+	return fieldname.replace("_", " ").title()
+
+
+def format_import_stats(label, stats):
+	return _("{0}: {1} created, {2} updated, {3} skipped, {4} errors").format(
+		label,
+		stats.get("created", 0),
+		stats.get("updated", 0),
+		stats.get("skipped", 0),
+		stats.get("errors", 0),
+	)
+
+
+def build_za_local_setup_feedback(setup_doc, applied, warnings, hrms_available):
+	mode = _("ERPNext-only (HRMS not installed)") if not hrms_available else _("ERPNext and HRMS")
+	if not hrms_available:
+		warnings.append(_("HRMS is not installed, so payroll and employee-tax setup options were skipped."))
+
+	return {
+		"title": _("ZA Local Setup Complete"),
+		"indicator": "orange" if warnings else "green",
+		"message": _("South African localisation configuration was applied."),
+		"details": [
+			{"label": _("Company"), "value": setup_doc.company},
+			{"label": _("Setup Mode"), "value": mode},
+			{"label": _("Applied Configuration"), "value": applied},
+			{"label": _("Setup Status"), "value": setup_doc.setup_status},
+			{"label": _("Completed On"), "value": setup_doc.setup_completed_on},
+		],
+		"warnings": warnings,
+		"next_steps": [
+			_("Open South Africa VAT Settings and confirm the company VAT details."),
+			_("Review VAT accounts, tax templates, and VAT201 mappings before filing."),
+			_("Use VAT201 Return to fetch and review transactions for the first period."),
+		],
+		"status": setup_doc.setup_status,
+		"setup_completed_on": setup_doc.setup_completed_on,
+		"applied": applied,
+		"hrms_installed": hrms_available,
+	}
+
+
 def run_za_local_setup(setup_doc):
 	"""
 	Execute za_local setup based on user selections.
@@ -3062,6 +3102,9 @@ def run_za_local_setup(setup_doc):
 		setup_doc: ZA Local Setup document instance
 	"""
 	validate_za_local_setup_hrms_options(setup_doc)
+	hrms_available = is_hrms_installed()
+	applied = []
+	warnings = []
 
 	setup_doc.setup_status = "In Progress"
 	setup_doc.save()
@@ -3070,30 +3113,60 @@ def run_za_local_setup(setup_doc):
 		with suppress_known_setup_warnings():
 			data_dir = resolve_app_path("sa_setup", "data")
 
+			ensure_vat_custom_fields()
+			seed_vat_vendor_types()
+			migrated = migrate_legacy_vat_account_rows()
+			set_accounts_settings_for_za_vat()
+			ensure_sa_print_formats()
+			sync_sa_navigation()
+			applied.append(_("VAT custom fields, vendor types, print formats, and navigation"))
+			if migrated:
+				applied.append(_("{0} legacy VAT account rows migrated").format(migrated))
+
 			# Load salary components
 			if setup_doc.load_salary_components:
 				load_data_from_json(data_dir / "salary_components.json")
 				print("✓ Loaded statutory salary components")
+				applied.append(get_setup_field_label(setup_doc, "load_salary_components"))
 
 			if setup_doc.load_earnings_components:
 				load_data_from_json(data_dir / "earnings_components.json")
 				print("✓ Loaded earnings components")
+				applied.append(get_setup_field_label(setup_doc, "load_earnings_components"))
 
 			# Load tax configuration
 			if setup_doc.load_tax_slabs:
 				load_data_from_json(data_dir / "tax_slabs_2025.json")  # 2024-2025 (2025 tax year)
 				print("✓ Loaded 2024-2025 tax slabs")
+				applied.append(get_setup_field_label(setup_doc, "load_tax_slabs"))
 
 			if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
 				load_data_from_json(data_dir / "tax_rebates_2025.json")  # 2024-2025 (2025 tax year)
 				print("✓ Loaded tax rebates and medical tax credits")
+				if setup_doc.load_tax_rebates:
+					applied.append(get_setup_field_label(setup_doc, "load_tax_rebates"))
+				if setup_doc.load_medical_credits:
+					applied.append(get_setup_field_label(setup_doc, "load_medical_credits"))
 
 			# Load master data
 			if setup_doc.load_business_trip_regions:
 				from za_local.utils.csv_importer import import_csv_data
 
-				import_csv_data("Business Trip Region", "business_trip_region.csv")
+				stats = import_csv_data("Business Trip Region", "business_trip_region.csv")
 				print("✓ Loaded business trip regions")
+				applied.append(format_import_stats(_("Business Trip Regions"), stats))
+
+			if setup_doc.load_seta_list:
+				from za_local.utils.csv_importer import import_csv_data
+
+				stats = import_csv_data("SETA", "seta_list.csv")
+				applied.append(format_import_stats(_("SETA List"), stats))
+
+			if setup_doc.load_bargaining_councils:
+				from za_local.utils.csv_importer import import_csv_data
+
+				stats = import_csv_data("Bargaining Council", "bargaining_council_list.csv")
+				applied.append(format_import_stats(_("Bargaining Councils"), stats))
 
 			# Load Chart of Accounts
 			if setup_doc.load_chart_of_accounts and setup_doc.company:
@@ -3103,10 +3176,12 @@ def run_za_local_setup(setup_doc):
 
 					load_sa_chart_of_accounts(setup_doc.company)
 					print("✓ Loaded Chart of Accounts")
+					applied.append(get_setup_field_label(setup_doc, "load_chart_of_accounts"))
 				except Exception as e:
 					print(f"  ! Warning: Could not load Chart of Accounts: {e}")
 					print("  Note: Chart of Accounts can be loaded manually later")
 					frappe.log_error(f"Chart of Accounts loading failed: {e!s}", "ZA Local Setup")
+					warnings.append(_("Chart of Accounts could not be loaded automatically. Review Error Log."))
 
 			if setup_doc.company:
 				repair_salary_component_accounts(setup_doc.company)
@@ -3116,7 +3191,7 @@ def run_za_local_setup(setup_doc):
 		setup_doc.setup_completed_on = frappe.utils.now()
 		setup_doc.save()
 
-		frappe.msgprint("✅ South African localization setup completed successfully!")
+		return build_za_local_setup_feedback(setup_doc, applied, warnings, hrms_available)
 
 	except Exception as e:
 		setup_doc.setup_status = "Pending"

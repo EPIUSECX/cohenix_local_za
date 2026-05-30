@@ -38,8 +38,19 @@ frappe.ui.form.on("ZA Local Setup", {
 					method: "start_setup",
 					freeze: true,
 					freeze_message: __("Applying South African localisation setup..."),
-					callback: () => {
-						frm.reload_doc();
+					callback: (r) => {
+						const result = r && r.message;
+						frm.reload_doc().then(() => {
+							if (window.za_local && window.za_local.show_action_feedback) {
+								window.za_local.show_action_feedback(result, __("ZA Local Setup Complete"));
+							} else if (result) {
+								frappe.msgprint({
+									title: result.title || __("ZA Local Setup Complete"),
+									message: result.message || __("South African localisation configuration was applied."),
+									indicator: result.indicator || "green",
+								});
+							}
+						});
 					},
 				});
 			};

@@ -18,7 +18,7 @@
  "save_on_complete": 1,
  "steps": [
   {
-   "description": "Choose the South African company you want to bootstrap.",
+   "description": "Choose the South African company you want to configure.",
    "fieldname": "company",
    "fieldtype": "Link",
    "has_next_condition": 0,
