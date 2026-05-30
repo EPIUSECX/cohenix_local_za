@@ -28,7 +28,7 @@
    "step": "Sync VAT Accounts"
   },
   {
-   "step": "Bootstrap Company VAT Setup"
+   "step": "Apply Recommended VAT Setup"
   },
   {
    "step": "Review Sales Tax Templates"

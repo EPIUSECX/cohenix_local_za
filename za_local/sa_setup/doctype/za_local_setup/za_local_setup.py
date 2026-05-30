@@ -32,7 +32,7 @@ class ZALocalSetup(Document):
 		from za_local.sa_setup.install import run_za_local_setup
 
 		try:
-			run_za_local_setup(self)
+			self._setup_result = run_za_local_setup(self)
 		except Exception as e:
 			frappe.log_error(f"Setup failed: {e!s}", "ZA Local Setup")
 			self.db_set("setup_status", "Pending", update_modified=False)
@@ -44,9 +44,24 @@ class ZALocalSetup(Document):
 		if not self.company:
 			frappe.throw(_("Company is required"))
 
+		from za_local.utils.hrms_detection import is_hrms_installed
+
+		if not is_hrms_installed():
+			for fieldname in (
+				"load_salary_components",
+				"load_earnings_components",
+				"load_tax_slabs",
+				"load_tax_rebates",
+				"load_medical_credits",
+			):
+				self.set(fieldname, 0)
+
 		self.setup_status = "In Progress"
 		self.save()
-		return {
+		return getattr(self, "_setup_result", None) or {
+			"title": _("ZA Local Setup Complete"),
+			"indicator": "green",
+			"message": _("South African localisation setup completed."),
 			"status": self.setup_status,
 			"setup_completed_on": self.setup_completed_on,
 		}

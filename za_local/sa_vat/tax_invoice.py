@@ -9,6 +9,7 @@ NO_TAX_INVOICE_THRESHOLD = 50
 @frappe.whitelist()
 def check_tax_invoice_readiness(sales_invoice: str):
 	doc = frappe.get_doc("Sales Invoice", sales_invoice)
+	company_vat_number = get_company_vat_registration_number(doc.company) or getattr(doc, "company_tax_id", None)
 	profile = build_sales_invoice_print_profile(
 		company=doc.company,
 		base_grand_total=getattr(doc, "base_grand_total", None),
@@ -29,8 +30,8 @@ def check_tax_invoice_readiness(sales_invoice: str):
 		check(
 			"supplier_vat_number",
 			_("Supplier VAT number"),
-			bool(doc.company_tax_id),
-			_("Missing company VAT number"),
+			bool(company_vat_number),
+			company_vat_number or _("Missing company VAT number"),
 		),
 		check("customer_name", _("Customer name"), bool(doc.customer_name), doc.customer_name),
 		check(
@@ -144,6 +145,17 @@ def is_company_in_south_africa(company: str | None):
 	if not company:
 		return False
 	return frappe.db.get_value("Company", company, "country", cache=True) == "South Africa"
+
+
+def get_company_vat_registration_number(company: str | None):
+	if not company:
+		return None
+	values = frappe.db.get_value("Company", company, ["za_vat_number", "tax_id"], as_dict=True)
+	if isinstance(values, dict):
+		return values.get("za_vat_number") or values.get("tax_id")
+	if isinstance(values, (list, tuple)):
+		return next((value for value in values if value), None)
+	return values
 
 
 def check(key, label, ok, detail=None):

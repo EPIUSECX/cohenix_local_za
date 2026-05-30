@@ -13,32 +13,26 @@ frappe.ui.form.on("South Africa VAT Settings", {
 		set_erpnext_vat_queries(frm);
 
 		frm.add_custom_button(__("Sync VAT Accounts"), function () {
-			frm.call({
+			run_vat_settings_action(frm, {
 				method: "sync_vat_accounts",
-				doc: frm.doc,
 				freeze: true,
 				freeze_message: __("Syncing tracked VAT tax accounts for this company..."),
-				callback() {
-					frm.reload_doc();
-				},
+				fallback_title: __("VAT Accounts Synced"),
 			});
 		}, __("South Africa"));
 
-		frm.add_custom_button(__("Bootstrap Company VAT Setup"), function () {
-			frm.call({
+		frm.add_custom_button(__("Apply Recommended VAT Setup"), function () {
+			run_vat_settings_action(frm, {
 				method: "bootstrap_defaults",
-				doc: frm.doc,
 				freeze: true,
-				freeze_message: __("Creating recommended VAT templates and syncing tax accounts..."),
-				callback() {
-					frm.reload_doc();
-				},
+				freeze_message: __("Applying recommended VAT templates and VAT account tracking..."),
+				fallback_title: __("Recommended VAT Setup Applied"),
 			});
 		}, __("South Africa"));
 	},
 	company(frm) {
 		sync_company_scope(frm);
-		update_vat_registration_number(frm);
+		update_vat_registration_number(frm, true);
 		set_erpnext_vat_queries(frm);
 	},
 	default_vat_report_company(frm) {
@@ -57,6 +51,42 @@ frappe.ui.form.on("South Africa VAT Settings", {
 		ensure_default_vat_rates(frm);
 	},
 });
+
+function run_vat_settings_action(frm, opts) {
+	const run = () => {
+		frm.call({
+			method: opts.method,
+			doc: frm.doc,
+			freeze: opts.freeze,
+			freeze_message: opts.freeze_message,
+			callback(r) {
+				const result = r && r.message;
+				frm.reload_doc().then(() => show_za_feedback(result, opts.fallback_title));
+			},
+		});
+	};
+
+	if (frm.is_dirty()) {
+		frm.save().then(run);
+		return;
+	}
+	run();
+}
+
+function show_za_feedback(result, fallback_title) {
+	if (window.za_local && window.za_local.show_action_feedback) {
+		window.za_local.show_action_feedback(result, fallback_title);
+		return;
+	}
+
+	if (result) {
+		frappe.msgprint({
+			title: result.title || fallback_title,
+			message: result.message || __("The action completed successfully."),
+			indicator: result.indicator || "green",
+		});
+	}
+}
 
 function set_erpnext_vat_queries(frm) {
 	frm.set_query("company", function () {
@@ -82,15 +112,19 @@ function set_erpnext_vat_queries(frm) {
 	frm.set_query("input_vat_account", accountFilters);
 }
 
-function update_vat_registration_number(frm) {
+function update_vat_registration_number(frm, force) {
 	const company = frm.doc.company;
 	if (!company) {
 		frm.set_value("vat_registration_number", "");
 		return;
 	}
 
-	frappe.db.get_value("Company", company, "za_vat_number", function (r) {
-		frm.set_value("vat_registration_number", (r && r.za_vat_number) || "");
+	if (!force && frm.doc.vat_registration_number) {
+		return;
+	}
+
+	frappe.db.get_value("Company", company, ["za_vat_number", "tax_id"], function (r) {
+		frm.set_value("vat_registration_number", (r && (r.za_vat_number || r.tax_id)) || "");
 	});
 }
 

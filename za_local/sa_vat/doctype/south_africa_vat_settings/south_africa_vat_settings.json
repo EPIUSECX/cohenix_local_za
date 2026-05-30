@@ -7,7 +7,10 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "company_registration_section",
   "company",
+  "column_break_registration",
+  "vat_registration_number",
   "vat_settings_section",
   "standard_vat_rate",
   "column_break_3",
@@ -17,8 +20,6 @@
   "vat_registration_threshold",
   "column_break_thresholds",
   "vat_voluntary_threshold",
-  "vat_registration_section",
-  "vat_registration_number",
   "vat_vendor_type",
   "column_break_10",
   "vat_filing_frequency",
@@ -56,6 +57,11 @@
  ],
  "fields": [
   {
+   "fieldname": "company_registration_section",
+   "fieldtype": "Section Break",
+   "label": "Company & Registration"
+  },
+  {
    "description": "Company for which these VAT settings apply.",
    "fieldname": "company",
    "fieldtype": "Link",
@@ -63,6 +69,17 @@
    "options": "Company",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "column_break_registration",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "South African VAT Registration Number. Saving this form updates the selected Company record.",
+   "fieldname": "vat_registration_number",
+   "fieldtype": "Data",
+   "label": "VAT Registration Number",
+   "length": 10
   },
   {
    "fieldname": "vat_settings_section",
@@ -118,18 +135,6 @@
    "fieldname": "vat_voluntary_threshold",
    "fieldtype": "Currency",
    "label": "Voluntary Registration Threshold"
-  },
-  {
-   "fieldname": "vat_registration_section",
-   "fieldtype": "Section Break",
-   "label": "VAT Registration"
-  },
-  {
-   "description": "VAT Registration Number set on Company. Shown from Default VAT Report Company when set.",
-   "fieldname": "vat_registration_number",
-   "fieldtype": "Data",
-   "label": "VAT Registration Number",
-   "read_only": 1
   },
   {
    "description": "Type of VAT vendor.",

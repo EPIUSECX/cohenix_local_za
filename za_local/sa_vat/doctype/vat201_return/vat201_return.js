@@ -27,8 +27,19 @@ frappe.ui.form.on("VAT201 Return", {
 					doc: frm.doc,
 					freeze: true,
 					freeze_message: __("Fetching VAT transactions and classifying them for VAT201..."),
-					callback() {
-						frm.reload_doc();
+					callback(r) {
+						const result = r && r.message;
+						frm.reload_doc().then(() => {
+							if (window.za_local && window.za_local.show_action_feedback) {
+								window.za_local.show_action_feedback(result, __("VAT Transactions Fetched"));
+							} else if (result) {
+								frappe.msgprint({
+									title: result.title || __("VAT Transactions Fetched"),
+									message: result.message || __("The action completed successfully."),
+									indicator: result.indicator || "green",
+								});
+							}
+						});
 					},
 				});
 			});
