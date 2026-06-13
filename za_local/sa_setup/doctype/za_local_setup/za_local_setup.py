@@ -17,30 +17,16 @@ class ZALocalSetup(Document):
 
 		validate_za_local_setup_hrms_options(self)
 
-	def on_update(self):
-		"""Called after document is saved"""
-		# Only run setup when the user explicitly moves the document into "In Progress".
-		if (
-			self.has_value_changed("setup_status")
-			and self.setup_status == "In Progress"
-			and not self.setup_completed_on
-		):
-			self.run_setup()
-
-	def run_setup(self):
-		"""Execute the za_local setup based on user selections"""
-		from za_local.sa_setup.install import run_za_local_setup
-
-		try:
-			self._setup_result = run_za_local_setup(self)
-		except Exception as e:
-			frappe.log_error(f"Setup failed: {e!s}", "ZA Local Setup")
-			self.db_set("setup_status", "Pending", update_modified=False)
-			frappe.throw(_("Setup failed: {0}").format(str(e)))
-
 	@frappe.whitelist()
 	def start_setup(self):
-		"""Explicit user action to apply the selected South African setup options."""
+		"""Explicit user action to apply the selected South African setup options.
+
+		Setup is driven only by this explicit action (the "Apply Selected
+		Configuration" button), never as a side effect of ``on_update``. The
+		work is delegated to ``run_za_local_setup``, which persists the status
+		and selections via ``setup_doc.save()``, rolls the status back to
+		"Pending" on error, and returns the feedback payload.
+		"""
 		if not self.company:
 			frappe.throw(_("Company is required"))
 
@@ -56,9 +42,9 @@ class ZALocalSetup(Document):
 			):
 				self.set(fieldname, 0)
 
-		self.setup_status = "In Progress"
-		self.save()
-		return getattr(self, "_setup_result", None) or {
+		from za_local.sa_setup.install import run_za_local_setup
+
+		return run_za_local_setup(self) or {
 			"title": _("ZA Local Setup Complete"),
 			"indicator": "green",
 			"message": _("South African localisation setup completed."),
