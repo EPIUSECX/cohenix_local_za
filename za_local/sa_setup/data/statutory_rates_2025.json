@@ -1,0 +1,94 @@
+{
+  "tax_year": "2024-2025",
+  "year_of_assessment": "2025",
+  "effective_from": "2024-03-01",
+  "effective_to": "2025-02-28",
+  "source_reference": "SARS Budget Tax Guide 2024 (backfilled from za_local repo data: tax_slabs_2025.json, tax_rebates_2025.json, eti_slabs_2025.json)",
+  "is_active": 1,
+  "verification_notes": {
+    "_comment": "Backfilled pack for a prior tax year so date-effective calculations resolve instead of throwing. PAYE brackets, rebates, thresholds and medical tax credits are sourced from the repo's own vetted prior-year data. The fields listed below are annually-gazetted figures that were carried forward and MUST be confirmed against the official SARS/DEL gazette for this year before relying on prior-year recalculations.",
+    "verify_before_use": [
+      "eti (the 2025 ETI increase effective date determines whether old R1000/R500 or new R1500/R750 bands apply for part of this year)",
+      "travel.reimbursive_rate_per_km",
+      "subsistence.rsa_incidental_only_per_day",
+      "subsistence.rsa_meals_and_incidentals_per_day",
+      "coida.annual_earnings_cap"
+    ]
+  },
+  "paye": {
+    "rebates": {
+      "primary": 17235,
+      "secondary": 9444,
+      "tertiary": 3145
+    },
+    "thresholds": {
+      "under_65": 95750,
+      "age_65_to_74": 148217,
+      "age_75_plus": 165689
+    },
+    "brackets": [
+      {"from_amount": 0, "to_amount": 237100, "base_tax": 0, "rate": 18, "amount_over": 0},
+      {"from_amount": 237100, "to_amount": 370500, "base_tax": 42678, "rate": 26, "amount_over": 237100},
+      {"from_amount": 370500, "to_amount": 512800, "base_tax": 77362, "rate": 31, "amount_over": 370500},
+      {"from_amount": 512800, "to_amount": 673000, "base_tax": 121475, "rate": 36, "amount_over": 512800},
+      {"from_amount": 673000, "to_amount": 857900, "base_tax": 179147, "rate": 39, "amount_over": 673000},
+      {"from_amount": 857900, "to_amount": 1817000, "base_tax": 251258, "rate": 41, "amount_over": 857900},
+      {"from_amount": 1817000, "to_amount": null, "base_tax": 644489, "rate": 45, "amount_over": 1817000}
+    ]
+  },
+  "medical_tax_credit": {
+    "main_member": 364,
+    "first_dependant": 364,
+    "additional_dependant": 246
+  },
+  "uif": {
+    "monthly_remuneration_cap": 17712,
+    "employee_rate": 1,
+    "employer_rate": 1
+  },
+  "sdl": {
+    "rate": 1
+  },
+  "eti": {
+    "minimum_age": 18,
+    "maximum_age": 29,
+    "hours_in_a_month": 160,
+    "first_12_months": [
+      {"from_amount": 0, "to_amount": 1999.99, "amount": 0, "percentage": 50, "formula_type": "percentage"},
+      {"from_amount": 2000, "to_amount": 4499.99, "amount": 1000, "percentage": 0, "formula_type": "fixed"},
+      {"from_amount": 4500, "to_amount": 6499.99, "amount": 1000, "percentage": 50, "formula_type": "declining"},
+      {"from_amount": 6500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
+    ],
+    "second_12_months": [
+      {"from_amount": 0, "to_amount": 1999.99, "amount": 0, "percentage": 25, "formula_type": "percentage"},
+      {"from_amount": 2000, "to_amount": 4499.99, "amount": 500, "percentage": 0, "formula_type": "fixed"},
+      {"from_amount": 4500, "to_amount": 6499.99, "amount": 500, "percentage": 25, "formula_type": "declining"},
+      {"from_amount": 6500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
+    ]
+  },
+  "travel": {
+    "reimbursive_rate_per_km": 4.95,
+    "fixed_allowance_default_paye_inclusion_percentage": 80,
+    "fixed_allowance_reduced_paye_inclusion_percentage": 20
+  },
+  "subsistence": {
+    "rsa_incidental_only_per_day": 184,
+    "rsa_meals_and_incidentals_per_day": 595
+  },
+  "retirement": {
+    "annual_deduction_cap": 350000,
+    "deduction_percentage": 27.5
+  },
+  "coida": {
+    "annual_earnings_cap": 688000
+  },
+  "lump_sum_benefits": {
+    "cumulative_exemption": 550000,
+    "brackets": [
+      {"from_amount": 0, "to_amount": 550000, "base_tax": 0, "rate": 0, "amount_over": 0},
+      {"from_amount": 550000, "to_amount": 770000, "base_tax": 0, "rate": 18, "amount_over": 550000},
+      {"from_amount": 770000, "to_amount": 1155000, "base_tax": 39600, "rate": 27, "amount_over": 770000},
+      {"from_amount": 1155000, "to_amount": null, "base_tax": 143550, "rate": 36, "amount_over": 1155000}
+    ]
+  }
+}

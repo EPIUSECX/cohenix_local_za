@@ -225,23 +225,32 @@ def calculate_eti_amount(employee, salary_slip, monthly_remuneration):
 
 def calculate_months_employed(joining_date, current_date):
     """
-    Calculate number of complete months employed.
+    Calculate the ETI month number for the current payroll month.
+
+    ETI is claimed per qualifying calendar month, so the month an employee
+    commences employment counts as month 1 (even if they joined part-way
+    through it) and each subsequent calendar month increments the count. This
+    determines whether the employee is in the first or second 12-month ETI
+    window.
+
+    Counting whole calendar months (rather than comparing the day-of-month)
+    avoids undercounting employees who join late in a month, e.g. on the 31st.
 
     Args:
         joining_date (date): Date of joining
-        current_date (date): Current date
+        current_date (date): Date within the payroll month being processed
 
     Returns:
-        int: Number of complete months employed
+        int: ETI month number (1 = first month of employment)
     """
     joining_date = getdate(joining_date)
     current_date = getdate(current_date)
 
-    months = (current_date.year - joining_date.year) * 12 + (current_date.month - joining_date.month)
+    if current_date < joining_date:
+        return 0
 
-    # Add 1 if we've passed the joining day in the current month
-    if current_date.day >= joining_date.day:
-        months += 1
+    # Inclusive calendar-month count: joining month is month 1.
+    months = (current_date.year - joining_date.year) * 12 + (current_date.month - joining_date.month) + 1
 
     return max(0, months)
 

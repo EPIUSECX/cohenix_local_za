@@ -179,6 +179,9 @@ class EFTFileGenerator:
         )
 
 
+SUPPORTED_BANK_FORMATS = {"standard_bank", "absa", "fnb", "nedbank"}
+
+
 @frappe.whitelist()
 def generate_eft_file(payroll_entry, bank_format="standard_bank"):
     """
@@ -191,6 +194,16 @@ def generate_eft_file(payroll_entry, bank_format="standard_bank"):
     Returns:
         dict: file_content and filename
     """
+    # This endpoint returns employee banking details and net pay; require the
+    # caller to hold read permission on the underlying Payroll Entry.
+    frappe.has_permission("Payroll Entry", doc=payroll_entry, throw=True)
+
+    if bank_format not in SUPPORTED_BANK_FORMATS:
+        frappe.throw(
+            _("Unsupported bank format: {0}").format(frappe.bold(bank_format)),
+            title=_("Invalid Bank Format"),
+        )
+
     generator = EFTFileGenerator(payroll_entry)
     file_content = generator.generate_file(bank_format)
 

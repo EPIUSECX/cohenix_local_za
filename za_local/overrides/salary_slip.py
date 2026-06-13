@@ -287,7 +287,9 @@ class ZASalarySlip(SalarySlip):
         return total
 
     def is_retirement_fund_component(self, salary_component):
-        code = frappe.db.get_value("Salary Component", salary_component, "za_sars_payroll_code")
+        # Salary Component is a small, static master read repeatedly inside the
+        # per-component payroll loop; use the cached read to avoid N+1 queries.
+        code = frappe.get_cached_value("Salary Component", salary_component, "za_sars_payroll_code")
         if code in RETIREMENT_FUND_DEDUCTION_CODES:
             return True
 
@@ -395,7 +397,9 @@ class ZASalarySlip(SalarySlip):
 
         if not fields:
             return frappe._dict()
-        return frappe.db.get_value("Salary Component", salary_component, fields, as_dict=True) or frappe._dict()
+        # Cached read: this metadata is fetched repeatedly per component within
+        # the payroll loop, and Salary Component master data rarely changes.
+        return frappe.get_cached_value("Salary Component", salary_component, fields, as_dict=True) or frappe._dict()
 
     def get_annual_bonus(self):
         """

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - version-15
       - version-16
   pull_request:
 
@@ -41,9 +40,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - erpnext_branch: version-15
-            python_version: "3.11"
-            node_version: 22
           - erpnext_branch: version-16
             python_version: "3.14"
             node_version: 24
@@ -104,19 +100,4 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          if [ "${ERPNEXT_BRANCH}" = "version-16" ]; then
-            bench --site test_site run-tests --app za_local --lightmode
-          else
-            for module in \
-              za_local.sa_vat.doctype.south_africa_vat_settings.test_south_africa_vat_settings \
-              za_local.tests.test_statutory_workflow_regressions \
-              za_local.tests.test_journal_entry_cleanup \
-              za_local.tests.test_irp5_certificate_setup \
-              za_local.tests.test_sa_labour_custom_fields \
-              za_local.tests.test_repo_hygiene \
-              za_local.sa_payroll.doctype.employee_private_benefit.test_employee_private_benefit \
-              za_local.sa_payroll.doctype.tax_rebates_and_medical_tax_credit.test_tax_rebates_and_medical_tax_credit
-            do
-              bench --site test_site run-tests --module "$module"
-            done
-          fi
+          bench --site test_site run-tests --app za_local --lightmode

@@ -70,6 +70,9 @@ class SARSXMLGenerator:
 @frappe.whitelist()
 def generate_emp501_xml(emp501_name):
     """API endpoint to generate EMP501 XML"""
+    # Require read permission on the reconciliation before loading payroll data.
+    frappe.has_permission("EMP501 Reconciliation", doc=emp501_name, throw=True)
+
     emp501 = frappe.get_doc("EMP501 Reconciliation", emp501_name)
     generator = SARSXMLGenerator(emp501.company)
     xml_content = generator.generate_emp501_xml(emp501)

@@ -19,6 +19,10 @@ from frappe.exceptions import DuplicateEntryError
 from za_local.utils.file_utils import read_app_text, resolve_app_path
 
 
+def _logger():
+	return frappe.logger("za_local.csv_importer", allow_site=True)
+
+
 def import_csv_data(doctype, csv_filename, update_existing=False):
 	"""
 	Import CSV data into a specified DocType.
@@ -40,17 +44,17 @@ def import_csv_data(doctype, csv_filename, update_existing=False):
 
 	# Check if DocType exists
 	if not frappe.db.exists("DocType", doctype):
-		print(f"  Warning: DocType '{doctype}' does not exist. Skipping.")
+		_logger().warning(f"DocType '{doctype}' does not exist. Skipping CSV import.")
 		return stats
 
 	# Build path to packaged CSV file
 	csv_path = resolve_app_path("data", csv_filename)
 
 	if not csv_path.exists():
-		print(f"  Warning: CSV file '{csv_filename}' not found at {csv_path}")
+		_logger().warning(f"CSV file '{csv_filename}' not found at {csv_path}")
 		return stats
 
-	print(f"Importing {doctype} from {csv_filename}...")
+	_logger().info(f"Importing {doctype} from {csv_filename}...")
 
 	# Read and import CSV data
 	reader = DictReader(StringIO(read_app_text(csv_path)))
@@ -83,13 +87,15 @@ def import_csv_data(doctype, csv_filename, update_existing=False):
 					doc.insert(ignore_permissions=True)
 					stats["created"] += 1
 
-		except Exception as e:
-			print(f"  Error importing row {row}: {e}")
+		except Exception:
+			_logger().error(f"Error importing {doctype} row {row}", exc_info=True)
 			stats["errors"] += 1
 
-	# Print summary
-	print(f"  ✓ {doctype}: Created {stats['created']}, Updated {stats['updated']}, "
-	      f"Skipped {stats['skipped']}, Errors {stats['errors']}")
+	# Log summary
+	_logger().info(
+		f"{doctype}: Created {stats['created']}, Updated {stats['updated']}, "
+		f"Skipped {stats['skipped']}, Errors {stats['errors']}"
+	)
 
 	return stats
 
@@ -201,7 +207,7 @@ def import_all_master_data():
 	This function is called during installation to load predefined
 	data for Business Trip Regions, SETAs, Bargaining Councils, etc.
 	"""
-	print("\nImporting master data from CSV files...")
+	_logger().info("Importing master data from CSV files...")
 
 	data_files = [
 		("Business Trip Region", "business_trip_region.csv"),
@@ -223,8 +229,10 @@ def import_all_master_data():
 		total_stats["skipped"] += stats["skipped"]
 		total_stats["errors"] += stats["errors"]
 
-	print(f"\n✓ Master data import complete: "
-	      f"{total_stats['created']} created, {total_stats['updated']} updated, "
-	      f"{total_stats['skipped']} skipped, {total_stats['errors']} errors\n")
+	_logger().info(
+		f"Master data import complete: "
+		f"{total_stats['created']} created, {total_stats['updated']} updated, "
+		f"{total_stats['skipped']} skipped, {total_stats['errors']} errors"
+	)
 
 	return total_stats
