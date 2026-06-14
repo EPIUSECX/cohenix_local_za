@@ -3155,15 +3155,36 @@ def run_za_local_setup(setup_doc):
 				print("✓ Loaded earnings components")
 				applied.append(get_setup_field_label(setup_doc, "load_earnings_components"))
 
-			# Load tax configuration
+			# Load tax configuration for ALL configured tax years (not just one).
+			# Income Tax Slab and Payroll Period are one record per year; loading is
+			# idempotent (insert_record skips existing). The Tax Rebates and Medical
+			# Tax Credit Single accumulates a row per year, so rebates must be MERGED
+			# rather than reloaded (a plain reload would overwrite prior years).
 			if setup_doc.load_tax_slabs:
-				load_data_from_json(data_dir / "tax_slabs_2025.json")  # 2024-2025 (2025 tax year)
-				print("✓ Loaded 2024-2025 tax slabs")
+				for filename in (
+					"payroll_period_2025.json",
+					"payroll_period_2026.json",
+					"payroll_period_2027.json",
+					"tax_slabs_2025.json",
+					"tax_slabs_2026.json",
+					"tax_slabs_2027.json",
+				):
+					file_path = data_dir / filename
+					if file_path.exists():
+						load_data_from_json(file_path)
+				print("✓ Loaded income tax slabs and payroll periods (all configured years)")
 				applied.append(get_setup_field_label(setup_doc, "load_tax_slabs"))
 
 			if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
-				load_data_from_json(data_dir / "tax_rebates_2025.json")  # 2024-2025 (2025 tax year)
-				print("✓ Loaded tax rebates and medical tax credits")
+				for filename in (
+					"tax_rebates_2025.json",
+					"tax_rebates_2026.json",
+					"tax_rebates_2027.json",
+				):
+					file_path = data_dir / filename
+					if file_path.exists():
+						_merge_tax_rebates_from_file(file_path)
+				print("✓ Loaded tax rebates and medical tax credits (all configured years)")
 				if setup_doc.load_tax_rebates:
 					applied.append(get_setup_field_label(setup_doc, "load_tax_rebates"))
 				if setup_doc.load_medical_credits:
