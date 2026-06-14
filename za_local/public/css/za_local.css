@@ -14,27 +14,21 @@
 	overflow: hidden !important;
 }
 
-/* Hide Flexible Benefits section in Salary Structure and Salary Structure Assignment - not used in SA payroll */
-.form-section[data-fieldname="employee_benefits"],
-.form-section[data-fieldname="employee_benefits_section"],
-.form-section:has([data-fieldname="employee_benefits"]):not(:has([data-fieldname="company_contribution"])),
-.form-section:has([data-fieldname="employee_benefits_section"]):not(:has([data-fieldname="company_contribution"])),
-.form-section:has([data-fieldname="max_benefits"]):not(:has([data-fieldname="company_contribution"])),
+/*
+ * Hide the unused "Flexible Benefits" fields (cafeteria-style benefits are not
+ * used in SA payroll). Hide the FIELDS only — never their containing form-section.
+ * On Salary Structure, max_benefits / employee_benefits share a section with
+ * Payroll Frequency and the "Salary Slip Based on Timesheet" controls, so a
+ * section-level rule (e.g. .form-section:has([data-fieldname="max_benefits"]))
+ * would wrongly hide Payroll Frequency too. The fields are also hidden via
+ * property setters (sa_setup/property_setters.py); this CSS is a visual fallback.
+ * The Salary Structure Assignment "Flexible Benefits" section is a dedicated
+ * Section Break (employee_benefits_section) and is safe to hide on its own.
+ */
+[data-fieldname="employee_benefits_section"],
+[data-fieldname="employee_benefits"],
+[data-fieldname="max_benefits"],
 .za-hidden-flexible-benefits {
-	display: none !important;
-	visibility: hidden !important;
-}
-
-/* Fallback for browsers that don't support :has() selector */
-[data-fieldname="employee_benefits"]:not(:has([data-fieldname="company_contribution"])) {
-	display: none !important;
-}
-
-[data-fieldname="employee_benefits_section"] {
-	display: none !important;
-}
-
-[data-fieldname="max_benefits"]:not(:has([data-fieldname="company_contribution"])) {
 	display: none !important;
 }
 
