@@ -16,11 +16,16 @@
   "load_tax_slabs",
   "load_tax_rebates",
   "load_medical_credits",
+  "load_eti_slabs",
+  "load_sars_payroll_codes",
+  "load_salary_component_classifications",
+  "load_retirement_funds",
   "section_break_10",
   "load_business_trip_regions",
   "load_seta_list",
   "column_break_13",
   "load_bargaining_councils",
+  "load_vat_vendor_types",
   "section_break_14",
   "load_chart_of_accounts",
   "section_break_15",
@@ -152,6 +157,41 @@
    "fieldtype": "Datetime",
    "label": "Setup Completed On",
    "read_only": 1
+  },
+  {
+   "default": "1",
+   "description": "Load ETI bands and travel allowance rates from the annual statutory rate packs (all configured years)",
+   "fieldname": "load_eti_slabs",
+   "fieldtype": "Check",
+   "label": "Load ETI Slabs & Travel Rates"
+  },
+  {
+   "default": "1",
+   "description": "Load the SARS income/deduction/employer-contribution code master used by IRP5",
+   "fieldname": "load_sars_payroll_codes",
+   "fieldtype": "Check",
+   "label": "Load SARS Payroll Codes"
+  },
+  {
+   "default": "1",
+   "description": "Apply SA payroll treatment, PAYE inclusion and UIF/SDL/COIDA flags to known salary components",
+   "fieldname": "load_salary_component_classifications",
+   "fieldtype": "Check",
+   "label": "Apply Salary Component Classifications"
+  },
+  {
+   "default": "1",
+   "description": "Create default South African retirement fund records",
+   "fieldname": "load_retirement_funds",
+   "fieldtype": "Check",
+   "label": "Load Retirement Funds"
+  },
+  {
+   "default": "1",
+   "description": "Seed the South African VAT vendor type master",
+   "fieldname": "load_vat_vendor_types",
+   "fieldtype": "Check",
+   "label": "Load VAT Vendor Types"
   }
  ],
  "index_web_pages_for_search": 1,

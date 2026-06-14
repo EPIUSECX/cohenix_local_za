@@ -122,6 +122,10 @@ frappe.ui.form.on("ZA Local Setup", {
 					"load_tax_slabs",
 					"load_tax_rebates",
 					"load_medical_credits",
+					"load_eti_slabs",
+					"load_sars_payroll_codes",
+					"load_salary_component_classifications",
+					"load_retirement_funds",
 				];
 				const layout_fields = ["section_break_4", "column_break_7"];
 
@@ -143,6 +147,10 @@ frappe.ui.form.on("ZA Local Setup", {
 			"load_tax_slabs",
 			"load_tax_rebates",
 			"load_medical_credits",
+			"load_eti_slabs",
+			"load_sars_payroll_codes",
+			"load_salary_component_classifications",
+			"load_retirement_funds",
 		].forEach((fieldname) => {
 			if (frm.doc[fieldname]) {
 				frm.set_value(fieldname, 0);

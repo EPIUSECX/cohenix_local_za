@@ -1091,6 +1091,10 @@ _HRMS_SETUP_FIELDS = frozenset(
 		"load_tax_slabs",
 		"load_tax_rebates",
 		"load_medical_credits",
+		"load_eti_slabs",
+		"load_sars_payroll_codes",
+		"load_salary_component_classifications",
+		"load_retirement_funds",
 	}
 )
 
@@ -3135,14 +3139,18 @@ def run_za_local_setup(setup_doc):
 			data_dir = resolve_app_path("sa_setup", "data")
 
 			ensure_vat_custom_fields()
-			seed_vat_vendor_types()
 			migrated = migrate_legacy_vat_account_rows()
 			set_accounts_settings_for_za_vat()
 			ensure_sa_print_formats()
 			sync_sa_navigation()
-			applied.append(_("VAT custom fields, vendor types, print formats, and navigation"))
+			applied.append(_("VAT custom fields, print formats, and navigation"))
 			if migrated:
 				applied.append(_("{0} legacy VAT account rows migrated").format(migrated))
+
+			# VAT vendor types (selectable; foundational for VAT settings)
+			if setup_doc.get("load_vat_vendor_types"):
+				seed_vat_vendor_types()
+				applied.append(get_setup_field_label(setup_doc, "load_vat_vendor_types"))
 
 			# Load salary components
 			if setup_doc.load_salary_components:
@@ -3189,6 +3197,26 @@ def run_za_local_setup(setup_doc):
 					applied.append(get_setup_field_label(setup_doc, "load_tax_rebates"))
 				if setup_doc.load_medical_credits:
 					applied.append(get_setup_field_label(setup_doc, "load_medical_credits"))
+
+			# ETI slabs & travel rates (from the annual statutory rate packs, all years)
+			if setup_doc.get("load_eti_slabs"):
+				seed_statutory_rate_packs()
+				applied.append(get_setup_field_label(setup_doc, "load_eti_slabs"))
+
+			# SARS payroll codes
+			if setup_doc.get("load_sars_payroll_codes"):
+				seed_sars_payroll_codes()
+				applied.append(get_setup_field_label(setup_doc, "load_sars_payroll_codes"))
+
+			# Salary component classifications (payroll treatment / inclusion / statutory flags)
+			if setup_doc.get("load_salary_component_classifications"):
+				seed_salary_component_classifications()
+				applied.append(get_setup_field_label(setup_doc, "load_salary_component_classifications"))
+
+			# Retirement fund defaults
+			if setup_doc.get("load_retirement_funds"):
+				setup_default_retirement_funds()
+				applied.append(get_setup_field_label(setup_doc, "load_retirement_funds"))
 
 			# Load master data
 			if setup_doc.load_business_trip_regions:
