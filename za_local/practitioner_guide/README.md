@@ -1,14 +1,18 @@
-# SA Practitioner Guide (Wiki staging)
+# SA Localisation Wiki guides (staging)
 
-This package publishes the South African localisation practitioner documentation
-into a Frappe **Wiki Space** named **"SA Practitioner Guide"** at route `/sa-guide`.
+This package publishes the South African localisation documentation into Frappe
+**Wiki Spaces**. Two guides are published:
+
+- **SA Practitioner Guide** — `/sa-guide` — for the consultant/admin who installs and configures the localisation.
+- **SA End-User Guide** — `/sa-user-guide` — for the day-to-day user (transactions, payroll, reports).
 
 ## Contents
 
-- `manifest.py` — the navigation tree (sections and pages). Single source of truth.
-- `content/*.md` — one markdown file per page.
-- `stage.py` — idempotent staging script that creates/updates the Wiki Space,
-  section groups, and pages from the manifest and markdown.
+- `manifest.py` — the navigation trees for both guides (`GUIDES`). Single source of truth.
+- `content/*.md` — one markdown file per page (practitioner pages `NN_*.md`, user pages `uNN_*.md`).
+- `stage.py` — idempotent staging script that creates/updates each Wiki Space,
+  its section groups, and pages from the manifest and markdown. Existing pages are
+  updated in place, not duplicated.
 
 ## Requirements
 
@@ -25,8 +29,9 @@ bench --site <site> install-app wiki
 Two ways, both idempotent and equivalent:
 
 **From the desk (no terminal):** open **ZA Local Setup** (SA Overview workspace) and
-click **Documentation → Publish Practitioner Guide**. The button appears only when the
-Frappe Wiki app is installed and requires the System Manager role.
+click **Documentation → Publish Practitioner Guide**. This publishes **both** guides.
+The button appears only when the Frappe Wiki app is installed and requires the
+System Manager role.
 
 **From the command line:**
 

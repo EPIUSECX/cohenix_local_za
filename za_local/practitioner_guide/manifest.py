@@ -1,14 +1,25 @@
-"""Structure of the SA Practitioner Guide Wiki Space.
+"""Structure of the South African localisation Wiki guides.
 
-The manifest is the single source of truth for the navigation tree. ``stage.py``
-walks it to create/update the Wiki Space, its section groups, and the leaf pages.
+This manifest is the single source of truth for the navigation trees. ``stage.py``
+walks it to create/update each Wiki Space, its section groups, and the leaf pages.
 
-Routes are explicit and stable so staging is idempotent: a page is matched by
-its route, and its markdown content is refreshed on every run.
+Two guides are published as separate Wiki Spaces:
+
+- **SA Practitioner Guide** (``/sa-guide``) — for the consultant/admin who installs
+  and configures the localisation.
+- **SA End-User Guide** (``/sa-user-guide``) — for the day-to-day user who captures
+  transactions, runs payroll and pulls reports.
+
+Routes are explicit and stable so staging is idempotent: a page is matched by its
+route, and its markdown content is refreshed on every run (existing pages are
+updated in place, not duplicated).
 
 To add a page: drop a markdown file in ``content/`` and add an entry to the
-relevant group's ``pages`` list. To add a section: append a new group dict.
+relevant group's ``pages`` list. To add a section: append a new group dict. To add
+a whole guide: append a new ``{"space": ..., "groups": [...]}`` dict to ``GUIDES``.
 """
+
+# --- Practitioner guide -----------------------------------------------------
 
 SPACE = {
 	"space_name": "SA Practitioner Guide",
@@ -105,3 +116,78 @@ GROUPS = [
 		],
 	},
 ]
+
+
+# --- End-user guide ---------------------------------------------------------
+
+USER_SPACE = {
+	"space_name": "SA End-User Guide",
+	"route": "sa-user-guide",
+}
+
+USER_GROUPS = [
+	{
+		"key": "getting-started",
+		"title": "Getting Started",
+		"pages": [
+			{"slug": "welcome", "title": "Welcome & How to Use This Guide", "file": "u01_welcome.md"},
+			{"slug": "navigating-workspaces", "title": "Finding Your Way: SA Workspaces", "file": "u02_navigating_workspaces.md"},
+		],
+	},
+	{
+		"key": "first-time-configuration",
+		"title": "First-Time Configuration",
+		"pages": [
+			{"slug": "before-you-begin", "title": "Before You Begin: What Must Be Set Up", "file": "u10_before_you_begin.md"},
+			{"slug": "confirm-company-settings", "title": "Confirm Company, VAT & Payroll Settings", "file": "u11_confirm_settings.md"},
+			{"slug": "everyday-masters", "title": "Everyday Masters: Customers, Suppliers, Items, Employees", "file": "u12_everyday_masters.md"},
+		],
+	},
+	{
+		"key": "working-with-vat",
+		"title": "Working with VAT",
+		"pages": [
+			{"slug": "sales-invoice-vat", "title": "Create a Sales Invoice with VAT", "file": "u20_sales_invoice_vat.md"},
+			{"slug": "tax-invoices-credit-notes", "title": "Tax Invoices, Credit & Debit Notes", "file": "u21_tax_invoices_credit_notes.md"},
+			{"slug": "purchases-input-vat", "title": "Purchase Invoices & Input VAT", "file": "u22_purchases_input_vat.md"},
+			{"slug": "vat201-return", "title": "Prepare & Review the VAT201 Return", "file": "u23_vat201_return.md"},
+		],
+	},
+	{
+		"key": "running-payroll",
+		"title": "Running Payroll",
+		"pages": [
+			{"slug": "monthly-payroll-run", "title": "Run a Monthly Payroll", "file": "u30_monthly_payroll_run.md"},
+			{"slug": "reviewing-a-payslip", "title": "Reviewing a Salary Slip", "file": "u31_reviewing_a_payslip.md"},
+			{"slug": "pay-employees", "title": "Pay Employees & Distribute Payslips", "file": "u32_pay_employees.md"},
+			{"slug": "emp201-monthly", "title": "Submit the Monthly EMP201", "file": "u33_emp201_monthly.md"},
+			{"slug": "year-end-irp5-emp501", "title": "Year-End: IRP5 & EMP501", "file": "u34_year_end.md"},
+		],
+	},
+	{
+		"key": "reports",
+		"title": "Reports",
+		"pages": [
+			{"slug": "finding-reports", "title": "Finding & Running Reports", "file": "u40_finding_reports.md"},
+			{"slug": "vat-reports", "title": "VAT Reports", "file": "u41_vat_reports.md"},
+			{"slug": "payroll-reports", "title": "Payroll Reports", "file": "u42_payroll_reports.md"},
+			{"slug": "labour-coida-reports", "title": "Labour & COIDA Reports", "file": "u43_labour_coida_reports.md"},
+			{"slug": "exporting-printing", "title": "Exporting & Printing Reports", "file": "u44_exporting_printing.md"},
+		],
+	},
+	{
+		"key": "help",
+		"title": "Help",
+		"pages": [
+			{"slug": "faq-glossary", "title": "FAQ & Glossary", "file": "u50_faq_glossary.md"},
+		],
+	},
+]
+
+
+# --- All guides staged by stage.py ------------------------------------------
+
+PRACTITIONER_GUIDE = {"space": SPACE, "groups": GROUPS}
+USER_GUIDE = {"space": USER_SPACE, "groups": USER_GROUPS}
+
+GUIDES = [PRACTITIONER_GUIDE, USER_GUIDE]
