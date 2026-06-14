@@ -3118,18 +3118,33 @@ def build_za_local_setup_feedback(setup_doc, applied, warnings, hrms_available):
 	}
 
 
-def run_za_local_setup(setup_doc):
+def _publish_setup_progress(progress_user, percent, message):
+	"""Push a realtime progress update to the user who launched the setup."""
+	if not progress_user:
+		return
+	frappe.publish_realtime(
+		"za_local_setup_progress",
+		{"progress": percent, "message": message},
+		user=progress_user,
+	)
+
+
+def run_za_local_setup(setup_doc, progress_user=None):
 	"""
 	Execute za_local setup based on user selections.
 	Called from ZA Local Setup DocType when user completes the setup wizard.
 
 	Args:
 		setup_doc: ZA Local Setup document instance
+		progress_user: if set, realtime progress is published to this user
 	"""
 	validate_za_local_setup_hrms_options(setup_doc)
 	hrms_available = is_hrms_installed()
 	applied = []
 	warnings = []
+
+	def _p(percent, message):
+		_publish_setup_progress(progress_user, percent, message)
 
 	setup_doc.setup_status = "In Progress"
 	setup_doc.save()
@@ -3138,6 +3153,7 @@ def run_za_local_setup(setup_doc):
 		with suppress_known_setup_warnings():
 			data_dir = resolve_app_path("sa_setup", "data")
 
+			_p(5, _("Applying VAT fields, print formats and navigation"))
 			ensure_vat_custom_fields()
 			migrated = migrate_legacy_vat_account_rows()
 			set_accounts_settings_for_za_vat()
@@ -3149,16 +3165,19 @@ def run_za_local_setup(setup_doc):
 
 			# VAT vendor types (selectable; foundational for VAT settings)
 			if setup_doc.get("load_vat_vendor_types"):
+				_p(12, _("Loading VAT vendor types"))
 				seed_vat_vendor_types()
 				applied.append(get_setup_field_label(setup_doc, "load_vat_vendor_types"))
 
 			# Load salary components
 			if setup_doc.load_salary_components:
+				_p(20, _("Loading statutory salary components"))
 				load_data_from_json(data_dir / "salary_components.json")
 				print("✓ Loaded statutory salary components")
 				applied.append(get_setup_field_label(setup_doc, "load_salary_components"))
 
 			if setup_doc.load_earnings_components:
+				_p(26, _("Loading earnings components"))
 				load_data_from_json(data_dir / "earnings_components.json")
 				print("✓ Loaded earnings components")
 				applied.append(get_setup_field_label(setup_doc, "load_earnings_components"))
@@ -3169,6 +3188,7 @@ def run_za_local_setup(setup_doc):
 			# Tax Credit Single accumulates a row per year, so rebates must be MERGED
 			# rather than reloaded (a plain reload would overwrite prior years).
 			if setup_doc.load_tax_slabs:
+				_p(38, _("Loading income tax slabs and payroll periods"))
 				for filename in (
 					"payroll_period_2025.json",
 					"payroll_period_2026.json",
@@ -3184,6 +3204,7 @@ def run_za_local_setup(setup_doc):
 				applied.append(get_setup_field_label(setup_doc, "load_tax_slabs"))
 
 			if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
+				_p(48, _("Loading tax rebates and medical tax credits"))
 				for filename in (
 					"tax_rebates_2025.json",
 					"tax_rebates_2026.json",
@@ -3200,25 +3221,31 @@ def run_za_local_setup(setup_doc):
 
 			# ETI slabs & travel rates (from the annual statutory rate packs, all years)
 			if setup_doc.get("load_eti_slabs"):
+				_p(56, _("Seeding ETI slabs and travel rates"))
 				seed_statutory_rate_packs()
 				applied.append(get_setup_field_label(setup_doc, "load_eti_slabs"))
 
 			# SARS payroll codes
 			if setup_doc.get("load_sars_payroll_codes"):
+				_p(64, _("Seeding SARS payroll codes"))
 				seed_sars_payroll_codes()
 				applied.append(get_setup_field_label(setup_doc, "load_sars_payroll_codes"))
 
 			# Salary component classifications (payroll treatment / inclusion / statutory flags)
 			if setup_doc.get("load_salary_component_classifications"):
+				_p(72, _("Applying salary component classifications"))
 				seed_salary_component_classifications()
 				applied.append(get_setup_field_label(setup_doc, "load_salary_component_classifications"))
 
 			# Retirement fund defaults
 			if setup_doc.get("load_retirement_funds"):
+				_p(78, _("Loading retirement funds"))
 				setup_default_retirement_funds()
 				applied.append(get_setup_field_label(setup_doc, "load_retirement_funds"))
 
 			# Load master data
+			if setup_doc.load_business_trip_regions or setup_doc.load_seta_list or setup_doc.load_bargaining_councils:
+				_p(84, _("Loading labour master data"))
 			if setup_doc.load_business_trip_regions:
 				from za_local.utils.csv_importer import import_csv_data
 
@@ -3240,6 +3267,7 @@ def run_za_local_setup(setup_doc):
 
 			# Load Chart of Accounts
 			if setup_doc.load_chart_of_accounts and setup_doc.company:
+				_p(92, _("Loading South African chart of accounts"))
 				print("Loading South African Chart of Accounts...")
 				try:
 					from za_local.accounts.setup_chart import load_sa_chart_of_accounts
@@ -3257,6 +3285,7 @@ def run_za_local_setup(setup_doc):
 				repair_salary_component_accounts(setup_doc.company)
 
 		# Mark as completed
+		_p(98, _("Finalising"))
 		setup_doc.setup_status = "Completed"
 		setup_doc.setup_completed_on = frappe.utils.now()
 		setup_doc.save()
@@ -3268,6 +3297,37 @@ def run_za_local_setup(setup_doc):
 		setup_doc.save()
 		frappe.log_error(f"Setup failed: {e!s}", "ZA Local Setup")
 		frappe.throw(f"Setup failed: {e!s}")
+
+
+def run_za_local_setup_job(setup_name, user=None):
+	"""Background-job wrapper for run_za_local_setup.
+
+	Runs the setup on a worker (enqueued by ZA Local Setup.start_setup), publishing
+	realtime progress and a completion event to ``user``. On failure it rolls back,
+	resets the status to "Pending", and notifies the user instead of leaving the
+	request to time out. Never re-raises (so the status reset is committed by the
+	job wrapper).
+	"""
+	user = user or frappe.session.user
+	try:
+		setup_doc = frappe.get_doc("ZA Local Setup", setup_name)
+		result = run_za_local_setup(setup_doc, progress_user=user)
+		_publish_setup_progress(user, 100, _("Setup complete"))
+		frappe.publish_realtime("za_local_setup_done", result, user=user)
+	except Exception:
+		frappe.db.rollback()
+		frappe.log_error(frappe.get_traceback(), "ZA Local Setup job")
+		frappe.db.set_value("ZA Local Setup", setup_name, "setup_status", "Pending", update_modified=False)
+		frappe.publish_realtime(
+			"za_local_setup_done",
+			{
+				"title": _("Setup Failed"),
+				"indicator": "red",
+				"message": _("ZA Local Setup did not complete. Review the Error Log, then try again."),
+				"failed": True,
+			},
+			user=user,
+		)
 
 
 @frappe.whitelist()

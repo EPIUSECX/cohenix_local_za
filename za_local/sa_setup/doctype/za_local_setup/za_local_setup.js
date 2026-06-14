@@ -31,35 +31,7 @@ frappe.ui.form.on("ZA Local Setup", {
 				});
 				return;
 			}
-
-			const runSetup = () => {
-				frm.call({
-					doc: frm.doc,
-					method: "start_setup",
-					freeze: true,
-					freeze_message: __("Applying South African localisation setup..."),
-					callback: (r) => {
-						const result = r && r.message;
-						frm.reload_doc().then(() => {
-							if (window.za_local && window.za_local.show_action_feedback) {
-								window.za_local.show_action_feedback(result, __("ZA Local Setup Complete"));
-							} else if (result) {
-								frappe.msgprint({
-									title: result.title || __("ZA Local Setup Complete"),
-									message: result.message || __("South African localisation configuration was applied."),
-									indicator: result.indicator || "green",
-								});
-							}
-						});
-					},
-				});
-			};
-
-			if (frm.is_dirty()) {
-				frm.save().then(() => runSetup());
-			} else {
-				runSetup();
-			}
+			frm.trigger("confirm_and_run_setup");
 		}).addClass("btn-primary");
 
 		frm.trigger("add_publish_guide_button");
@@ -99,6 +71,92 @@ frappe.ui.form.on("ZA Local Setup", {
 					},
 					__("Documentation")
 				);
+			},
+		});
+	},
+
+	confirm_and_run_setup(frm) {
+		const option_fields = [
+			"load_salary_components",
+			"load_earnings_components",
+			"load_tax_slabs",
+			"load_tax_rebates",
+			"load_medical_credits",
+			"load_eti_slabs",
+			"load_sars_payroll_codes",
+			"load_salary_component_classifications",
+			"load_retirement_funds",
+			"load_business_trip_regions",
+			"load_seta_list",
+			"load_bargaining_councils",
+			"load_vat_vendor_types",
+			"load_chart_of_accounts",
+		];
+		const selected = option_fields
+			.filter((f) => frm.doc[f])
+			.map((f) => (frm.fields_dict[f] ? frm.fields_dict[f].df.label : f));
+
+		const list_html = selected.length
+			? "<ul>" + selected.map((l) => `<li>${frappe.utils.escape_html(l)}</li>`).join("") + "</ul>"
+			: `<p>${__("No optional data sets selected — only the required VAT fields, print formats and navigation will be applied.")}</p>`;
+
+		const msg =
+			`<p>${__("The following will be applied for company {0}:", [frappe.utils.escape_html(frm.doc.company)])}</p>` +
+			list_html +
+			`<p class="text-muted">${__("This runs in the background — you can keep working, and progress is shown here.")}</p>`;
+
+		frappe.confirm(msg, () => {
+			if (frm.is_dirty()) {
+				frm.save().then(() => frm.trigger("queue_setup"));
+			} else {
+				frm.trigger("queue_setup");
+			}
+		});
+	},
+
+	queue_setup(frm) {
+		// Re-register cleanly so repeated runs don't stack handlers.
+		frappe.realtime.off("za_local_setup_progress");
+		frappe.realtime.off("za_local_setup_done");
+
+		frappe.realtime.on("za_local_setup_progress", (data) => {
+			if (!data) return;
+			frappe.show_progress(
+				__("Applying ZA Local Setup"),
+				data.progress || 0,
+				100,
+				data.message || __("Working...")
+			);
+		});
+
+		frappe.realtime.on("za_local_setup_done", (result) => {
+			frappe.hide_progress();
+			frappe.realtime.off("za_local_setup_progress");
+			frappe.realtime.off("za_local_setup_done");
+			frm.reload_doc().then(() => {
+				if (window.za_local && window.za_local.show_action_feedback) {
+					window.za_local.show_action_feedback(result, __("ZA Local Setup Complete"));
+				} else if (result) {
+					frappe.msgprint({
+						title: result.title || __("ZA Local Setup Complete"),
+						message: result.message,
+						indicator: result.indicator || "green",
+					});
+				}
+			});
+		});
+
+		frm.call({
+			doc: frm.doc,
+			method: "start_setup",
+			freeze: true,
+			freeze_message: __("Queuing South African localisation setup..."),
+			callback: (r) => {
+				const result = r && r.message;
+				if (result && result.message) {
+					frappe.show_alert({ message: result.message, indicator: result.indicator || "blue" }, 7);
+				}
+				frappe.show_progress(__("Applying ZA Local Setup"), 1, 100, __("Queued..."));
 			},
 		});
 	},

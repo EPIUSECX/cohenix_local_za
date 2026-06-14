@@ -21,11 +21,11 @@ class ZALocalSetup(Document):
 	def start_setup(self):
 		"""Explicit user action to apply the selected South African setup options.
 
-		Setup is driven only by this explicit action (the "Apply Selected
-		Configuration" button), never as a side effect of ``on_update``. The
-		work is delegated to ``run_za_local_setup``, which persists the status
-		and selections via ``setup_doc.save()``, rolls the status back to
-		"Pending" on error, and returns the feedback payload.
+		The work is offloaded to a background job (``run_za_local_setup_job``) so it
+		can't hit request timeouts on larger runs (chart of accounts, submittable
+		statutory docs). The job publishes realtime progress and a completion event;
+		this method returns immediately with a "queued" payload. ``run_za_local_setup``
+		still persists status/selections and rolls back to "Pending" on error.
 		"""
 		if not self.company:
 			frappe.throw(_("Company is required"))
@@ -46,12 +46,24 @@ class ZALocalSetup(Document):
 			):
 				self.set(fieldname, 0)
 
-		from za_local.sa_setup.install import run_za_local_setup
+		self.setup_status = "In Progress"
+		self.save()
 
-		return run_za_local_setup(self) or {
-			"title": _("ZA Local Setup Complete"),
-			"indicator": "green",
-			"message": _("South African localisation setup completed."),
-			"status": self.setup_status,
-			"setup_completed_on": self.setup_completed_on,
+		frappe.enqueue(
+			"za_local.sa_setup.install.run_za_local_setup_job",
+			queue="long",
+			timeout=1500,
+			setup_name=self.name,
+			user=frappe.session.user,
+			enqueue_after_commit=True,
+		)
+
+		return {
+			"title": _("Setup Queued"),
+			"indicator": "blue",
+			"message": _(
+				"South African localisation setup is running in the background. "
+				"Progress is shown below; you'll be notified when it finishes."
+			),
+			"queued": True,
 		}
