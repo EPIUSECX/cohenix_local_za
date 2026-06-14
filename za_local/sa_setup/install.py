@@ -738,13 +738,34 @@ def ensure_sa_print_formats():
 	if hrms_available and frappe.db.exists("DocType", "Salary Slip") and frappe.db.exists("Print Format", "SA Salary Slip"):
 		frappe.db.set_value("DocType", "Salary Slip", "default_print_format", "SA Salary Slip")
 
+	# Make the SA format the default for each statutory/operational document so it
+	# is used out of the box. Only applied when both the DocType and format exist.
+	default_print_formats = {
+		"VAT201 Return": "SA VAT201 Return",
+		"EMP201 Submission": "SA EMP201 Submission",
+		"EMP501 Reconciliation": "SA EMP501 Reconciliation",
+		"COIDA Annual Return": "SA COIDA Annual Return",
+		"Business Trip": "SA Business Trip",
+		"OID Claim": "SA OID Claim",
+		"Workplace Skills Plan": "SA Workplace Skills Plan",
+		"Annual Training Report": "SA Annual Training Report",
+	}
+	for doctype_name, print_format_name in default_print_formats.items():
+		if frappe.db.exists("DocType", doctype_name) and frappe.db.exists("Print Format", print_format_name):
+			frappe.db.set_value("DocType", doctype_name, "default_print_format", print_format_name)
+
 	print("  ✓ South African print formats are available")
 
 
 def _load_standard_print_format_records():
 	"""Load shipped Print Format JSON so DB sync matches the standard-doc files."""
 	print_formats = {}
-	for relative_root in ("sa_vat/print_format", "sa_payroll/print_format"):
+	for relative_root in (
+		"sa_vat/print_format",
+		"sa_payroll/print_format",
+		"sa_coida/print_format",
+		"sa_labour/print_format",
+	):
 		root = resolve_app_path(*relative_root.split("/"))
 		if not root.exists():
 			continue

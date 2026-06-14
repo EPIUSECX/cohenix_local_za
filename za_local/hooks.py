@@ -57,7 +57,15 @@ fixtures = [
                 "SA Debit Note",
                 "IRP5 Employee Certificate",
                 "IRP5-it3 Certificate",
-                "SA Salary Slip"
+                "SA Salary Slip",
+                "SA VAT201 Return",
+                "SA EMP201 Submission",
+                "SA EMP501 Reconciliation",
+                "SA COIDA Annual Return",
+                "SA Business Trip",
+                "SA OID Claim",
+                "SA Workplace Skills Plan",
+                "SA Annual Training Report"
             ]]
         ]
     },
