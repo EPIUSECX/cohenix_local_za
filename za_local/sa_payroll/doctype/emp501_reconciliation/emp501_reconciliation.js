@@ -80,19 +80,14 @@ frappe.ui.form.on('EMP501 Reconciliation', {
         if (frm.doc.docstatus === 1) {
             frm.set_intro(__('Direct SARS electronic submission is not supported in this release. Use the filing export below and complete submission manually in SARS eFiling.'), 'orange');
             
-            // Download CSV for SARS e-Filing (available after submission)
+            // Download CSV for SARS e-Filing (available after submission).
+            // The server streams the file via a Frappe "download" response, so we
+            // navigate the browser to the endpoint (GET) rather than calling it over
+            // AJAX. The session cookie authenticates the request.
             frm.add_custom_button(__('Download Filing CSV'), function() {
-                frappe.call({
-                    method: 'za_local.utils.emp501_utils.generate_emp501_csv',
-                    args: {
-                        emp501: frm.doc.name
-                    },
-                    callback: function(r) {
-                        if (r.message && r.message.file_url) {
-                            window.open(r.message.file_url);
-                        }
-                    }
-                });
+                const url = '/api/method/za_local.utils.emp501_utils.generate_emp501_csv'
+                    + '?emp501_name=' + encodeURIComponent(frm.doc.name);
+                window.open(url, '_blank');
             });
         }
         

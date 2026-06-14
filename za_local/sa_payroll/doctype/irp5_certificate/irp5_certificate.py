@@ -142,7 +142,10 @@ class IRP5Certificate(Document):
 		self.certificate_number = f"{prefix}-BULK-{tax_year_str}-{unique_hash}"
 
 	def calculate_totals(self):
-		self.paye = self._sum_child_table(self.deduction_details, "deduction_code", {"4102"})
+		# Employees' tax includes ordinary PAYE (4102) and lump-sum/directive tax
+		# (4115), matching the EMP201 PAYE bucket so the EMP501 reconciliation ties
+		# on a gross (pre-ETI) PAYE basis.
+		self.paye = self._sum_child_table(self.deduction_details, "deduction_code", {"4102", "4115"})
 		self.uif = self._sum_child_table(self.deduction_details, "deduction_code", {"4141"})
 		self.sdl = self._sum_child_table(self.company_contribution_details, "contribution_code", {"4142"})
 
@@ -679,67 +682,24 @@ class IRP5Certificate(Document):
 		return (cint(meta.print_sequence) if meta else 9999, code)
 
 	def calculate_eti(self):
-		disable_eti_globally = frappe.db.get_single_value(
-			"Payroll Settings",
-			"za_disable_eti_calculation",
+		"""ETI on the certificate is the ETI actually claimed on the employee's
+		submitted salary slips for the period.
+
+		The slip is the single source of truth: it already applied the statutory
+		rate pack and every eligibility rule (age, employment months, SEZ,
+		remuneration band, hours proration), and the same per-slip ``za_monthly_eti``
+		is what flowed to the EMP201. Summing it here makes the certificate reconcile
+		to the EMP201 by construction, instead of recomputing with a separate table.
+		"""
+		if not self.employee or not self.from_date or not self.to_date:
+			self.eti = 0
+			return
+
+		slips = self._get_salary_slips(self.employee, self.from_date, self.to_date)
+		self.eti = sum(
+			flt(frappe.db.get_value("Salary Slip", slip.name, "za_monthly_eti"))
+			for slip in slips
 		)
-		if disable_eti_globally or not self.employee or not self.to_date:
-			self.eti = 0
-			return
-
-		employee = frappe.get_doc("Employee", self.employee)
-		if not employee.date_of_birth or not employee.date_of_joining:
-			self.eti = 0
-			return
-
-		end_date = getdate(self.to_date)
-		birth_date = getdate(employee.date_of_birth)
-		age_years = end_date.year - birth_date.year - (
-			(end_date.month, end_date.day) < (birth_date.month, birth_date.day)
-		)
-		if not (18 <= age_years <= 29) and not employee.get("za_special_economic_zone"):
-			self.eti = 0
-			return
-
-		date_of_joining = getdate(employee.date_of_joining)
-		if date_of_joining < getdate("2013-10-01"):
-			self.eti = 0
-			return
-
-		employment_months = (
-			(end_date.year - date_of_joining.year) * 12
-			+ end_date.month
-			- date_of_joining.month
-			- (end_date.day < date_of_joining.day)
-		)
-		if employment_months >= 24:
-			self.eti = 0
-			return
-
-		total_income = sum(flt(d.amount) for d in self.income_details if d.income_code in {"3601", "3802"})
-		months_in_period = max(self.periods_worked or 0, 1)
-		monthly_remuneration = total_income / months_in_period
-		is_first_12_months = employment_months < 12
-		self.eti = self.calculate_eti_amount(monthly_remuneration, is_first_12_months) * months_in_period
-
-	def calculate_eti_amount(self, monthly_remuneration, is_first_12_months):
-		if monthly_remuneration < 2000:
-			return 0
-		max_eti_first_year = 1500
-		max_eti_second_year = 750
-
-		if is_first_12_months:
-			if monthly_remuneration < 4500:
-				return max_eti_first_year * (monthly_remuneration / 4500)
-			if monthly_remuneration <= 6500:
-				return max_eti_first_year * (1 - (monthly_remuneration - 4500) / 2000)
-			return 0
-
-		if monthly_remuneration < 4500:
-			return max_eti_second_year * (monthly_remuneration / 4500)
-		if monthly_remuneration <= 6500:
-			return max_eti_second_year * (1 - (monthly_remuneration - 4500) / 2000)
-		return 0
 
 	@frappe.whitelist()
 	def export_pdf(self):

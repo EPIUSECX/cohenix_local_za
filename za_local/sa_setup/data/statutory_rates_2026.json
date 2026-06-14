@@ -8,7 +8,7 @@
   "verification_notes": {
     "_comment": "Backfilled pack for a prior tax year so date-effective calculations resolve instead of throwing. PAYE brackets, rebates, thresholds and medical tax credits are sourced from the repo's own vetted prior-year data (2025-2026 brackets were frozen at 2024-2025 levels). The fields listed below are annually-gazetted figures that were carried forward and MUST be confirmed against the official SARS/DEL gazette for this year before relying on prior-year recalculations.",
     "verify_before_use": [
-      "eti (the 2025 ETI increase effective 1 April 2025 may apply for part of this tax year - confirm whether old R1000/R500 or new R1500/R750 bands apply and from which month)",
+      "eti: set to the increased R1500/R750 table (bands R2500/R5500/R7500) effective 1 April 2025. NOTE: March 2025 (the first month of this tax year) technically still falls under the old R1000/R500 table; the date-effective pack model holds one ETI table per tax year, so March 2025 ETI is overstated unless a split-period pack is introduced. Confirm treatment of March 2025.",
       "travel.reimbursive_rate_per_km",
       "subsistence.rsa_incidental_only_per_day",
       "subsistence.rsa_meals_and_incidentals_per_day",
@@ -54,16 +54,16 @@
     "maximum_age": 29,
     "hours_in_a_month": 160,
     "first_12_months": [
-      {"from_amount": 0, "to_amount": 1999.99, "amount": 0, "percentage": 50, "formula_type": "percentage"},
-      {"from_amount": 2000, "to_amount": 4499.99, "amount": 1000, "percentage": 0, "formula_type": "fixed"},
-      {"from_amount": 4500, "to_amount": 6499.99, "amount": 1000, "percentage": 50, "formula_type": "declining"},
-      {"from_amount": 6500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
+      {"from_amount": 0, "to_amount": 2499.99, "amount": 0, "percentage": 60, "formula_type": "percentage"},
+      {"from_amount": 2500, "to_amount": 5499.99, "amount": 1500, "percentage": 0, "formula_type": "fixed"},
+      {"from_amount": 5500, "to_amount": 7499.99, "amount": 1500, "percentage": 75, "formula_type": "declining"},
+      {"from_amount": 7500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
     ],
     "second_12_months": [
-      {"from_amount": 0, "to_amount": 1999.99, "amount": 0, "percentage": 25, "formula_type": "percentage"},
-      {"from_amount": 2000, "to_amount": 4499.99, "amount": 500, "percentage": 0, "formula_type": "fixed"},
-      {"from_amount": 4500, "to_amount": 6499.99, "amount": 500, "percentage": 25, "formula_type": "declining"},
-      {"from_amount": 6500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
+      {"from_amount": 0, "to_amount": 2499.99, "amount": 0, "percentage": 30, "formula_type": "percentage"},
+      {"from_amount": 2500, "to_amount": 5499.99, "amount": 750, "percentage": 0, "formula_type": "fixed"},
+      {"from_amount": 5500, "to_amount": 7499.99, "amount": 750, "percentage": 37.5, "formula_type": "declining"},
+      {"from_amount": 7500, "to_amount": null, "amount": 0, "percentage": 0, "formula_type": "fixed"}
     ]
   },
   "travel": {

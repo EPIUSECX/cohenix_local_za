@@ -58,16 +58,25 @@ class TestSAPayrollCompliancePriorYears(UnitTestCase):
 			self.assertEqual(59032, calculate_tax_from_brackets(300000, brackets))
 			self.assertEqual(189677, calculate_tax_from_brackets(700000, brackets))
 
-	def test_prior_year_eti_uses_legacy_band_structure(self):
-		# Prior years use the legacy R1000 / R500 ETI structure (max R1000 in the
-		# first 12 months), matching the repo's eti_slabs_2025.json.
-		for meta in PRIOR_YEAR_PACKS.values():
-			d = meta["date"]
-			self.assertEqual(750, calculate_eti_from_pack(1500, 1, d))   # 50% band
-			self.assertEqual(1000, calculate_eti_from_pack(3000, 1, d))  # fixed band
-			self.assertEqual(500, calculate_eti_from_pack(5500, 1, d))   # declining band
-			self.assertEqual(0, calculate_eti_from_pack(6500, 1, d))     # above ceiling
-			self.assertEqual(500, calculate_eti_from_pack(3000, 13, d))  # second period
+	def test_2024_2025_eti_uses_legacy_band_structure(self):
+		# 2024-2025 uses the legacy R1000 / R500 ETI table (bands R2000/R4500/R6500).
+		d = "2024-03-31"
+		self.assertEqual(750, calculate_eti_from_pack(1500, 1, d))   # 50% band
+		self.assertEqual(1000, calculate_eti_from_pack(3000, 1, d))  # fixed band
+		self.assertEqual(500, calculate_eti_from_pack(5500, 1, d))   # declining band
+		self.assertEqual(0, calculate_eti_from_pack(6500, 1, d))     # above ceiling
+		self.assertEqual(500, calculate_eti_from_pack(3000, 13, d))  # second period
+
+	def test_2025_2026_eti_uses_increased_band_structure(self):
+		# 2025-2026 uses the increased R1500 / R750 ETI table (bands R2500/R5500/R7500),
+		# reflecting the ETI increase effective 1 April 2025.
+		d = "2025-03-31"
+		self.assertEqual(900, calculate_eti_from_pack(1500, 1, d))    # 60% band
+		self.assertEqual(1500, calculate_eti_from_pack(3000, 1, d))   # fixed band
+		self.assertEqual(1500, calculate_eti_from_pack(5500, 1, d))   # start of declining band
+		self.assertEqual(750, calculate_eti_from_pack(6500, 1, d))    # mid declining band
+		self.assertEqual(0, calculate_eti_from_pack(7500, 1, d))      # above ceiling
+		self.assertEqual(750, calculate_eti_from_pack(3000, 13, d))   # second period
 
 	def test_prior_year_pack_json_is_valid_and_flags_verification(self):
 		for tax_year, meta in PRIOR_YEAR_PACKS.items():

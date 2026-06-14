@@ -349,7 +349,9 @@ class EMP501Reconciliation(Document):
 				if submission_ref.emp201_submission:
 					try:
 						emp201 = frappe.get_doc("EMP201 Submission", submission_ref.emp201_submission)
-						self.total_paye += flt(emp201.net_paye_payable)
+						# Reconcile PAYE on a gross (pre-ETI) basis so it ties to the
+						# IRP5 certificate PAYE totals; ETI is reconciled as its own line.
+						self.total_paye += flt(emp201.gross_paye_before_eti)
 						self.total_sdl += flt(emp201.sdl_payable)
 						self.total_uif += flt(emp201.uif_payable)
 						self.total_eti += flt(emp201.eti_utilized_current_month)
@@ -417,7 +419,7 @@ class EMP501Reconciliation(Document):
 				fields=[
 					"name",
 					"submission_period_start_date as submission_date",
-					"net_paye_payable as paye",
+					"gross_paye_before_eti as paye",
 					"sdl_payable as sdl",
 					"uif_payable as uif",
 					"eti_utilized_current_month as eti",
