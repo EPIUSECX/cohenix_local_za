@@ -11,6 +11,7 @@ from za_local.sa_coida.doctype.workplace_injury.workplace_injury import Workplac
 from za_local.sa_labour.doctype.business_trip.business_trip import BusinessTrip
 from za_local.sa_payroll.doctype.emp201_submission.emp201_submission import EMP201Submission
 from za_local.sa_payroll.doctype.emp501_reconciliation.emp501_reconciliation import EMP501Reconciliation
+from za_local.sa_payroll.doctype.irp5_certificate.irp5_certificate import IRP5Certificate
 from za_local.sa_payroll.report.retirement_fund_deductions.retirement_fund_deductions import (
 	get_data as get_retirement_fund_deductions,
 )
@@ -152,6 +153,59 @@ class TestStatutoryWorkflowRegressions(UnitTestCase):
 		self.assertEqual(1_300, result["net_paye_payable"])
 		self.assertEqual(177.12, result["uif_payable"])
 		self.assertEqual(250, result["sdl_payable"])
+
+	def test_irp5_paye_total_includes_lump_sum_directive_tax(self):
+		# IRP5 employees' tax must include ordinary PAYE (4102) AND lump-sum/directive
+		# tax (4115), matching the EMP201 PAYE bucket so the EMP501 reconciles.
+		doc = frappe.new_doc("IRP5 Certificate")
+		doc.append("deduction_details", {"deduction_code": "4102", "amount": 100000})
+		doc.append("deduction_details", {"deduction_code": "4115", "amount": 18000})
+		doc.append("deduction_details", {"deduction_code": "4141", "amount": 2125.44})  # UIF, not PAYE
+		IRP5Certificate.calculate_totals(doc)
+		self.assertEqual(118000, doc.paye)
+		self.assertEqual(2125.44, doc.uif)
+
+	def test_irp5_eti_sums_actual_salary_slip_eti(self):
+		# IRP5 ETI is the sum of the slips' za_monthly_eti (the same figure that flowed
+		# to the EMP201) rather than an independent recomputation.
+		doc = frappe.new_doc("IRP5 Certificate")
+		doc.employee = "HR-EMP-RECON"
+		doc.from_date = "2025-03-01"
+		doc.to_date = "2026-02-28"
+		slips = [frappe._dict(name=f"SS-{i:02d}") for i in range(12)]
+		monthly_eti = {f"SS-{i:02d}": 500 for i in range(12)}
+		with (
+			patch.object(IRP5Certificate, "_get_salary_slips", return_value=slips),
+			patch("frappe.db.get_value", side_effect=lambda dt, name, field: monthly_eti[name]),
+		):
+			IRP5Certificate.calculate_eti(doc)
+		self.assertEqual(6000, doc.eti)
+
+	def test_emp501_totals_use_gross_paye_and_reconcile_to_irp5(self):
+		# EMP501 reconciles PAYE on a gross (pre-ETI) basis incl 4115, and ETI as its
+		# own line. The gross PAYE equals the IRP5 PAYE total (4102 + 4115), and the
+		# EMP501 ETI equals the IRP5 ETI (sum of slip ETI), so the legs tie.
+		emp501 = frappe.new_doc("EMP501 Reconciliation")
+		emp501.append("emp201_submissions", {"emp201_submission": "EMP201-RECON"})
+		emp201 = frappe._dict(
+			gross_paye_before_eti=118000.0,   # 4102 (100000) + 4115 (18000)
+			net_paye_payable=112000.0,        # gross - ETI utilised (6000)
+			sdl_payable=41470.0,
+			uif_payable=18323.52,
+			eti_utilized_current_month=6000.0,
+		)
+		with patch("frappe.get_doc", return_value=emp201):
+			EMP501Reconciliation.calculate_totals(emp501)
+
+		# Gross basis (not the net 112000)
+		self.assertEqual(118000.0, emp501.total_paye)
+		self.assertEqual(6000.0, emp501.total_eti)
+
+		# Reconciliation contract: the IRP5 side ties to the EMP501 side.
+		irp5_paye_total = 100000 + 18000   # IRP5 paye sums {4102, 4115}
+		irp5_eti_total = 6000              # IRP5 eti sums slip za_monthly_eti
+		self.assertEqual(emp501.total_paye, irp5_paye_total)
+		self.assertEqual(emp501.total_eti, irp5_eti_total)
 
 	def test_emp501_submission_readiness_requires_sars_references(self):
 		doc = frappe.new_doc("EMP501 Reconciliation")
