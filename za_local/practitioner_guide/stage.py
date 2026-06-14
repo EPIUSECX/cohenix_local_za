@@ -125,7 +125,9 @@ def stage_space():
 			)
 			created_pages += 1
 
-	frappe.db.commit()
+	# No explicit frappe.db.commit(): the surrounding transaction is committed by
+	# the request (whitelisted button) or by `bench execute` on success. Frappe's
+	# transaction model discourages manual commits.
 	summary = (
 		f"SA Practitioner Guide staged at /{space_route}: "
 		f"{created_groups} sections, {created_pages} pages."
