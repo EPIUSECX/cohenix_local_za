@@ -137,6 +137,15 @@ def get_active_fringe_benefits(employee, date=None):
 	if not date:
 		date = today()
 
+	# frappe.get_all bypasses permissions, so authorise explicitly: taxable_value is
+	# remuneration data for a named employee.
+	if not frappe.has_permission("Fringe Benefit", "read"):
+		frappe.throw(
+			_("You are not permitted to read Fringe Benefits."),
+			frappe.PermissionError,
+			title=_("Insufficient Permission"),
+		)
+
 	benefits = frappe.get_all(
 		"Fringe Benefit",
 		filters={

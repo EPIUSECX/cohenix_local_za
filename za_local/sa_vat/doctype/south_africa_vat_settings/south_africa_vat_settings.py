@@ -81,7 +81,7 @@ class SouthAfricaVATSettings(Document):
 		values = frappe.db.get_value("Company", self.company, ["za_vat_number", "tax_id"], as_dict=True)
 		if isinstance(values, dict):
 			return values.get("za_vat_number") or values.get("tax_id") or ""
-		if isinstance(values, (list, tuple)):
+		if isinstance(values, list | tuple):
 			return next((value for value in values if value), "") or ""
 		return values or ""
 

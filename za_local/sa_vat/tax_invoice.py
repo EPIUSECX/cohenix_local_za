@@ -153,7 +153,7 @@ def get_company_vat_registration_number(company: str | None):
 	values = frappe.db.get_value("Company", company, ["za_vat_number", "tax_id"], as_dict=True)
 	if isinstance(values, dict):
 		return values.get("za_vat_number") or values.get("tax_id")
-	if isinstance(values, (list, tuple)):
+	if isinstance(values, list | tuple):
 		return next((value for value in values if value), None)
 	return values
 

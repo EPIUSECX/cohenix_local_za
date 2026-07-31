@@ -29,7 +29,7 @@ def user_lookup(records):
 			return None
 		if as_dict:
 			return frappe._dict(record)
-		if isinstance(fieldname, (list, tuple)):
+		if isinstance(fieldname, list | tuple):
 			return [record.get(field) for field in fieldname]
 		return record.get(fieldname)
 

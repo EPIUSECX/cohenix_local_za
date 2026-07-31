@@ -1438,7 +1438,7 @@ def insert_custom_records():
 	"""Insert DocType Link records. Idempotent (skips existing)."""
 	print("Inserting custom records...")
 	for custom_record in _get_doctype_link_records():
-		filters = {k: v for k, v in custom_record.items() if not isinstance(v, (list, dict))}
+		filters = {k: v for k, v in custom_record.items() if not isinstance(v, list | dict)}
 		if not frappe.db.exists(filters):
 			frappe.get_doc(custom_record).insert(ignore_if_duplicate=True)
 	print("✓ Custom records inserted successfully")

@@ -1,10 +1,22 @@
 import json
+import re
 import subprocess
 import unittest
 from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = APP_ROOT / "za_local"
+
+# Files whose string literals point at shipped assets.
+ASSET_REFERENCING_SOURCES = (
+	PACKAGE_ROOT / "hooks.py",
+	PACKAGE_ROOT / "utils" / "hooks_utils.py",
+)
+
+# "public/js/foo.js" as used by doctype_js, and "/assets/za_local/js/foo.js"
+# as used by app_include_js / app_include_css / logo URLs.
+_RELATIVE_ASSET = re.compile(r"\"(public/(?:js|css|images)/[\w./-]+)\"")
+_ASSETS_URL = re.compile(r"\"/assets/za_local/((?:js|css|images)/[\w./-]+)\"")
 
 
 class TestRepositoryHygiene(unittest.TestCase):
@@ -23,6 +35,24 @@ class TestRepositoryHygiene(unittest.TestCase):
 			if len(paths) > 1
 		}
 		self.assertFalse(duplicates, msg=f"Duplicate active print formats found: {duplicates}")
+
+	def test_hook_asset_paths_exist(self):
+		"""A hook pointing at a missing asset is a silent no-op: frappe.read_file
+		returns None and the script is simply never loaded."""
+		missing = []
+
+		for source in ASSET_REFERENCING_SOURCES:
+			text = source.read_text()
+			referenced = {PACKAGE_ROOT / match for match in _RELATIVE_ASSET.findall(text)}
+			referenced |= {PACKAGE_ROOT / "public" / match for match in _ASSETS_URL.findall(text)}
+
+			missing.extend(
+				f"{source.name} -> {path.relative_to(PACKAGE_ROOT)}"
+				for path in sorted(referenced)
+				if not path.exists()
+			)
+
+		self.assertFalse(missing, msg=f"Hooks reference assets that do not exist: {missing}")
 
 	def test_no_tracked_cache_or_backup_artifacts(self):
 		result = subprocess.run(

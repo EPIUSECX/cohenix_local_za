@@ -142,6 +142,15 @@ def get_active_directive(employee, date=None):
 	if not date:
 		date = today()
 
+	# frappe.get_all bypasses permissions, so authorise explicitly: a tax directive
+	# reveals an employee's SARS-approved tax treatment.
+	if not frappe.has_permission("Tax Directive", "read"):
+		frappe.throw(
+			_("You are not permitted to read Tax Directives."),
+			frappe.PermissionError,
+			title=_("Insufficient Permission"),
+		)
+
 	directives = frappe.get_all(
 		"Tax Directive",
 		filters={

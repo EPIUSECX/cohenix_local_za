@@ -1170,12 +1170,26 @@ def get_it3_pdf(docname):
 
 @frappe.whitelist()
 def get_official_pdf(docname):
-	doc = frappe.get_doc("IRP5 Certificate", docname)
+	# check_permission=True is required: frappe.get_doc does NOT check permissions on
+	# its own, and an IRP5 certificate carries the employee's ID number, tax number
+	# and full earnings history.
+	doc = frappe.get_doc("IRP5 Certificate", docname, check_permission=True)
 	return doc.get_official_pdf()
 
 
 @frappe.whitelist()
 def bulk_generate_certificates(filters_json=None):
+	# This creates/overwrites certificates for every employee matching the filters,
+	# and saves with ignore_permissions below, so gate the whole endpoint first.
+	# Permission-based rather than role-based so it tracks whatever roles the site
+	# has actually granted on the DocType.
+	if not frappe.has_permission("IRP5 Certificate", "create"):
+		frappe.throw(
+			_("You are not permitted to generate IRP5 certificates."),
+			frappe.PermissionError,
+			title=_("Insufficient Permission"),
+		)
+
 	filters = json.loads(filters_json) if filters_json else {}
 	company = filters.get("company")
 	tax_year = filters.get("tax_year")

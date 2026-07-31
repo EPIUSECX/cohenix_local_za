@@ -83,21 +83,18 @@ app_include_js = "/assets/za_local/js/za_local_feedback.js"
 # Include JS in doctype views
 # ------------------
 # Base JS files (always available)
+# Note: za_local's own DocTypes (e.g. EMP501 Reconciliation) load their client
+# scripts automatically from their doctype folder — they must not be listed here.
 doctype_js = {
     "COIDA Annual Return": "public/js/coida_annual_return.js",
     "Workplace Injury": "public/js/workplace_injury.js",
     "OID Claim": "public/js/oid_claim.js",
-    "EMP501 Reconciliation": "public/js/emp501_reconciliation.js",
     "Sales Invoice": "public/js/vat_tax_calculation.js",
     "Purchase Invoice": "public/js/vat_tax_calculation.js",
 }
 
 # Merge HRMS-dependent JS files conditionally
 doctype_js.update(get_hrms_doctype_js())
-
-doctype_list_js = {
-    "EMP501 Reconciliation": "public/js/emp501_reconciliation_list.js"
-}
 
 # Installation
 # ------------------

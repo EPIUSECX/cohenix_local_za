@@ -860,27 +860,25 @@ def make_payment_entry_for_payroll(dt, dn, selected_payment_account=None):
         dn: Document name
         selected_payment_account: Dictionary of bank accounts and employees
     """
+    # dt is caller-supplied; pin it so this cannot be pointed at another DocType
+    # that happens to expose a make_payment_entry method.
+    if dt != "Payroll Entry":
+        frappe.throw(_("This action is only available for Payroll Entry."))
+
     # Verify document exists
     if not frappe.db.exists(dt, dn):
         frappe.throw(_("{0} {1} does not exist").format(dt, dn))
 
-    # Check for read or submit permission - creating bank entries is a post-submit action
-    # that should be accessible to users who can read or submit the document
-    has_read = frappe.has_permission(dt, "read", dn)
-    has_submit = frappe.has_permission(dt, "submit", dn)
-    has_write = frappe.has_permission(dt, "write", dn)
-
-    # For submitted documents, we need at least read permission
-    # For creating bank entries (which creates new Journal Entries), write permission is ideal
-    # but read permission should be sufficient for this post-submit action
-    if not (has_read or has_submit or has_write):
+    # This creates bank Journal Entries, i.e. it moves money. Read access is not
+    # sufficient — require submit or write on the Payroll Entry.
+    if not (frappe.has_permission(dt, "submit", dn) or frappe.has_permission(dt, "write", dn)):
         frappe.throw(
-            _("You do not have permission to access {0} {1}. Please contact your manager to get access.").format(dt, dn),
+            _("You do not have permission to create bank entries for {0} {1}. Please contact your manager to get access.").format(dt, dn),
+            frappe.PermissionError,
             title=_("Permission Denied")
         )
 
-    # Get document - frappe.get_doc() will check permissions
-    # If it fails, catch the exception and provide a clearer error message
+    # frappe.get_doc does not check permissions itself; the check above is the gate.
     try:
         doc = frappe.get_doc(dt, dn)
     except Exception as e:

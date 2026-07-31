@@ -25,24 +25,3 @@ def get_hrms_doctype_js():
 			"Salary Structure Assignment": "public/js/salary_structure_assignment.js",
 		})
 	return hrms_js
-
-
-def get_override_doctype_class():
-	"""
-	Get override doctype classes conditionally based on HRMS availability.
-	ZA VAT invoice overrides are always applied so 15% and 0% tax rows calculate correctly.
-	"""
-	overrides = {
-		"Sales Invoice": "za_local.overrides.vat_invoices.ZASalesInvoice",
-		"Purchase Invoice": "za_local.overrides.vat_invoices.ZAPurchaseInvoice",
-	}
-	if is_hrms_installed():
-		overrides.update({
-			"Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
-			"Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
-			"Additional Salary": "za_local.overrides.additional_salary.ZAAdditionalSalary",
-			"Leave Application": "za_local.overrides.leave_application.ZALeaveApplication",
-			"Employee Separation": "za_local.overrides.employee_separation.ZAEmployeeSeparation",
-			"Salary Structure Assignment": "za_local.overrides.salary_structure_assignment.ZASalaryStructureAssignment"
-		})
-	return overrides

@@ -12,6 +12,15 @@ TOTAL_TOLERANCE = 0.01
 
 @frappe.whitelist()
 def get_company_tax_details(company):
+	# frappe.db.get_value does no permission check; these are the company's SARS
+	# PAYE/SDL/UIF registration numbers.
+	if not frappe.has_permission("Company", "read", company):
+		frappe.throw(
+			_("You are not permitted to read {0}.").format(company),
+			frappe.PermissionError,
+			title=_("Insufficient Permission"),
+		)
+
 	details = frappe.db.get_value(
 		"Company",
 		company,
