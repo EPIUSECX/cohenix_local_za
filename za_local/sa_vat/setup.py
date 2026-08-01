@@ -418,6 +418,10 @@ def ensure_tax_template(doctype, title, company, account, rate):
 
 @frappe.whitelist()
 def bootstrap_company_vat_setup(company: str | None = None):
+	# Whitelisted and writes with ignore_permissions, reconfiguring VAT tax templates
+	# and account mappings for a caller-supplied company.
+	frappe.only_for("System Manager")
+
 	settings = get_vat_settings(company, create_if_missing=True)
 	company = company or settings.company
 	if company and not settings.company:

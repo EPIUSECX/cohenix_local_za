@@ -614,13 +614,14 @@ class ZAPayrollEntry(PayrollEntry):
         # Log for debugging permission issues
         frappe.logger().debug(f"make_payment_entry called by {frappe.session.user} for {self.name}, docstatus={self.docstatus}")
 
+        # This creates bank Journal Entries, i.e. it moves money. run_doc_method only
+        # enforces READ on the document (frappe/handler.py -> get_doc(check_permission=True)
+        # -> check_permission("read")), so gating must happen here or any user who can
+        # merely view a Payroll Entry can pay it. HRMS's own make_bank_entry does the same.
+        self.check_permission("write")
+
         # Reload document to ensure we have latest state
         self.reload()
-
-        # Note: run_doc_method already handles permission checking before calling this method
-        # For submitted documents (docstatus=1), creating bank entries is a standard post-submit action
-        # that should work with the permissions that allow viewing the document
-        # We don't add additional permission checks here to avoid conflicts with run_doc_method's permission handling
 
         # Get selected_payment_account from method argument or document attribute
         selected_accounts = selected_payment_account or getattr(self, 'selected_payment_account', None)

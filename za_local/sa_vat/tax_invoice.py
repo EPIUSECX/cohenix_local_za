@@ -8,7 +8,9 @@ NO_TAX_INVOICE_THRESHOLD = 50
 
 @frappe.whitelist()
 def check_tax_invoice_readiness(sales_invoice: str):
-	doc = frappe.get_doc("Sales Invoice", sales_invoice)
+	# check_permission=True is required: frappe.get_doc does NOT check permissions,
+	# and the response exposes customer name, posting date and invoice totals.
+	doc = frappe.get_doc("Sales Invoice", sales_invoice, check_permission=True)
 	company_vat_number = get_company_vat_registration_number(doc.company) or getattr(doc, "company_tax_id", None)
 	profile = build_sales_invoice_print_profile(
 		company=doc.company,

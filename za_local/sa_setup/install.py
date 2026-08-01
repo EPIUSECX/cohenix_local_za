@@ -3339,6 +3339,11 @@ def refresh_sa_tax_tables():
     Can be run via bench:
       bench --site <site> execute za_local.sa_setup.install.refresh_sa_tax_tables
     """
+    # Whitelisted, so it is reachable over /api/method by any authenticated user.
+    # It re-seeds Income Tax Slabs and Tax Rebates from fixtures, which changes the
+    # PAYE every subsequent salary slip is calculated on.
+    frappe.only_for("System Manager")
+
     require_hrms_message = "South African payroll periods and tax tables"
     if not is_hrms_installed():
         frappe.throw(

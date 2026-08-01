@@ -495,6 +495,16 @@ class EMP501Reconciliation(Document):
 		Generate IRP5 Certificates in bulk for all employees with salary slips in the period.
 		EMP201 monthly declarations must already exist for the whole reconciliation period.
 		"""
+		# run_doc_method only enforces read on EMP501 Reconciliation, which HR User holds.
+		# This method then creates IRP5 Certificates with ignore_permissions, a DocType
+		# HR User has no rights on at all — so gate on the target DocType explicitly.
+		if not frappe.has_permission("IRP5 Certificate", "create"):
+			frappe.throw(
+				_("You are not permitted to generate IRP5 certificates."),
+				frappe.PermissionError,
+				title=_("Insufficient Permission"),
+			)
+
 		if not self.from_date or not self.to_date or not self.tax_year or not self.company:
 			frappe.throw(_("Company, Tax Year, From Date, and To Date are required to generate IRP5s."))
 

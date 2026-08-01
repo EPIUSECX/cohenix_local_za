@@ -217,7 +217,10 @@ def create_expense_claim_from_trip(business_trip_name):
 	Returns:
 		str: Name of created Expense Claim
 	"""
-	trip = frappe.get_doc("Business Trip", business_trip_name)
+	# frappe.get_doc does not check permissions, and this creates a payable Expense
+	# Claim in the trip owner's name, so require write access to the trip itself.
+	trip = frappe.get_doc("Business Trip", business_trip_name, check_permission=True)
+	trip.check_permission("write")
 
 	if trip.docstatus != 1:
 		frappe.throw(_("Business Trip must be submitted before creating Expense Claim"))

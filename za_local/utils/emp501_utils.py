@@ -23,10 +23,19 @@ def generate_emp501_csv(emp501_name):
     Returns:
         dict: Information about the generated file
     """
-    emp501 = frappe.get_doc("EMP501 Reconciliation", emp501_name)
+    # check_permission=True is required: frappe.get_doc does NOT check permissions.
+    emp501 = frappe.get_doc("EMP501 Reconciliation", emp501_name, check_permission=True)
 
-    if not emp501:
-        frappe.throw("EMP501 Reconciliation not found")
+    # The CSV embeds per-employee IRP5 data (income tax reference, ID number, PAYE,
+    # UIF, ETI). IRP5 Certificate is a stricter DocType than EMP501 Reconciliation
+    # — HR User holds EMP501 access but no IRP5 access — so gate on the stricter one
+    # too, or this endpoint launders the whole payroll past that restriction.
+    if not frappe.has_permission("IRP5 Certificate", "read"):
+        frappe.throw(
+            frappe._("You are not permitted to export IRP5 certificate data."),
+            frappe.PermissionError,
+            title=frappe._("Insufficient Permission"),
+        )
 
     try:
         csv_buffer = StringIO()
