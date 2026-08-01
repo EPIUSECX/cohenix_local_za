@@ -20,6 +20,29 @@ _ASSETS_URL = re.compile(r"\"/assets/za_local/((?:js|css|images)/[\w./-]+)\"")
 
 
 class TestRepositoryHygiene(unittest.TestCase):
+	def test_client_scripts_do_not_use_synchronous_xhr(self):
+		offenders = []
+		for path in (PACKAGE_ROOT / "public" / "js").rglob("*.js"):
+			if re.search(r"async\s*:\s*false", path.read_text()):
+				offenders.append(path.relative_to(PACKAGE_ROOT).as_posix())
+		self.assertFalse(offenders, msg=f"Synchronous XHR found in: {offenders}")
+
+	def test_payroll_dialog_uses_dom_text_for_employee_values(self):
+		text = (PACKAGE_ROOT / "public" / "js" / "payroll_entry.js").read_text()
+		self.assertNotIn("${row.employee_name}", text)
+		self.assertIn('.text(`${row.employee}: ${row.employee_name || ""}`)', text)
+		self.assertIn('encodeURIComponent(row.employee)', text)
+
+	def test_flexible_benefit_hiding_never_targets_shared_form_sections(self):
+		css = (PACKAGE_ROOT / "public" / "css" / "za_local.css").read_text()
+		javascript = (PACKAGE_ROOT / "public" / "js" / "salary_structure.js").read_text()
+		css_rules = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+
+		self.assertNotRegex(css_rules, r"\.form-section[^\{]*max_benefits")
+		self.assertNotIn("za-hidden-flexible-benefits", css + javascript)
+		self.assertNotIn("closest('.form-section')", javascript)
+		self.assertIn("frm.toggle_display(fieldname, false)", javascript)
+
 	def test_no_active_duplicate_print_format_jsons(self):
 		seen = {}
 
@@ -95,6 +118,24 @@ class TestRepositoryHygiene(unittest.TestCase):
 			for path in json_dir.rglob("*.json"):
 				with path.open() as handle:
 					json.load(handle)
+
+	def test_practitioner_guide_manifest_matches_content(self):
+		from za_local.practitioner_guide.manifest import GUIDES
+
+		content_dir = PACKAGE_ROOT / "practitioner_guide" / "content"
+		pages = [
+			(guide["space"]["route"], group["key"], page)
+			for guide in GUIDES
+			for group in guide["groups"]
+			for page in group["pages"]
+		]
+		files = [page["file"] for _, _, page in pages]
+		routes = [f"{space}/{group}/{page['slug']}" for space, group, page in pages]
+		content_files = sorted(path.name for path in content_dir.glob("*.md"))
+
+		self.assertEqual(len(files), len(set(files)), "Guide content files must be referenced once")
+		self.assertEqual(len(routes), len(set(routes)), "Guide routes must be unique")
+		self.assertEqual(sorted(files), content_files, "Manifest and guide content files must match")
 
 	def test_expected_sa_workspace_sidebars_exist(self):
 		expected = {
@@ -174,7 +215,7 @@ class TestRepositoryHygiene(unittest.TestCase):
 				msg=f"{filename} should attach {onboarding}",
 			)
 
-	def test_sa_print_formats_are_module_scoped_and_inline(self):
+	def test_sa_print_formats_are_module_scoped(self):
 		expected = {
 			"sa_vat/print_format/sa_sales_invoice/sa_sales_invoice.json": "SA Sales Invoice",
 			"sa_vat/print_format/sa_full_tax_invoice/sa_full_tax_invoice.json": "SA Full Tax Invoice",
@@ -203,8 +244,9 @@ class TestRepositoryHygiene(unittest.TestCase):
 			self.assertEqual(data.get("print_format_for"), "DocType")
 			self.assertEqual(data.get("print_format_type"), "Jinja")
 			self.assertEqual(data.get("standard"), "Yes")
-			self.assertNotIn(
-				"{% include",
-				data.get("html") or "",
-				msg=f"{name} should keep its HTML inline like ERPNext standard print formats",
-			)
+			if relative_path.startswith("sa_vat/print_format/"):
+				self.assertIn(
+					"{% include",
+					data.get("html") or "",
+					msg=f"{name} should use the shared, null-safe commercial template",
+				)

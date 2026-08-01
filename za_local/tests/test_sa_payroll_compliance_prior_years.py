@@ -1,14 +1,4 @@
-"""Regression tests for the backfilled prior-year statutory rate packs.
-
-These packs (2024-2025 and 2025-2026) exist so that date-effective payroll
-calculations for prior tax years resolve through the statutory rate engine
-instead of raising "No statutory rate pack configured". The high-confidence
-values (PAYE brackets, rebates, thresholds, medical tax credits) are asserted
-here. Annually-gazetted figures that were carried forward (travel per-km,
-subsistence, COIDA cap, and the ETI band amounts around the 2025 increase) are
-flagged in each pack's ``verification_notes`` block and are intentionally not
-asserted as authoritative here.
-"""
+"""Regression tests for date-effective prior-year statutory rate packs."""
 
 import json
 from pathlib import Path
@@ -20,7 +10,9 @@ from za_local.utils.eti_utils import calculate_months_employed
 from za_local.utils.statutory_rates import (
 	calculate_eti_from_pack,
 	calculate_tax_from_brackets,
+	get_coida_annual_earnings_cap,
 	get_rate_pack,
+	get_reimbursive_travel_rate,
 	get_uif_monthly_cap,
 )
 
@@ -59,35 +51,40 @@ class TestSAPayrollCompliancePriorYears(UnitTestCase):
 			self.assertEqual(189677, calculate_tax_from_brackets(700000, brackets))
 
 	def test_2024_2025_eti_uses_legacy_band_structure(self):
-		# 2024-2025 uses the legacy R1000 / R500 ETI table (bands R2000/R4500/R6500).
+		# SARS table effective from 1 March 2022 through 31 March 2025.
 		d = "2024-03-31"
-		self.assertEqual(750, calculate_eti_from_pack(1500, 1, d))   # 50% band
-		self.assertEqual(1000, calculate_eti_from_pack(3000, 1, d))  # fixed band
-		self.assertEqual(500, calculate_eti_from_pack(5500, 1, d))   # declining band
+		self.assertEqual(1125, calculate_eti_from_pack(1500, 1, d))
+		self.assertEqual(1500, calculate_eti_from_pack(3000, 1, d))
+		self.assertEqual(750, calculate_eti_from_pack(5500, 1, d))
 		self.assertEqual(0, calculate_eti_from_pack(6500, 1, d))     # above ceiling
-		self.assertEqual(500, calculate_eti_from_pack(3000, 13, d))  # second period
+		self.assertEqual(750, calculate_eti_from_pack(3000, 13, d))
 
-	def test_2025_2026_eti_uses_increased_band_structure(self):
-		# 2025-2026 uses the increased R1500 / R750 ETI table (bands R2500/R5500/R7500),
-		# reflecting the ETI increase effective 1 April 2025.
-		d = "2025-03-31"
-		self.assertEqual(900, calculate_eti_from_pack(1500, 1, d))    # 60% band
-		self.assertEqual(1500, calculate_eti_from_pack(3000, 1, d))   # fixed band
-		self.assertEqual(1500, calculate_eti_from_pack(5500, 1, d))   # start of declining band
-		self.assertEqual(750, calculate_eti_from_pack(6500, 1, d))    # mid declining band
-		self.assertEqual(0, calculate_eti_from_pack(7500, 1, d))      # above ceiling
-		self.assertEqual(750, calculate_eti_from_pack(3000, 13, d))   # second period
+	def test_2025_2026_eti_switches_on_1_april_2025(self):
+		self.assertEqual(750, calculate_eti_from_pack(5500, 1, "2025-03-31"))
+		self.assertEqual(1500, calculate_eti_from_pack(5500, 1, "2025-04-01"))
+		self.assertEqual(0, calculate_eti_from_pack(7000, 1, "2025-03-31"))
+		self.assertEqual(375, calculate_eti_from_pack(7000, 1, "2025-04-01"))
 
-	def test_prior_year_pack_json_is_valid_and_flags_verification(self):
+	def test_less_than_160_hours_uses_grossed_up_remuneration(self):
+		self.assertEqual(0, calculate_eti_from_pack(4000, 1, "2025-04-30", hours_per_month=80))
+		self.assertEqual(750, calculate_eti_from_pack(1500, 1, "2025-04-30", hours_per_month=80))
+		self.assertEqual(0, calculate_eti_from_pack(1500, 1, "2025-04-30", hours_per_month=0))
+
+	def test_prior_year_annually_gazetted_values(self):
+		self.assertEqual(4.84, get_reimbursive_travel_rate("2024-03-31"))
+		self.assertEqual(4.76, get_reimbursive_travel_rate("2025-04-01"))
+		self.assertEqual(597328, get_coida_annual_earnings_cap("2024-03-31"))
+		self.assertEqual(633168, get_coida_annual_earnings_cap("2025-04-01"))
+		self.assertEqual(548, get_rate_pack("2024-03-31")["subsistence"]["rsa_meals_and_incidentals_per_day"])
+		self.assertEqual(570, get_rate_pack("2025-04-01")["subsistence"]["rsa_meals_and_incidentals_per_day"])
+
+	def test_prior_year_pack_json_is_valid(self):
 		for tax_year, meta in PRIOR_YEAR_PACKS.items():
 			path = Path(frappe.get_app_path("za_local", "sa_setup", "data", meta["file"]))
 			data = json.loads(path.read_text())
 			self.assertEqual(tax_year, data["tax_year"])
 			self.assertEqual(7, len(data["paye"]["brackets"]))
 			self.assertEqual(4, len(data["eti"]["first_12_months"]))
-			# Carried-forward annual figures must remain flagged for verification.
-			self.assertIn("verification_notes", data)
-			self.assertIn("coida.annual_earnings_cap", data["verification_notes"]["verify_before_use"])
 
 
 class TestETIMonthsEmployed(UnitTestCase):

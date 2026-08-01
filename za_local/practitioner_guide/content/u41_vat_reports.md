@@ -16,7 +16,7 @@ Found in the **SA VAT** workspace. Use these to prepare and check the VAT201 ret
 2. Build the [VAT201 Return](../working-with-vat/vat201-return) and clear any review rows.
 3. Use **VAT 201 Linked Transactions** to verify a return line by drilling to its invoices.
 4. Reconcile the **VAT Payable** figure against your VAT Output and VAT Input ledger balances for the period.
-5. Export the support and file on SARS eFiling.
+5. Retain the exported support, capture the approved figures on SARS eFiling, and retain the external receipt. The export itself is not a SARS return file.
 
 ## Reading the numbers
 

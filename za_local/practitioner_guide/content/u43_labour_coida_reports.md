@@ -20,7 +20,7 @@ While not "reports" in the strict sense, the **Workplace Skills Plan (WSP)** and
 
 The **COIDA Annual Return** is the Return of Earnings working paper. It totals employee earnings for the assessment year (1 March – end February), applies the per-employee earnings cap, and calculates the assessment using your industry rate. In the full payroll suite it can pull earnings straight from submitted salary slips.
 
-To prepare it: open **COIDA Annual Return → New**, set the company and assessment year, fetch earnings, review the capped totals and assessment, then export for the Compensation Fund. Cross-check the total against the **Payroll Register** for the same period.
+To prepare it: open **COIDA Annual Return → New**, select a Fiscal Year exactly 1 March to end February, fetch COIDA-classified earnings, review the per-employee cap and company/class assessment rate, then capture through the Compensation Fund process. Cross-check against submitted Salary Slips/Payroll Register and retain external filing evidence; a generic export is not an eCOID submission.
 
 ## Next
 

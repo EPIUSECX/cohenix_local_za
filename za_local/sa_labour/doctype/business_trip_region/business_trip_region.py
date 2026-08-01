@@ -46,6 +46,7 @@ def get_active_regions(doctype, txt, searchfield, start, page_len, filters):
 	Returns:
 		list: List of matching regions
 	"""
+	frappe.has_permission("Business Trip Region", "read", throw=True)
 	return frappe.db.sql(
 		"""
 		SELECT name, daily_allowance_rate, incidental_allowance_rate
@@ -62,4 +63,3 @@ def get_active_regions(doctype, txt, searchfield, start, page_len, filters):
 		""",
 		{"txt": f"%{txt}%", "start": start, "page_len": page_len},
 	)
-

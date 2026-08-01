@@ -6,11 +6,18 @@
  "field_order": [
   "naming_series",
   "employee",
+  "loan_start_date",
+  "calculation_date",
+  "section_break_balance",
   "loan_amount",
+  "current_balance",
+  "column_break_rates",
   "interest_rate",
   "official_interest_rate",
-  "loan_start_date",
-  "monthly_interest_benefit"
+  "official_rate_effective_from",
+  "section_break_result",
+  "monthly_interest_benefit",
+  "amended_from"
  ],
  "fields": [
   {
@@ -23,39 +30,95 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Employee",
    "options": "Employee",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "loan_amount",
-   "fieldtype": "Currency",
-   "label": "Loan Amount"
-  },
-  {
-   "fieldname": "interest_rate",
-   "fieldtype": "Data",
-   "label": "Interest Rate"
-  },
-  {
-   "fieldname": "official_interest_rate",
-   "fieldtype": "Data",
-   "label": "Official Interest Rate"
+   "reqd": 1
   },
   {
    "fieldname": "loan_start_date",
    "fieldtype": "Date",
-   "label": "Loan Start Date"
+   "label": "Loan Start Date",
+   "reqd": 1
   },
   {
+   "description": "Date used to preview the official rate and monthly benefit.",
+   "fieldname": "calculation_date",
+   "fieldtype": "Date",
+   "label": "Calculation Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_balance",
+   "fieldtype": "Section Break",
+   "label": "Outstanding Loan and Rates"
+  },
+  {
+   "fieldname": "loan_amount",
+   "fieldtype": "Currency",
+   "label": "Original Loan Amount",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "description": "Outstanding balance on which the fringe benefit must be calculated.",
+   "fieldname": "current_balance",
+   "fieldtype": "Currency",
+   "label": "Current Balance",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_rates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Actual annual interest rate charged to the employee. Enter zero for an interest-free loan.",
+   "fieldname": "interest_rate",
+   "fieldtype": "Percent",
+   "label": "Actual Interest Rate",
+   "reqd": 1
+  },
+  {
+   "description": "Date-effective official rate: SARB policy rate plus one percentage point.",
+   "fieldname": "official_interest_rate",
+   "fieldtype": "Percent",
+   "label": "Official Interest Rate",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "official_rate_effective_from",
+   "fieldtype": "Date",
+   "label": "Official Rate Effective From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_result",
+   "fieldtype": "Section Break",
+   "label": "Taxable Calculation"
+  },
+  {
+   "description": "Preview for the calendar month containing Calculation Date. Payroll recalculates for the exact Salary Slip period.",
    "fieldname": "monthly_interest_benefit",
-   "fieldtype": "Data",
-   "label": "Monthly Interest Benefit"
+   "fieldtype": "Currency",
+   "label": "Monthly Interest Benefit",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Low Interest Loan Benefit",
+   "print_hide": 1,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
- "modified": "2025-01-28 12:00:00",
+ "is_submittable": 1,
+ "modified": "2026-08-01 12:00:00",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "Low Interest Loan Benefit",
@@ -72,6 +135,7 @@
    "report": 1,
    "role": "HR Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
@@ -89,6 +153,5 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1,
- "is_submittable": 1
+ "track_changes": 1
 }

@@ -98,7 +98,6 @@ doctype_js.update(get_hrms_doctype_js())
 
 # Installation
 # ------------------
-before_install = "za_local.sa_setup.install.before_install"
 after_install = "za_local.sa_setup.install.after_install"
 before_migrate = ["za_local.sa_setup.install.before_migrate"]
 after_migrate = ["za_local.sa_setup.install.after_migrate"]
@@ -124,6 +123,9 @@ extend_doctype_class = {
 
 # Only register HRMS overrides if HRMS is installed.
 if is_hrms_installed():
+	extend_doctype_class["Salary Slip"] = [
+		"za_local.sa_payroll.fringe_benefits.salary_slip.FringeBenefitSalarySlipMixin",
+	]
 	override_doctype_class = {
 		"Salary Slip": "za_local.overrides.salary_slip.ZASalarySlip",
 		"Payroll Entry": "za_local.overrides.payroll_entry.ZAPayrollEntry",
@@ -137,21 +139,13 @@ if is_hrms_installed():
 # ------------------
 # Hook on document methods and events
 doc_events = {
+	"Company": {
+		"after_insert": "za_local.sa_setup.statutory_setup.configure_new_south_african_company",
+	},
     # Journal Entry events (existing)
     "Journal Entry": {
         "on_trash": "za_local.overrides.journal_entry.on_trash",
         "on_cancel": "za_local.overrides.journal_entry.on_cancel"
-    },
-
-    # Sales document deletion protection (SARS audit trail)
-    "Quotation": {
-        "on_trash": "za_local.custom.sales.on_trash",
-    },
-    "Sales Order": {
-        "on_trash": "za_local.custom.sales.on_trash",
-    },
-    "Sales Invoice": {
-        "on_trash": "za_local.custom.sales.on_trash",
     },
 
     # Customer validation for SA VAT numbers
@@ -164,22 +158,6 @@ doc_events = {
         "validate": "za_local.sa_vat.item_sync.sync_item_zero_rated_flag",
     },
 
-    # Purchase document deletion protection (SARS audit trail)
-    "Request for Quotation": {
-        "on_trash": "za_local.custom.purchase.on_trash",
-    },
-    "Supplier Quotation": {
-        "on_trash": "za_local.custom.purchase.on_trash",
-    },
-    "Purchase Order": {
-        "on_trash": "za_local.custom.purchase.on_trash",
-    },
-    "Purchase Receipt": {
-        "on_trash": "za_local.custom.purchase.on_trash",
-    },
-    "Purchase Invoice": {
-        "on_trash": "za_local.custom.purchase.on_trash",
-    },
 }
 
 # Monkey Patching
@@ -199,18 +177,17 @@ za_local_custom_records = get_za_local_custom_records()
 # ------------------
 # Automated compliance monitoring and reminders
 scheduler_events = {
-	"all": [
-		"za_local.tasks.all"
+	"daily_long": [
+		"za_local.tasks.daily",
+		"za_local.sa_payroll.fringe_benefits.tasks.refresh_fringe_benefit_statuses",
 	],
-	"daily": [
-		"za_local.tasks.daily"
+	"weekly_long": [
+		"za_local.tasks.weekly",
 	],
-	"weekly": [
-		"za_local.tasks.weekly"
+	"monthly_long": [
+		"za_local.tasks.monthly",
+		"za_local.tasks.quarterly",
 	],
-	"monthly": [
-		"za_local.tasks.monthly"
-	]
 }
 
 # Permissions

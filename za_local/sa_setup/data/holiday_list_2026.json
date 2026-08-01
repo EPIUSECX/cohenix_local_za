@@ -4,7 +4,7 @@
     "holiday_list_name": "South Africa 2026",
     "from_date": "2026-01-01",
     "to_date": "2026-12-31",
-    "total_holidays": 12,
+    "total_holidays": 13,
     "holidays": [
       {
         "holiday_date": "2026-01-01",
@@ -17,12 +17,12 @@
         "weekly_off": 0
       },
       {
-        "holiday_date": "2026-04-17",
+        "holiday_date": "2026-04-03",
         "description": "Good Friday",
         "weekly_off": 0
       },
       {
-        "holiday_date": "2026-04-20",
+        "holiday_date": "2026-04-06",
         "description": "Family Day",
         "weekly_off": 0
       },
@@ -39,6 +39,11 @@
       {
         "holiday_date": "2026-06-16",
         "description": "Youth Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2026-08-09",
+        "description": "National Women's Day",
         "weekly_off": 0
       },
       {
@@ -62,11 +67,10 @@
         "weekly_off": 0
       },
       {
-        "holiday_date": "2026-12-28",
-        "description": "Day of Goodwill (observed)",
+        "holiday_date": "2026-12-26",
+        "description": "Day of Goodwill",
         "weekly_off": 0
       }
     ]
   }
 ]
-

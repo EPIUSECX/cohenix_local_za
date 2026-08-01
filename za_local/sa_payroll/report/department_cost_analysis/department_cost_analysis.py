@@ -5,21 +5,43 @@ from frappe import _
 
 
 def execute(filters=None):
+	filters = _validate_filters(filters)
 	columns = get_columns()
 	data = get_data(filters)
 	return columns, data
 
+
+def _validate_filters(filters):
+	filters = frappe._dict(filters or {})
+	if not filters.company or not filters.from_date or not filters.to_date:
+		frappe.throw(_("Company, From Date, and To Date are required."))
+	frappe.has_permission("Company", "read", doc=filters.company, throw=True)
+	return filters
+
+
 def get_columns():
 	return [
-		{"label": _("Department"), "fieldname": "department", "fieldtype": "Link", "options": "Department", "width": 150},
+		{
+			"label": _("Department"),
+			"fieldname": "department",
+			"fieldtype": "Link",
+			"options": "Department",
+			"width": 150,
+		},
 		{"label": _("Employee Count"), "fieldname": "employee_count", "fieldtype": "Int", "width": 120},
 		{"label": _("Total Gross"), "fieldname": "total_gross", "fieldtype": "Currency", "width": 150},
 		{"label": _("Total PAYE"), "fieldname": "total_paye", "fieldtype": "Currency", "width": 120},
 		{"label": _("Total UIF"), "fieldname": "total_uif", "fieldtype": "Currency", "width": 100},
 		{"label": _("Total SDL"), "fieldname": "total_sdl", "fieldtype": "Currency", "width": 100},
-		{"label": _("Total Deductions"), "fieldname": "total_deductions", "fieldtype": "Currency", "width": 150},
-		{"label": _("Total Net Pay"), "fieldname": "total_net", "fieldtype": "Currency", "width": 150}
+		{
+			"label": _("Total Deductions"),
+			"fieldname": "total_deductions",
+			"fieldtype": "Currency",
+			"width": 150,
+		},
+		{"label": _("Total Net Pay"), "fieldname": "total_net", "fieldtype": "Currency", "width": 150},
 	]
+
 
 def get_data(filters):
 	query = """
@@ -50,6 +72,7 @@ def get_data(filters):
 				FROM `tabCompany Contribution` cc
 				LEFT JOIN `tabSalary Component` sc ON sc.name = cc.salary_component
 				WHERE cc.parent = ss.name
+					AND cc.parenttype = 'Salary Slip'
 					AND (cc.salary_component = 'UIF Employer Contribution'
 						OR sc.za_sars_payroll_code = '4141')
 			)) as total_uif,
@@ -58,14 +81,14 @@ def get_data(filters):
 				FROM `tabCompany Contribution` cc
 				LEFT JOIN `tabSalary Component` sc ON sc.name = cc.salary_component
 				WHERE cc.parent = ss.name
+					AND cc.parenttype = 'Salary Slip'
 					AND (cc.salary_component IN ('SDL', 'SDL Contribution', 'Skills Development Levy')
 						OR sc.za_sars_payroll_code = '4142')
 			)) as total_sdl
 		FROM `tabSalary Slip` ss
 		INNER JOIN `tabEmployee` e ON e.name = ss.employee
 		WHERE ss.company = %(company)s
-			AND ss.start_date >= %(from_date)s
-			AND ss.end_date <= %(to_date)s
+			AND ss.end_date BETWEEN %(from_date)s AND %(to_date)s
 			AND ss.docstatus = 1
 		GROUP BY e.department
 		ORDER BY total_gross DESC

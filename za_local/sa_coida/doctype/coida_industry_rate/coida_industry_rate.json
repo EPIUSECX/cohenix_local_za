@@ -6,11 +6,19 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "company",
   "industry_class",
   "industry_description",
   "assessment_rate"
  ],
  "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
   {
    "fieldname": "industry_class",
    "fieldtype": "Data",

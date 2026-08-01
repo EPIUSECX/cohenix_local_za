@@ -612,7 +612,7 @@ CUSTOM_FIELD_FIXTURES_JSON = """
     "label": "Is Bank Entry Created",
     "fieldname": "za_is_bank_entry_created",
     "fieldtype": "Check",
-    "insert_after": "custom_employee_type",
+    "insert_after": "employee_name",
     "read_only": 1,
     "description": "Indicates if bank entry has been created"
   },
@@ -1121,11 +1121,254 @@ def _get_irp5_custom_field_fixtures():
 	]
 
 
-def _apply_custom_field_fixtures():
-	"""Apply custom field fixtures from embedded JSON. Skips doctypes that don't exist (e.g. HRMS-only)."""
+def _get_hrms_compliance_custom_field_fixtures():
+	"""Fields consumed by the South African HRMS controller extensions."""
+	return [
+		{
+			"doctype": "Custom Field",
+			"name": "Salary Component-za_is_annual_bonus",
+			"dt": "Salary Component",
+			"module": "SA Payroll",
+			"label": "Annual Bonus Component",
+			"fieldname": "za_is_annual_bonus",
+			"fieldtype": "Check",
+			"insert_after": "za_variable_pay_treatment",
+			"default": "0",
+			"description": "Identifies the component used to pay the annual bonus configured on a Salary Structure Assignment.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Salary Component-za_eti_wage_component",
+			"dt": "Salary Component",
+			"module": "SA Payroll",
+			"label": "ETI Wage Component",
+			"fieldname": "za_eti_wage_component",
+			"fieldtype": "Check",
+			"insert_after": "za_is_annual_bonus",
+			"default": "0",
+			"description": "Include this earning in actual wage paid for the ETI Act section 4 minimum-wage test. Do not select allowances that are remuneration but not wage.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Salary Slip-za_paye_inclusion_adjustment",
+			"dt": "Salary Slip",
+			"module": "SA Payroll",
+			"label": "PAYE Inclusion Adjustment",
+			"fieldname": "za_paye_inclusion_adjustment",
+			"fieldtype": "Currency",
+			"insert_after": "za_monthly_eti",
+			"read_only": 1,
+			"allow_on_submit": 1,
+			"description": "Audit value for the remuneration excluded from PAYE by South African component classification.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Salary Slip-za_eti_hours",
+			"dt": "Salary Slip",
+			"module": "SA Payroll",
+			"label": "ETI Ordinary Hours",
+			"fieldname": "za_eti_hours",
+			"fieldtype": "Float",
+			"insert_after": "za_paye_inclusion_adjustment",
+			"description": "Actual ordinary hours employed and paid in this month for ETI gross-up, apportionment and minimum-wage testing. Unpaid leave hours must be excluded.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Payroll Settings-za_eti_unregulated_minimum_monthly_wage",
+			"dt": "Payroll Settings",
+			"module": "SA Payroll",
+			"label": "ETI Unregulated Minimum Monthly Wage",
+			"fieldname": "za_eti_unregulated_minimum_monthly_wage",
+			"fieldtype": "Currency",
+			"insert_after": "za_disable_eti_calculation",
+			"default": "2500",
+			"description": "ETI Act section 4 monthly floor for an employee with 160 ordinary hours where no wage regulating measure applies or the employee is NMW-exempt. Verify after legislative changes.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee-za_eti_eligibility_section",
+			"dt": "Employee",
+			"module": "SA Payroll",
+			"label": "Employment Tax Incentive Eligibility",
+			"fieldname": "za_eti_eligibility_section",
+			"fieldtype": "Section Break",
+			"insert_after": "za_hours_per_month",
+			"collapsible": 1,
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee-za_is_domestic_worker",
+			"dt": "Employee",
+			"module": "SA Payroll",
+			"label": "Domestic Worker",
+			"fieldname": "za_is_domestic_worker",
+			"fieldtype": "Check",
+			"insert_after": "za_eti_eligibility_section",
+			"default": "0",
+			"description": "Select when the employee is a domestic worker and therefore excluded from ETI.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee-za_is_connected_person_to_employer",
+			"dt": "Employee",
+			"module": "SA Payroll",
+			"label": "Connected Person to Employer",
+			"fieldname": "za_is_connected_person_to_employer",
+			"fieldtype": "Check",
+			"insert_after": "za_is_domestic_worker",
+			"default": "0",
+			"description": "Select only after applying the Income Tax Act connected-person definition. Connected persons are excluded from ETI.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee-za_eti_minimum_wage_basis",
+			"dt": "Employee",
+			"module": "SA Payroll",
+			"label": "ETI Minimum Wage Basis",
+			"fieldname": "za_eti_minimum_wage_basis",
+			"fieldtype": "Select",
+			"options": "\nNational or Regulated Minimum Wage\nNo Regulating Measure or NMW Exempt",
+			"insert_after": "za_is_connected_person_to_employer",
+			"description": "Select the legal basis used for the employee's ETI Act section 4 wage test.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee-za_eti_minimum_wage_rate",
+			"dt": "Employee",
+			"module": "SA Payroll",
+			"label": "Applicable ETI Minimum Hourly Wage",
+			"fieldname": "za_eti_minimum_wage_rate",
+			"fieldtype": "Currency",
+			"insert_after": "za_eti_minimum_wage_basis",
+			"depends_on": "eval:doc.za_eti_minimum_wage_basis=='National or Regulated Minimum Wage'",
+			"mandatory_depends_on": "eval:doc.za_eti_minimum_wage_basis=='National or Regulated Minimum Wage'",
+			"description": "Highest applicable hourly minimum under the NMW Act, collective agreement, sectoral determination or bargaining council agreement.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Payroll Settings-za_official_interest_rate",
+			"dt": "Payroll Settings",
+			"module": "SA Payroll",
+			"label": "Official Interest Rate",
+			"fieldname": "za_official_interest_rate",
+			"fieldtype": "Percent",
+			"insert_after": "za_coida_salary_component",
+			"description": "Date-sensitive SARS official interest rate used for low-interest loan fringe benefits. Review whenever the repo rate changes.",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Leave Type-za_bcea_section",
+			"dt": "Leave Type",
+			"module": "SA Labour",
+			"label": "South African BCEA",
+			"fieldname": "za_bcea_section",
+			"fieldtype": "Section Break",
+			"insert_after": "rounding",
+			"collapsible": 1,
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Leave Type-za_bcea_compliant",
+			"dt": "Leave Type",
+			"module": "SA Labour",
+			"label": "Apply BCEA Validation",
+			"fieldname": "za_bcea_compliant",
+			"fieldtype": "Check",
+			"insert_after": "za_bcea_section",
+			"default": "0",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Leave Type-za_medical_certificate_required_after",
+			"dt": "Leave Type",
+			"module": "SA Labour",
+			"label": "Medical Certificate Required After (Days)",
+			"fieldname": "za_medical_certificate_required_after",
+			"fieldtype": "Int",
+			"insert_after": "za_bcea_compliant",
+			"default": "2",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Leave Type-za_applicable_gender",
+			"dt": "Leave Type",
+			"module": "SA Labour",
+			"label": "Applicable Gender",
+			"fieldname": "za_applicable_gender",
+			"fieldtype": "Link",
+			"options": "Gender",
+			"insert_after": "za_medical_certificate_required_after",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee Separation-za_bcea_settlement_section",
+			"dt": "Employee Separation",
+			"module": "SA Labour",
+			"label": "South African Final Settlement",
+			"fieldname": "za_bcea_settlement_section",
+			"fieldtype": "Section Break",
+			"insert_after": "amended_from",
+			"collapsible": 1,
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee Separation-za_termination_type",
+			"dt": "Employee Separation",
+			"module": "SA Labour",
+			"label": "Termination Type",
+			"fieldname": "za_termination_type",
+			"fieldtype": "Select",
+			"options": "\nResignation\nDismissal - Misconduct\nDismissal - Incapacity\nDismissal - Operational\nRetirement\nDeath\nMutual Separation\nContract Expiry\nOther",
+			"insert_after": "za_bcea_settlement_section",
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee Separation-za_notice_period_days",
+			"dt": "Employee Separation",
+			"module": "SA Labour",
+			"label": "BCEA Notice Period (Days)",
+			"fieldname": "za_notice_period_days",
+			"fieldtype": "Int",
+			"insert_after": "za_termination_type",
+			"read_only": 1,
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee Separation-za_severance_pay",
+			"dt": "Employee Separation",
+			"module": "SA Labour",
+			"label": "Calculated Severance Pay",
+			"fieldname": "za_severance_pay",
+			"fieldtype": "Currency",
+			"insert_after": "za_notice_period_days",
+			"read_only": 1,
+		},
+		{
+			"doctype": "Custom Field",
+			"name": "Employee Separation-za_leave_payout",
+			"dt": "Employee Separation",
+			"module": "SA Labour",
+			"label": "Calculated Leave Payout",
+			"fieldname": "za_leave_payout",
+			"fieldtype": "Currency",
+			"insert_after": "za_severance_pay",
+			"read_only": 1,
+		},
+	]
+
+
+def get_custom_field_fixtures():
+	"""Return every Custom Field owned by za_local from one source of truth."""
 	data = json.loads(CUSTOM_FIELD_FIXTURES_JSON)
 	data.extend(_get_irp5_custom_field_fixtures())
-	for d in data:
+	data.extend(_get_hrms_compliance_custom_field_fixtures())
+	return data
+
+
+def _apply_custom_field_fixtures():
+	"""Apply custom field fixtures from embedded JSON. Skips doctypes that don't exist (e.g. HRMS-only)."""
+	errors = []
+	for d in get_custom_field_fixtures():
 		if not frappe.db.exists("DocType", d["dt"]):
 			continue
 		try:
@@ -1137,7 +1380,18 @@ def _apply_custom_field_fixtures():
 			else:
 				frappe.get_doc(d).insert(ignore_permissions=True)
 		except Exception as e:
-			print(f"  ! Error applying custom field {d.get('name')}: {e}")
+			errors.append(f"{d.get('name')}: {e}")
+			frappe.log_error(
+				title=f"ZA Local custom field failed: {d.get('name')}",
+				message=frappe.get_traceback(),
+			)
+	if errors:
+		frappe.throw(
+			frappe._("ZA Local could not apply these required Custom Fields:<br>{0}").format(
+				"<br>".join(frappe.utils.escape_html(error) for error in errors)
+			),
+			title=frappe._("ZA Local Schema Setup Failed"),
+		)
 	print("  ✓ Custom field fixtures applied")
 
 

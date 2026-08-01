@@ -5,235 +5,28 @@ Utilities for generating and validating EMP501 (Employer Reconciliation Declarat
 submissions to SARS.
 """
 
-import csv
-from io import StringIO
-
 import frappe
-from frappe.utils import flt, format_date, getdate
 
 
 @frappe.whitelist()
 def generate_emp501_csv(emp501_name):
-    """
-    Generate a CSV file for EMP501 submission to SARS e-Filing.
+	"""Reject the removed mixed-record export while preserving access control."""
+	# check_permission=True is required: frappe.get_doc does NOT check permissions.
+	frappe.get_doc("EMP501 Reconciliation", emp501_name, check_permission=True)
 
-    Args:
-        emp501_name (str): Name of the EMP501 Reconciliation document
+	# Preserve the stricter IRP5 permission gate on this retired endpoint so direct
+	# calls cannot be used to probe whether an EMP501 exists.
+	if not frappe.has_permission("IRP5 Certificate", "read"):
+		frappe.throw(
+			frappe._("You are not permitted to export IRP5 certificate data."),
+			frappe.PermissionError,
+			title=frappe._("Insufficient Permission"),
+		)
 
-    Returns:
-        dict: Information about the generated file
-    """
-    # check_permission=True is required: frappe.get_doc does NOT check permissions.
-    emp501 = frappe.get_doc("EMP501 Reconciliation", emp501_name, check_permission=True)
-
-    # The CSV embeds per-employee IRP5 data (income tax reference, ID number, PAYE,
-    # UIF, ETI). IRP5 Certificate is a stricter DocType than EMP501 Reconciliation
-    # — HR User holds EMP501 access but no IRP5 access — so gate on the stricter one
-    # too, or this endpoint launders the whole payroll past that restriction.
-    if not frappe.has_permission("IRP5 Certificate", "read"):
-        frappe.throw(
-            frappe._("You are not permitted to export IRP5 certificate data."),
-            frappe.PermissionError,
-            title=frappe._("Insufficient Permission"),
-        )
-
-    try:
-        csv_buffer = StringIO()
-        writer = csv.writer(csv_buffer, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
-        # Write header row
-        writer.writerow([
-            "Record Type", "Tax Year", "Period", "PAYE Reference", "SDL Reference",
-            "UIF Reference", "Trading Name", "Submission Date", "PAYE Total",
-            "SDL Total", "UIF Total", "ETI Total"
-        ])
-
-        # Write EMP501 summary row
-        writer.writerow([
-            "EMP501",
-            emp501.tax_year,
-            emp501.reconciliation_period,
-            emp501.paye_reference_number,
-            emp501.sdl_reference_number,
-            emp501.uif_reference_number,
-            frappe.db.get_value("Company", emp501.company, "company_name"),
-            format_date(emp501.submission_date),
-            f"{emp501.total_paye:.2f}",
-            f"{emp501.total_sdl:.2f}",
-            f"{emp501.total_uif:.2f}",
-            f"{emp501.total_eti:.2f}"
-        ])
-
-        # Add EMP201 records
-        for emp201_ref in emp501.emp201_submissions:
-            emp201 = frappe.get_doc("EMP201 Submission", emp201_ref.emp201_submission)
-
-            # Format period as YYYYMM
-            month_map = {
-                "January": "01", "February": "02", "March": "03", "April": "04",
-                "May": "05", "June": "06", "July": "07", "August": "08",
-                "September": "09", "October": "10", "November": "11", "December": "12"
-            }
-
-            period_year = str(getdate(emp201.submission_period_start_date).year)
-            period_month = month_map.get(emp201.month, "00")
-            period_yyyymm = f"{period_year}{period_month}"
-
-            writer.writerow([
-                "EMP201",
-                emp501.tax_year,
-                period_yyyymm,
-                emp501.paye_reference_number,
-                emp501.sdl_reference_number,
-                emp501.uif_reference_number,
-                frappe.db.get_value("Company", emp501.company, "company_name"),
-                format_date(emp201_ref.submission_date or emp201.submission_period_start_date),
-                f"{emp201_ref.paye:.2f}",
-                f"{emp201_ref.sdl:.2f}",
-                f"{emp201_ref.uif:.2f}",
-                f"{emp201_ref.eti:.2f}"
-            ])
-
-        # Add IRP5 certificate records
-        for irp5_ref in emp501.irp5_certificates:
-            irp5 = frappe.get_doc("IRP5 Certificate", irp5_ref.irp5_certificate)
-
-            employee_name = frappe.db.get_value("Employee", irp5.employee, "employee_name") or ""
-            tax_number = irp5.get("income_tax_reference_number") or ""
-            id_number = irp5.get("employee_id_number") or ""
-
-            writer.writerow([
-                irp5.get("certificate_type", "IRP5"),
-                emp501.tax_year,
-                irp5.get("certificate_type", "IRP5"),
-                tax_number,
-                id_number,
-                employee_name,
-                irp5.certificate_number,
-                format_date(irp5.get("issue_date") or emp501.submission_date),
-                f"{flt(irp5.get('gross_taxable_income') or 0):.2f}",
-                f"{irp5.paye:.2f}",
-                f"{irp5.uif:.2f}",
-                f"{irp5.get('eti', 0):.2f}"
-            ])
-
-        file_content = csv_buffer.getvalue().encode("utf-8")
-        file_name = f"EMP501_{emp501.tax_year}_{emp501.reconciliation_period}.csv"
-
-        frappe.local.response.filename = file_name
-        frappe.local.response.filecontent = file_content
-        frappe.local.response.type = "download"
-
-        return {
-            "success": True,
-            "message": "EMP501 CSV generated successfully",
-            "filename": file_name
-        }
-
-    except Exception as e:
-        frappe.log_error(f"Error generating EMP501 CSV: {e!s}", "EMP501 Generation")
-        frappe.throw(f"Error generating EMP501 CSV: {e!s}")
-
-
-def validate_emp501_reconciliation(emp501):
-    """
-    Validate EMP501 reconciliation against EMP201 submissions and IRP5 certificates.
-
-    Args:
-        emp501: EMP501 Reconciliation document
-
-    Returns:
-        dict: Validation results
-    """
-    validation_errors = []
-
-    # Validate EMP201 totals
-    emp201_total_paye = sum(ref.paye for ref in emp501.emp201_submissions)
-    emp201_total_uif = sum(ref.uif for ref in emp501.emp201_submissions)
-    emp201_total_sdl = sum(ref.sdl for ref in emp501.emp201_submissions)
-    emp201_total_eti = sum(ref.eti for ref in emp501.emp201_submissions)
-
-    tolerance = 0.01  # Allow 1 cent tolerance
-
-    if abs(emp501.total_paye - emp201_total_paye) > tolerance:
-        validation_errors.append(
-            f"PAYE mismatch: EMP501 total ({emp501.total_paye}) vs EMP201 total ({emp201_total_paye})"
-        )
-
-    if abs(emp501.total_uif - emp201_total_uif) > tolerance:
-        validation_errors.append(
-            f"UIF mismatch: EMP501 total ({emp501.total_uif}) vs EMP201 total ({emp201_total_uif})"
-        )
-
-    if abs(emp501.total_sdl - emp201_total_sdl) > tolerance:
-        validation_errors.append(
-            f"SDL mismatch: EMP501 total ({emp501.total_sdl}) vs EMP201 total ({emp201_total_sdl})"
-        )
-
-    if abs(emp501.total_eti - emp201_total_eti) > tolerance:
-        validation_errors.append(
-            f"ETI mismatch: EMP501 total ({emp501.total_eti}) vs EMP201 total ({emp201_total_eti})"
-        )
-
-    return {
-        "valid": len(validation_errors) == 0,
-        "errors": validation_errors,
-        "emp201_totals": {
-            "paye": emp201_total_paye,
-            "uif": emp201_total_uif,
-            "sdl": emp201_total_sdl,
-            "eti": emp201_total_eti
-        }
-    }
-
-
-def fetch_emp201_submissions(company, from_date, to_date):
-    """
-    Fetch EMP201 submissions for a company within a date range.
-
-    Args:
-        company (str): Company name
-        from_date (date): Period start date
-        to_date (date): Period end date
-
-    Returns:
-        list: List of EMP201 Submission documents
-    """
-    submissions = frappe.get_all(
-        "EMP201 Submission",
-        filters={
-            "company": company,
-            "submission_period_start_date": [">=", from_date],
-            "submission_period_end_date": ["<=", to_date],
-            "docstatus": 1
-        },
-        fields=["*"],
-        order_by="submission_period_start_date"
-    )
-
-    return submissions
-
-
-def fetch_irp5_certificates(company, tax_year):
-    """
-    Fetch IRP5 certificates for a company for a tax year.
-
-    Args:
-        company (str): Company name
-        tax_year (str): Tax year (e.g., "2024/2025")
-
-    Returns:
-        list: List of IRP5 Certificate documents
-    """
-    certificates = frappe.get_all(
-        "IRP5 Certificate",
-        filters={
-            "company": company,
-            "tax_year": tax_year,
-            "docstatus": 1
-        },
-        fields=["*"],
-        order_by="employee"
-    )
-
-    return certificates
+	frappe.throw(
+		frappe._(
+			"The legacy mixed-record CSV was removed because it is not a valid SARS PAYE BRS certificate file. "
+			"Use SARS eFiling for up to 50 certificates or an approved e@syFile-compatible export."
+		),
+		title=frappe._("Unsupported SARS Filing Format"),
+	)

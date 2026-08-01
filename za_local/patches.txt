@@ -1,1 +1,3 @@
 #patches
+za_local.patches.v1_1.ensure_statutory_tax_configuration
+za_local.patches.v1_1.backfill_emp201_submission_keys

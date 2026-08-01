@@ -50,7 +50,7 @@ An employee typically qualifies for ETI when they: are **18–29** years old (fr
 
 ## Verify before payroll
 
-For each employee about to be paid, confirm: ID number, income tax reference number, a submitted **Salary Structure Assignment** with the correct Income Tax Slab, number of dependants (if on medical aid), and bank details. Missing data here is the most common cause of payroll and IRP5 errors.
+For each employee about to be paid, confirm: ID/passport and tax reference, a submitted **Salary Structure Assignment** with the correct Income Tax Slab, active Employee Private Benefit medical/dependant data where applicable, and bank details. Treat identity, health, tax and banking fields as restricted personal information.
 
 ## Next
 

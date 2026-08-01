@@ -15,6 +15,16 @@
   "date",
   "eti_amount",
   "carry_forwarding_eti_amount",
+  "eligibility_section",
+  "is_qualifying_month",
+  "qualifying_month_number",
+  "eligibility_reason",
+  "calculation_section",
+  "hours",
+  "monthly_remuneration",
+  "column_break_calculation",
+  "wage_paid",
+  "minimum_wage",
   "amended_from"
  ],
  "fields": [
@@ -22,7 +32,8 @@
    "fieldname": "employee",
    "fieldtype": "Link",
    "label": "Employee",
-   "options": "Employee"
+   "options": "Employee",
+   "reqd": 1
   },
   {
    "fetch_from": "employee.employee_name",
@@ -38,7 +49,8 @@
   {
    "fieldname": "date",
    "fieldtype": "Date",
-   "label": "Date"
+   "label": "Date",
+   "reqd": 1
   },
   {
    "fieldname": "eti_amount",
@@ -48,7 +60,8 @@
   {
    "fieldname": "carry_forwarding_eti_amount",
    "fieldtype": "Currency",
-   "label": "Carry Forwarding ETI Amount"
+   "label": "Carry Forwarding ETI Amount",
+   "read_only": 1
   },
   {
    "fieldname": "amended_from",
@@ -61,8 +74,66 @@
   },
   {
    "fieldname": "against_salary_slip",
-   "fieldtype": "Data",
-   "label": "Against Salary Slip"
+   "fieldtype": "Link",
+   "label": "Against Salary Slip",
+   "options": "Salary Slip",
+   "reqd": 1
+  },
+  {
+   "fieldname": "eligibility_section",
+   "fieldtype": "Section Break",
+   "label": "ETI Eligibility"
+  },
+  {
+   "fieldname": "is_qualifying_month",
+   "fieldtype": "Check",
+   "label": "Qualifying Month",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qualifying_month_number",
+   "fieldtype": "Int",
+   "label": "Qualifying Month Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "eligibility_reason",
+   "fieldtype": "Small Text",
+   "label": "Eligibility Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculation_section",
+   "fieldtype": "Section Break",
+   "label": "Calculation Evidence"
+  },
+  {
+   "fieldname": "hours",
+   "fieldtype": "Float",
+   "label": "Ordinary Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "monthly_remuneration",
+   "fieldtype": "Currency",
+   "label": "Monthly Remuneration",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_calculation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "wage_paid",
+   "fieldtype": "Currency",
+   "label": "Wage Paid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "minimum_wage",
+   "fieldtype": "Currency",
+   "label": "Applicable Minimum Wage",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,

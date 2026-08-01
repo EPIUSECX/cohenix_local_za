@@ -16,9 +16,9 @@
 
 ## Filing the statutory working papers
 
-The system produces the working papers; you submit them to SARS / the Compensation Fund yourself:
+The system produces internal working papers. Reconcile them, then capture/import through the approved external channel; do not upload a generic app export as a statutory file:
 
-| Document | Export/print, then file on… |
+| Document | External completion channel |
 |---|---|
 | VAT201 Return | SARS eFiling |
 | EMP201 | SARS eFiling |
@@ -27,8 +27,8 @@ The system produces the working papers; you submit them to SARS / the Compensati
 
 ## Tips
 
-- Keep the exported support **with** the submitted return as your audit pack.
-- Re-export after any correction so your filed copy matches the system.
+- Keep exported support **with** the externally submitted return/receipt as your audit pack.
+- Re-export after any correction so the evidence matches the final approved system working paper.
 - For recurring management reports, save your filter set so you can reproduce the same view each month.
 
 ## Next

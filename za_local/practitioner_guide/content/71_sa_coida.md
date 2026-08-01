@@ -4,11 +4,10 @@ The **SA COIDA** module supports the Compensation for Occupational Injuries and 
 
 ## 1. COIDA Settings
 
-Open **COIDA Settings** (per company) and capture:
+Open the site-wide **COIDA Settings** Single and capture:
 
-- **COIDA Registration Number** and **Compensation Fund reference**.
-- **Assessment year** and **submission deadline**.
-- **Industry rates** — in the *COIDA Industry Rate* table, the industry class/subclass and the **assessment rate** (per R100 of earnings) the Compensation Fund assigned.
+- Shared reference/deadline information only where it applies across the site.
+- **Industry rates** — each row must identify the Company, industry class/subclass and **assessment rate** assigned by the Compensation Fund.
 
 The company's COIDA registration number can also be set on the [Company record](../foundation-setup-both-tracks/company-registration).
 
@@ -18,15 +17,15 @@ Record each incident in **Workplace Injury**: employee, injury date, type, locat
 
 ## 3. OID claims
 
-Where a claim is warranted, create an **OID Claim** linked to the Workplace Injury: claim date, status (Pending, Submitted, Under Review, Approved, Rejected, Paid), compensation amount and payment date. Attach medical evidence via the **OID Medical Report** child records (practitioner, diagnosis, recovery estimate, costs). This gives you a complete claim file for the Compensation Fund.
+Where a claim is warranted, submit the Workplace Injury with *Requires OID Claim*; creation failures abort so the injury is not silently submitted without its requested draft claim. HR Managers/System Managers control submitted-claim transitions. Approval requires compensation, and Paid requires a payment date. Medical evidence may be added after submit. Treat diagnosis and identity data as restricted health information.
 
 ## 4. COIDA Annual Return (Return of Earnings)
 
 The annual return calculates the assessment on employee earnings for the assessment year (1 March to end February), capped per employee.
 
-1. Go to **COIDA Annual Return → New**. Set the **Company** and the **assessment year / from–to dates**.
-2. **Fetch earnings.** In the **full suite**, the return aggregates each employee's submitted salary-slip earnings for the year. In the **ERPNext-only track**, capture earnings figures manually.
-3. **Per-employee cap.** Earnings are capped per employee at the COIDA annual earnings cap from the statutory rate pack (for example R688,000 for 2026-2027 — confirm the current cap), so high earners are limited correctly.
+1. Go to **COIDA Annual Return → New**. Select the Company and a Fiscal Year that is exactly 1 March to the last day of February.
+2. **Fetch earnings.** In the **full suite**, the return aggregates COIDA-applicable Salary Components from submitted Salary Slips fully contained in the year and excludes reimbursements. In the **ERPNext-only track**, capture and evidence the figures manually.
+3. **Per-employee cap.** Earnings are capped per employee at the date-effective rate-pack ceiling. The configured 2026/27 cap is R668,000; confirm it against the applicable Compensation Fund notice before filing.
 4. **Assessment.** The return computes the assessment = capped total earnings × the industry assessment rate.
 5. **Review and file.** Check the employee count, capped earnings and director earnings, then export/print for submission to the Compensation Fund. `za_local` produces the working paper; submission is manual.
 

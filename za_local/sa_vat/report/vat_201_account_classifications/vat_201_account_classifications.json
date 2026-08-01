@@ -55,10 +55,9 @@
  "name": "VAT 201 Account Classifications",
  "owner": "Administrator",
  "prepared_report": 0,
- "query": "SELECT company, name, account_type, custom_vat_return_debit_classification, custom_vat_return_credit_classification FROM `tabAccount` WHERE company = %(company)s",
  "ref_doctype": "Account",
  "report_name": "VAT 201 Account Classifications",
- "report_type": "Query Report",
+ "report_type": "Script Report",
  "roles": [
   {
    "role": "Accounts Manager"

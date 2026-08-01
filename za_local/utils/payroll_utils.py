@@ -13,23 +13,31 @@ from dateutil.relativedelta import relativedelta
 from za_local.utils.hrms_detection import require_hrms, safe_import_hrms
 
 # Conditionally import HRMS functions
-get_payroll_period, = safe_import_hrms(
-    "hrms.payroll.doctype.payroll_period.payroll_period",
-    "get_payroll_period"
+(get_payroll_period,) = safe_import_hrms(
+    "hrms.payroll.doctype.payroll_period.payroll_period", "get_payroll_period"
+)
+
+(hrms_get_additional_salaries,) = safe_import_hrms(
+    "hrms.payroll.doctype.additional_salary.additional_salary",
+    "get_additional_salaries",
 )
 
 if get_payroll_period is None:
+
     def get_payroll_period(*args, **kwargs):
         require_hrms("Payroll Period")
         return None
 
 
+if hrms_get_additional_salaries is None:
+
+    def hrms_get_additional_salaries(*args, **kwargs):
+        require_hrms("Additional Salary")
+        return []
+
+
 # Frequency mapping for payroll calculations
-FREQUENCY_MONTHS = {
-    "Quarterly": 3,
-    "Half-Yearly": 6,
-    "Yearly": 12
-}
+FREQUENCY_MONTHS = {"Quarterly": 3, "Half-Yearly": 6, "Yearly": 12}
 
 
 def get_current_block(frequency, date, payroll_period):
@@ -47,7 +55,7 @@ def get_current_block(frequency, date, payroll_period):
     if frequency not in FREQUENCY_MONTHS:
         return None
 
-    if not payroll_period or not hasattr(payroll_period, 'start_date'):
+    if not payroll_period or not hasattr(payroll_period, "start_date"):
         return None
 
     try:
@@ -73,13 +81,10 @@ def get_current_block(frequency, date, payroll_period):
 
         while iteration < max_iterations:
             iteration += 1
-            block_end_date = (current_start + relativedelta(months=months) - timedelta(days=1))
+            block_end_date = current_start + relativedelta(months=months) - timedelta(days=1)
 
             if current_start <= date <= block_end_date:
-                return frappe._dict({
-                    "start_date": current_start,
-                    "end_date": block_end_date
-                })
+                return frappe._dict({"start_date": current_start, "end_date": block_end_date})
             else:
                 current_start = block_end_date + timedelta(days=1)
                 # Check if we've gone past the payroll period end
@@ -88,7 +93,9 @@ def get_current_block(frequency, date, payroll_period):
 
         return None
     except Exception as e:
-        frappe.log_error(f"Error calculating block period for {frequency}: {e!s}", "Payroll Block Calculation")
+        frappe.log_error(
+            f"Error calculating block period for {frequency}: {e!s}", "Payroll Block Calculation"
+        )
         return None
 
 
@@ -103,18 +110,14 @@ def get_current_block_period(doc):
         dict: Map of frequency to block period
     """
     # Handle both Salary Slip and Payroll Entry
-    start_date = getattr(doc, 'start_date', None)
-    end_date = getattr(doc, 'end_date', None)
-    company = getattr(doc, 'company', None)
+    start_date = getattr(doc, "start_date", None)
+    end_date = getattr(doc, "end_date", None)
+    company = getattr(doc, "company", None)
 
     if not all([start_date, end_date, company]):
         return {}
 
-    payroll_period = get_payroll_period(
-        start_date,
-        end_date,
-        company
-    )
+    payroll_period = get_payroll_period(start_date, end_date, company)
 
     if not payroll_period:
         return {}
@@ -143,10 +146,7 @@ def get_employee_frequency_map():
     """
     emp_map = {}
 
-    frequency_details = frappe.get_all(
-        "Employee Frequency Detail",
-        fields=["employee", "frequency"]
-    )
+    frequency_details = frappe.get_all("Employee Frequency Detail", fields=["employee", "frequency"])
 
     for detail in frequency_details:
         emp_map[detail.employee] = detail.frequency
@@ -174,47 +174,54 @@ def is_payroll_processed(employee, frequency_period):
             "employee": employee,
             "start_date": [">=", frequency_period.start_date],
             "end_date": ["<=", frequency_period.end_date],
-            "docstatus": 1
-        }
+            "docstatus": 1,
+        },
     )
 
 
 def get_additional_salaries(employee, from_date, to_date, component_type="earnings"):
-    """
-    Get additional salaries for an employee within a date range.
-    Filters by Additional Salary type (Earning vs Deduction) so each record
-    appears only in the correct section on the Salary Slip (earnings or deductions).
+    """Return HRMS-selected Additional Salaries for the requested ZA bucket.
 
-    Args:
-        employee (str): Employee ID
-        from_date (date): Start date
-        to_date (date): End date
-        component_type (str): Type of component (earnings/deductions/company_contributions)
-
-    Returns:
-        list: List of Additional Salary documents
+    HRMS owns date eligibility, recurring salary handling, disabled records,
+    overwrite aliases, and duplicate-overwrite validation. ZA Local only adds
+    the company-contribution partition and the reference name needed by the
+    Employee Benefit Ledger.
     """
-    filters = {
-        "employee": employee,
-        "docstatus": 1,
-        "payroll_date": ["between", [from_date, to_date]]
+    if component_type == "company_contributions":
+        additional_salaries = hrms_get_additional_salaries(
+            employee, from_date, to_date, "earnings"
+        ) + hrms_get_additional_salaries(employee, from_date, to_date, "deductions")
+        include_company_contributions = True
+    elif component_type in {"earnings", "deductions"}:
+        additional_salaries = hrms_get_additional_salaries(employee, from_date, to_date, component_type)
+        include_company_contributions = False
+    else:
+        frappe.throw(frappe._("Unsupported Additional Salary component type: {0}").format(component_type))
+
+    if not additional_salaries:
+        return []
+
+    details_by_name = {
+        row.name: row
+        for row in frappe.get_all(
+            "Additional Salary",
+            filters={"name": ["in", [row.name for row in additional_salaries]]},
+            fields=["name", "za_is_company_contribution", "ref_docname"],
+        )
     }
 
-    if component_type == "company_contributions":
-        filters["za_is_company_contribution"] = 1
-    else:
-        filters["za_is_company_contribution"] = 0
-        # Filter by type so the same Additional Salary does not appear in both earnings and deductions
-        if component_type == "earnings":
-            filters["type"] = "Earning"
-        elif component_type == "deductions":
-            filters["type"] = "Deduction"
+    filtered_salaries = []
+    for additional_salary in additional_salaries:
+        details = details_by_name.get(additional_salary.name, frappe._dict())
+        is_company_contribution = bool(details.get("za_is_company_contribution"))
+        if is_company_contribution != include_company_contributions:
+            continue
 
-    return frappe.get_all(
-        "Additional Salary",
-        filters=filters,
-        fields=["*"]
-    )
+        additional_salary.za_is_company_contribution = is_company_contribution
+        additional_salary.ref_docname = details.get("ref_docname")
+        filtered_salaries.append(additional_salary)
+
+    return filtered_salaries
 
 
 def validate_payroll_frequency(employee, start_date, end_date, frequency):
@@ -233,11 +240,7 @@ def validate_payroll_frequency(employee, start_date, end_date, frequency):
     Raises:
         frappe.ValidationError: If frequency is invalid
     """
-    employee_frequency = frappe.db.get_value(
-        "Employee Frequency Detail",
-        {"employee": employee},
-        "frequency"
-    )
+    employee_frequency = frappe.db.get_value("Employee Frequency Detail", {"employee": employee}, "frequency")
 
     if employee_frequency and employee_frequency != frequency:
         frappe.throw(
@@ -260,4 +263,3 @@ def get_payroll_period_dates(payroll_period_name):
     """
     period = frappe.get_doc("Payroll Period", payroll_period_name)
     return period.start_date, period.end_date
-

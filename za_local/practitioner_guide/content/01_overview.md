@@ -1,6 +1,6 @@
 # Overview & Architecture
 
-`za_local` (app title **SA Localisation**, published by Cohenix) is a comprehensive South African localisation for ERPNext. It adds the statutory configuration, calculations, documents and reports a South African business needs: VAT, PAYE/UIF/SDL/ETI payroll, COIDA, and labour-law reporting.
+`za_local` (app title **SA Localisation**, published by Cohenix) provides South African configuration, calculations, working papers and operational controls for ERPNext. It supports VAT, PAYE/UIF/SDL/ETI payroll, COIDA and labour administration, subject to the employer's practitioner review and external filing processes.
 
 This guide takes a new practitioner from an empty site through to committing payroll and filing statutory returns. It is written for two audiences:
 
@@ -29,12 +29,14 @@ The app is organised into six Frappe modules, each with its own workspace:
 - **Controller extensions** add SA VAT logic to Sales Invoice and Purchase Invoice (always active).
 - **Controller overrides** add SA payroll logic to Salary Slip, Payroll Entry, Additional Salary, Leave Application, Employee Separation and Salary Structure Assignment. **These register only when HRMS is installed** (`za_local.utils.hrms_detection`).
 - **Document events** protect the SARS audit trail by preventing deletion of posted sales/purchase documents and validating SA VAT numbers on Customer.
-- **Print formats** provide SARS-compliant tax invoices and certificates.
+- **Print formats** provide SA-oriented invoice and certificate layouts. The operator must verify required particulars and rendered output for each transaction; a template is not legal certification.
 - **A date-effective statutory rate engine** (`za_local.utils.statutory_rates`) resolves PAYE brackets, rebates, medical credits, UIF, SDL, ETI, travel, retirement and lump-sum values for the payroll date, instead of hard-coding rates. See [Statutory Rate Data](../full-suite-payroll-foundations/statutory-rate-data).
 
 ## The South African tax year
 
 The SA tax year runs **1 March to the last day of February**. The "year of assessment" is the calendar year in which it ends, so the **2026-2027** tax year (1 March 2026 to 28 February 2027) has year of assessment **2027**. Statutory rate files in the app are suffixed with the year of assessment (e.g. `statutory_rates_2027.json`). Keep this in mind whenever you create a Fiscal Year, Payroll Period or Income Tax Slab.
+
+VAT201, EMP201, EMP501, IRP5/IT3(a), COIDA and labour records are working papers. ZA Local does not submit to SARS, e@syFile, eCOID, SETA or Department of Employment and Labour portals, and it does not produce the SARS BRS payroll-import/encrypted reconciliation formats.
 
 ## What to read next
 

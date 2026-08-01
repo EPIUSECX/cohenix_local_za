@@ -18,12 +18,8 @@ from frappe.utils import add_days, add_months, cint, getdate, today
 from frappe.utils.user import get_users_with_role
 
 HR_NOTIFICATION_ROLES = ("HR Manager", "HR User", "System Manager")
-
-
-def all():
-	"""Run on every scheduler tick (hourly)"""
-	# Add any tasks that need to run hourly
-	pass
+DIRECTIVE_REMINDER_DAYS = frozenset({30, 14, 7, 1, 0})
+LOGGER = frappe.logger("za_local_compliance")
 
 
 def daily():
@@ -63,27 +59,32 @@ def check_tax_directive_expiry():
 	):
 		return
 
-	# Get directives expiring in next 30 days
-	thirty_days_from_now = add_days(today(), 30)
+	current_date = getdate(today())
+	thirty_days_from_now = add_days(current_date, 30)
 
 	expiring_directives = frappe.get_all(
 		"Tax Directive",
 		filters={
 			"status": "Active",
-			"effective_to": ["between", [today(), thirty_days_from_now]],
+			"effective_to": ["between", [current_date, thirty_days_from_now]],
 		},
-		fields=["name", "employee", "employee_name", "effective_to"]
+		fields=["name", "employee", "employee_name", "effective_to"],
 	)
 
 	if not expiring_directives:
 		return
 
-	# Create notification for HR Admin
+	notified = 0
 	for directive in expiring_directives:
-		days_until_expiry = (getdate(directive.effective_to) - getdate(today())).days
+		days_until_expiry = (getdate(directive.effective_to) - current_date).days
+		if days_until_expiry not in DIRECTIVE_REMINDER_DAYS:
+			continue
 
-		notify_hr_admin(
-			subject=_("Tax Directive Expiring Soon: {0}").format(directive.employee_name),
+		notified += notify_hr_admin(
+			subject=_("Tax Directive Expiry Reminder ({0} days): {1}").format(
+				days_until_expiry,
+				directive.employee_name,
+			),
 			message=_(
 				"Tax Directive {0} for employee {1} ({2}) will expire in {3} days on {4}. "
 				"Please renew the directive before expiry."
@@ -96,9 +97,14 @@ def check_tax_directive_expiry():
 			),
 			doctype="Tax Directive",
 			docname=directive.name,
+			deduplicate_since=current_date,
 		)
 
-	print(f"✓ Tax Directive Expiry Check: {len(expiring_directives)} directive(s) expiring soon")
+	LOGGER.info(
+		"Tax Directive Expiry Check completed: %s notification(s) created for %s directive(s)",
+		notified,
+		len(expiring_directives),
+	)
 
 
 # ==================== ETI Eligibility Monitoring ====================
@@ -164,7 +170,11 @@ def check_eti_eligibility_changes():
 		)
 
 	if employees_turning_30 or employees_at_24_months:
-		print(f"✓ ETI Eligibility Check: {len(employees_turning_30)} turning 30, {len(employees_at_24_months)} at 24 months")
+		LOGGER.info(
+			"ETI Eligibility Check completed: %s turning 30, %s at 24 months",
+			len(employees_turning_30),
+			len(employees_at_24_months),
+		)
 
 
 # ==================== ID Number Validation ====================
@@ -242,7 +252,11 @@ def validate_employee_id_numbers():
 		)
 
 	if invalid_ids or actual_duplicates:
-		print(f"✓ ID Validation: {len(invalid_ids)} invalid, {len(actual_duplicates)} duplicates")
+		LOGGER.warning(
+			"Employee ID validation found %s invalid ID(s) and %s duplicate ID(s)",
+			len(invalid_ids),
+			len(actual_duplicates),
+		)
 
 
 # ==================== SARS Rate Updates ====================
@@ -255,10 +269,14 @@ def check_sars_rate_updates():
 	"""
 	today_date = getdate(today())
 
-	# Reminder on March 1 (new tax year)
-	if today_date.month == 3 and today_date.day == 1:
-		notify_hr_admin(
-			subject="SARS Tax Year Update Required",
+	# The whole month is a recovery window if the scheduler missed 1 March.
+	if today_date.month == 3:
+		period_start = getdate(f"{today_date.year}-03-01")
+		notified = notify_hr_admin(
+			subject=_("SARS Tax Year Update Required: {0}-{1}").format(
+				today_date.year,
+				today_date.year + 1,
+			),
 			message=f"It's the start of the new tax year ({today_date.year}-{today_date.year + 1}). Please update the following:\n\n"
 			"1. Tax Rebates (Payroll Settings)\n"
 			"2. ETI Slabs\n"
@@ -267,9 +285,10 @@ def check_sars_rate_updates():
 			"5. Travel Allowance Rates\n\n"
 			"Visit the SARS website for the latest rates.",
 			doctype=None,
-			docname=None
+			docname=None,
+			deduplicate_since=period_start,
 		)
-		print("✓ SARS Rate Update Reminder sent for new tax year")
+		LOGGER.info("SARS tax-year reminder completed: %s notification(s) created", notified)
 
 
 def check_coida_rate_updates():
@@ -293,10 +312,11 @@ def reminder_for_eea_reporting():
 	"""
 	today_date = getdate(today())
 
-	# Reminder in December for January 15 deadline
-	if today_date.month == 12 and today_date.day == 1:
-		notify_hr_admin(
-			subject="Employment Equity Report Due Soon",
+	# December is a recovery window if the scheduler missed 1 December.
+	if today_date.month == 12:
+		period_start = getdate(f"{today_date.year}-12-01")
+		notified = notify_hr_admin(
+			subject=_("Employment Equity Report Due Soon: January {0}").format(today_date.year + 1),
 			message="Reminder: Employment Equity (EEA) reports are due on January 15.\n\n"
 			"Please prepare:\n"
 			"1. EEA2 - Income Differentials Report\n"
@@ -304,15 +324,16 @@ def reminder_for_eea_reporting():
 			"3. EEA13 - Consultation Documentation\n\n"
 			"Ensure all employee demographic data is up to date.",
 			doctype=None,
-			docname=None
+			docname=None,
+			deduplicate_since=period_start,
 		)
-		print("✓ EEA Reporting Reminder sent")
+		LOGGER.info("Employment Equity reminder completed: %s notification(s) created", notified)
 
 
 # ==================== Helper Functions ====================
 
 def _skip_scheduler_check(check_name, reason):
-	print(f"⊙ {check_name} skipped: {reason}")
+	LOGGER.warning("%s skipped: %s", check_name, reason)
 
 
 def _doctype_has_fields(doctype, fields, check_name):
@@ -328,9 +349,12 @@ def _doctype_has_fields(doctype, fields, check_name):
 				f"{doctype} is missing field(s): {', '.join(missing_fields)}",
 			)
 			return False
-	except Exception as e:
-		_skip_scheduler_check(check_name, f"could not inspect {doctype}: {e}")
-		return False
+	except Exception:
+		frappe.log_error(
+			title=f"{check_name} failed",
+			message=frappe.get_traceback(),
+		)
+		raise
 
 	return True
 
@@ -357,7 +381,14 @@ def get_hr_admin_users():
 	return []
 
 
-def notify_hr_admin(subject, message, doctype=None, docname=None, recipients=None):
+def notify_hr_admin(
+	subject,
+	message,
+	doctype=None,
+	docname=None,
+	recipients=None,
+	deduplicate_since=None,
+):
 	"""
 	Create notification for HR Admin users.
 
@@ -367,6 +398,7 @@ def notify_hr_admin(subject, message, doctype=None, docname=None, recipients=Non
 		doctype: Related DocType (optional)
 		docname: Related document name (optional)
 		recipients: Optional explicit recipient list for tests/custom callers
+		deduplicate_since: Skip an equivalent notification created on/after this date
 	"""
 	valid_recipients = _get_valid_notification_users(
 		recipients if recipients is not None else get_hr_admin_users(),
@@ -383,6 +415,15 @@ def notify_hr_admin(subject, message, doctype=None, docname=None, recipients=Non
 
 	created = 0
 	for user in valid_recipients:
+		if deduplicate_since and _notification_exists(
+			user=user,
+			subject=subject,
+			doctype=doctype,
+			docname=docname,
+			since=deduplicate_since,
+		):
+			continue
+
 		try:
 			notification = frappe.new_doc("Notification Log")
 			notification.subject = subject
@@ -404,6 +445,19 @@ def notify_hr_admin(subject, message, doctype=None, docname=None, recipients=Non
 			)
 
 	return created
+
+
+def _notification_exists(user, subject, doctype, docname, since):
+	filters = {
+		"for_user": user,
+		"subject": subject,
+		"creation": [">=", getdate(since)],
+	}
+	if doctype:
+		filters["document_type"] = doctype
+	if docname:
+		filters["document_name"] = docname
+	return bool(frappe.db.exists("Notification Log", filters))
 
 
 def _as_list(value):

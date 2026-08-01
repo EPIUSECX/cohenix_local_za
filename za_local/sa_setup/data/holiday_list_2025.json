@@ -4,7 +4,7 @@
     "holiday_list_name": "South Africa 2025",
     "from_date": "2025-01-01",
     "to_date": "2025-12-31",
-    "total_holidays": 12,
+    "total_holidays": 13,
     "holidays": [
       {
         "holiday_date": "2025-01-01",
@@ -29,6 +29,11 @@
       {
         "holiday_date": "2025-04-27",
         "description": "Freedom Day",
+        "weekly_off": 0
+      },
+      {
+        "holiday_date": "2025-04-28",
+        "description": "Freedom Day (observed)",
         "weekly_off": 0
       },
       {
@@ -69,4 +74,3 @@
     ]
   }
 ]
-

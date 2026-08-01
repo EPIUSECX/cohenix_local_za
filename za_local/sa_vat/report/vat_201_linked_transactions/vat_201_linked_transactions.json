@@ -33,7 +33,7 @@
  "name": "VAT 201 Linked Transactions",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "VAT201 Return Transaction",
+ "ref_doctype": "VAT201 Return",
  "report_name": "VAT 201 Linked Transactions",
  "report_type": "Script Report",
  "roles": [
@@ -51,4 +51,3 @@
   }
  ]
 }
-

@@ -3,7 +3,7 @@
   "year_of_assessment": "2027",
   "effective_from": "2026-03-01",
   "effective_to": "2027-02-28",
-  "source_reference": "South Africa Payroll Tax Guide 2026-27",
+  "source_reference": "SARS Guide for Employers in respect of Employees' Tax 2027 and Budget 2026 FAQ; Compensation Fund Gazette 54577 (24 April 2026)",
   "is_active": 1,
   "paye": {
     "rebates": {
@@ -66,11 +66,28 @@
     "rsa_meals_and_incidentals_per_day": 595
   },
   "retirement": {
-    "annual_deduction_cap": 350000,
+    "annual_deduction_cap": 430000,
     "deduction_percentage": 27.5
   },
   "coida": {
-    "annual_earnings_cap": 688000
+    "annual_earnings_cap": 668000
+  },
+  "fringe_benefits": {
+    "residential_accommodation_abatement": 99000,
+    "official_interest_rates": [
+      {
+        "effective_from": "2026-03-01",
+        "effective_to": "2026-05-31",
+        "rate": 7.75,
+        "source_reference": "SARS PAYE-GEN-01-G02; SARB November 2025, January 2026 and March 2026 MPC statements"
+      },
+      {
+        "effective_from": "2026-06-01",
+        "effective_to": "2027-02-28",
+        "rate": 8.0,
+        "source_reference": "SARS PAYE-GEN-01-G02; SARB May 2026 and July 2026 MPC statements"
+      }
+    ]
   },
   "lump_sum_benefits": {
     "cumulative_exemption": 550000,

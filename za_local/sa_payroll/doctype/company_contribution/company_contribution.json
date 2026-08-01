@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "salary_component",
+  "abbr",
+  "amount",
+  "condition_and_formula_section",
+  "condition",
+  "column_break_6",
+  "amount_based_on_formula",
+  "formula"
+ ],
+ "fields": [
+  {
+   "fieldname": "salary_component",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Salary Component",
+   "options": "Salary Component",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "salary_component.salary_component_abbr",
+   "fieldname": "abbr",
+   "fieldtype": "Data",
+   "label": "Abbr",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "options": "currency"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "condition_and_formula_section",
+   "fieldtype": "Section Break",
+   "label": "Condition and Formula"
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "salary_component.condition",
+   "fieldname": "condition",
+   "fieldtype": "Code",
+   "label": "Condition",
+   "options": "PythonExpression"
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fetch_from": "salary_component.amount_based_on_formula",
+   "fieldname": "amount_based_on_formula",
+   "fieldtype": "Check",
+   "label": "Amount Based On Formula"
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "salary_component.formula",
+   "fieldname": "formula",
+   "fieldtype": "Code",
+   "label": "Formula",
+   "options": "PythonExpression"
+  }
+ ],
+ "istable": 1,
+ "module": "SA Payroll",
+ "name": "Company Contribution",
+ "track_changes": 1
+}

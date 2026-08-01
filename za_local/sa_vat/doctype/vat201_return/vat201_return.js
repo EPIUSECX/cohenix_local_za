@@ -53,6 +53,7 @@ frappe.ui.form.on("VAT201 Return", {
 			frm.add_custom_button(__("Export Summary CSV"), function () {
 				frm.call({
 					method: "get_summary_rows",
+					type: "GET",
 					doc: frm.doc,
 					callback(r) {
 						if (!r.message) return;
@@ -67,6 +68,7 @@ frappe.ui.form.on("VAT201 Return", {
 			frm.add_custom_button(__("Export Linked Transactions CSV"), function () {
 				frm.call({
 					method: "get_linked_transaction_rows",
+					type: "GET",
 					doc: frm.doc,
 					callback(r) {
 						if (!r.message) return;

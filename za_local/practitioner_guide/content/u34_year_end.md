@@ -20,7 +20,7 @@
 2. **Link the twelve EMP201s** and the **IRP5 certificates**.
 3. **Run the readiness checks.** The reconciliation verifies employer references, that all months are covered, that every employee has an IRP5, that SARS codes are complete, and that directive numbers exist for any lump sums.
 4. **Reconcile.** The legs must agree: sum of monthly EMP201 PAYE = sum of IRP5 PAYE = PAYE actually paid to SARS.
-5. **File** on SARS eFiling / e@syFile once the checks pass and the legs reconcile.
+5. **Submit the internal working paper, then file externally** through approved SARS tooling once the checks pass and the legs reconcile. The app does not produce the SARS BRS payroll-import/encrypted reconciliation formats; retain the external receipt.
 
 > If the EMP501 won't submit, a readiness check failed — read the message (missing month, unlinked IRP5, missing reference or directive) and fix the underlying record. This is intentional.
 

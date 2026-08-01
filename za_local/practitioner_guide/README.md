@@ -43,6 +43,8 @@ Both match the space, sections and pages by route and refresh page content in pl
 Re-run any time you edit a markdown file or the manifest. After staging, the guide is
 available at `/<site>/sa-guide`.
 
+Staging writes Wiki records. Run it first on staging, as System Manager, after taking the normal deployment backup. Idempotent route matching means repeated staging updates the same app-owned pages; it does not mean that every migration or setup operation is risk-free.
+
 ## Whitelisted endpoints
 
 - `za_local.practitioner_guide.stage.is_wiki_available` — returns whether the Wiki app is installed (used to gate the desk button).

@@ -1,28 +1,19 @@
-# Copyright (c) 2025, Cohenix and contributors
-# For license information, please see license.txt
+"""Business Trip controller and guarded document actions."""
 
-"""
-Business Trip
+from __future__ import annotations
 
-Main DocType for managing employee business trips including:
-- Daily allowances and per diem rates
-- Transport and mileage claims
-- Accommodation expenses
-- Other expenses
-- Automatic expense claim generation
-"""
+from datetime import timedelta
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate
 
+from za_local.utils.statutory_rates import get_reimbursive_travel_rate
+
 
 class BusinessTrip(Document):
-	"""Business Trip document with expense tracking and claim generation"""
-
 	def validate(self):
-		"""Validate business trip data"""
 		self.validate_dates()
 		self.fetch_mileage_rates()
 		self.calculate_allowance_totals()
@@ -32,243 +23,227 @@ class BusinessTrip(Document):
 		self.calculate_grand_total()
 
 	def validate_dates(self):
-		"""Ensure from_date is before to_date"""
-		if self.from_date and self.to_date:
-			if getdate(self.from_date) > getdate(self.to_date):
-				frappe.throw(_("From Date cannot be after To Date"))
+		if self.from_date and self.to_date and getdate(self.from_date) > getdate(self.to_date):
+			frappe.throw(_("From Date cannot be after To Date"))
 
 	def fetch_mileage_rates(self):
-		"""Fetch mileage rate from settings for journey calculations"""
-		if not self.journeys:
-			return
-
-		settings = frappe.get_cached_doc("Business Trip Settings")
-		mileage_rate = settings.mileage_allowance_rate or 4.25
-
-		for journey in self.journeys:
-			if journey.transport_mode == "Car (Private)":
-				journey.mileage_rate = mileage_rate
-				if journey.distance_km:
-					journey.mileage_claim = flt(journey.distance_km) * flt(mileage_rate)
+		for journey in self.get("journeys") or []:
+			if journey.transport_mode != "Car (Private)":
+				continue
+			journey.mileage_rate = get_business_trip_mileage_rate(
+				journey.date or self.to_date or self.from_date
+			)
+			journey.mileage_claim = flt(journey.distance_km) * flt(journey.mileage_rate)
 
 	def calculate_allowance_totals(self):
-		"""Calculate totals for daily allowances"""
 		self.total_allowance = 0
 		self.total_incidental = 0
-
-		for allowance in self.allowances:
-			# Calculate total for this row
+		for allowance in self.get("allowances") or []:
 			daily = flt(allowance.daily_rate)
 			incidental = flt(allowance.incidental_rate)
 			allowance.total = daily + incidental
-
-			# Add to totals
 			self.total_allowance += daily
 			self.total_incidental += incidental
 
 	def calculate_journey_totals(self):
-		"""Calculate totals for journeys"""
 		self.total_mileage_claim = 0
 		self.total_receipt_claims = 0
-
-		for journey in self.journeys:
+		for journey in self.get("journeys") or []:
 			if journey.transport_mode == "Car (Private)":
 				self.total_mileage_claim += flt(journey.mileage_claim)
 			else:
 				self.total_receipt_claims += flt(journey.receipt_amount)
 
 	def calculate_accommodation_total(self):
-		"""Calculate total accommodation expenses"""
-		self.total_accommodation = sum(flt(acc.amount) for acc in self.accommodations)
+		self.total_accommodation = sum(flt(row.amount) for row in self.get("accommodations") or [])
 
 	def calculate_other_expenses_total(self):
-		"""Calculate total other expenses"""
-		self.total_other_expenses = sum(flt(exp.amount) for exp in self.other_expenses)
+		self.total_other_expenses = sum(flt(row.amount) for row in self.get("other_expenses") or [])
 
 	def calculate_grand_total(self):
-		"""Calculate grand total of all expenses"""
-		self.grand_total = (
-			flt(self.total_allowance) +
-			flt(self.total_incidental) +
-			flt(self.total_mileage_claim) +
-			flt(self.total_receipt_claims) +
-			flt(self.total_accommodation) +
-			flt(self.total_other_expenses)
+		self.grand_total = sum(
+			flt(value)
+			for value in (
+				self.total_allowance,
+				self.total_incidental,
+				self.total_mileage_claim,
+				self.total_receipt_claims,
+				self.total_accommodation,
+				self.total_other_expenses,
+			)
 		)
 
 	def on_submit(self):
-		"""On submit, create expense claim if configured"""
 		self.db_set("status", "Submitted", update_modified=False)
-
 		settings = frappe.get_cached_doc("Business Trip Settings")
 		if settings.auto_create_expense_claim_on_submit:
 			self.create_expense_claim()
 
 	def on_cancel(self):
-		"""On cancel, update status"""
 		self.db_set("status", "Cancelled", update_modified=False)
-
-		# Cancel linked expense claim if it exists and is not submitted
-		if self.expense_claim:
-			expense_claim = frappe.get_doc("Expense Claim", self.expense_claim)
-			if expense_claim.docstatus == 0:
-				frappe.delete_doc("Expense Claim", self.expense_claim)
-				self.db_set("expense_claim", None, update_modified=False)
-			elif expense_claim.docstatus == 1:
-				frappe.msgprint(
-					_("Linked Expense Claim {0} must be cancelled separately").format(self.expense_claim),
-					alert=True
-				)
-
-	def create_expense_claim(self):
-		"""Create Expense Claim from Business Trip"""
-		if self.expense_claim:
-			frappe.msgprint(_("Expense Claim already created: {0}").format(self.expense_claim))
+		if not self.expense_claim:
 			return
 
+		expense_claim = frappe.get_doc("Expense Claim", self.expense_claim)
+		if expense_claim.docstatus == 0:
+			expense_claim.delete()
+			self.db_set("expense_claim", None, update_modified=False)
+		elif expense_claim.docstatus == 1:
+			frappe.throw(
+				_("Cancel linked Expense Claim {0} before cancelling this Business Trip.").format(
+					frappe.bold(self.expense_claim)
+				)
+			)
+
+	def create_expense_claim(self):
+		if self.expense_claim:
+			return self.expense_claim
+
 		settings = frappe.get_cached_doc("Business Trip Settings")
-
-		# Create Expense Claim
 		expense_claim = frappe.new_doc("Expense Claim")
-		expense_claim.employee = self.employee
-		expense_claim.expense_approver = frappe.db.get_value("Employee", self.employee, "reports_to")
-		expense_claim.company = self.company
-		expense_claim.posting_date = self.to_date
-
-		# Add custom field reference to business trip
-		if hasattr(expense_claim, "business_trip"):
+		expense_claim.update(
+			{
+				"employee": self.employee,
+				"expense_approver": self._get_expense_approver(),
+				"company": self.company,
+				"posting_date": self.to_date,
+			}
+		)
+		if expense_claim.meta.has_field("business_trip"):
 			expense_claim.business_trip = self.name
 
-		# Add allowances
-		if self.total_allowance or self.total_incidental:
-			claim_type = settings.meal_expense_claim_type or "Travel"
-			expense_claim.append("expenses", {
-				"expense_date": self.from_date,
-				"description": f"Business Trip Allowances: {self.trip_purpose}",
-				"expense_type": claim_type,
-				"amount": flt(self.total_allowance) + flt(self.total_incidental)
-			})
+		self._append_expense(
+			expense_claim,
+			flt(self.total_allowance) + flt(self.total_incidental),
+			settings.meal_expense_claim_type or "Travel",
+			_("Business Trip Allowances: {0}").format(self.trip_purpose),
+		)
+		self._append_expense(
+			expense_claim,
+			self.total_mileage_claim,
+			settings.mileage_expense_claim_type or "Travel",
+			_("Mileage Claims: {0}").format(self.trip_purpose),
+		)
+		self._append_expense(
+			expense_claim,
+			self.total_receipt_claims,
+			"Travel",
+			_("Transport Receipts: {0}").format(self.trip_purpose),
+		)
+		self._append_expense(
+			expense_claim,
+			self.total_accommodation,
+			"Travel",
+			_("Accommodation: {0}").format(self.trip_purpose),
+		)
+		self._append_expense(
+			expense_claim,
+			self.total_other_expenses,
+			"Others",
+			_("Other Expenses: {0}").format(self.trip_purpose),
+		)
 
-		# Add mileage claims
-		if self.total_mileage_claim:
-			claim_type = settings.mileage_expense_claim_type or "Travel"
-			expense_claim.append("expenses", {
-				"expense_date": self.from_date,
-				"description": f"Mileage Claims: {self.trip_purpose}",
-				"expense_type": claim_type,
-				"amount": flt(self.total_mileage_claim)
-			})
-
-		# Add transport receipts
-		if self.total_receipt_claims:
-			expense_claim.append("expenses", {
-				"expense_date": self.from_date,
-				"description": f"Transport (Flights/Trains/Rental): {self.trip_purpose}",
-				"expense_type": "Travel",
-				"amount": flt(self.total_receipt_claims)
-			})
-
-		# Add accommodation
-		if self.total_accommodation:
-			expense_claim.append("expenses", {
-				"expense_date": self.from_date,
-				"description": f"Accommodation: {self.trip_purpose}",
-				"expense_type": "Travel",
-				"amount": flt(self.total_accommodation)
-			})
-
-		# Add other expenses
-		if self.total_other_expenses:
-			expense_claim.append("expenses", {
-				"expense_date": self.from_date,
-				"description": f"Other Expenses: {self.trip_purpose}",
-				"expense_type": "Others",
-				"amount": flt(self.total_other_expenses)
-			})
-
-		# Save and link
+		if not expense_claim.expenses:
+			frappe.throw(_("No claimable Business Trip expenses were calculated."))
 		expense_claim.insert()
-
 		self.db_set(
-			{
-				"expense_claim": expense_claim.name,
-				"status": "Expense Claim Created",
-			},
+			{"expense_claim": expense_claim.name, "status": "Expense Claim Created"},
 			update_modified=False,
 		)
-
 		frappe.msgprint(
-			_("Expense Claim {0} created successfully").format(expense_claim.name),
+			_("Expense Claim {0} created successfully").format(frappe.bold(expense_claim.name)),
 			alert=True,
-			indicator="green"
+			indicator="green",
+		)
+		return expense_claim.name
+
+	def _append_expense(self, expense_claim, amount, expense_type, description):
+		if not flt(amount):
+			return
+		expense_claim.append(
+			"expenses",
+			{
+				"expense_date": self.from_date,
+				"description": description,
+				"expense_type": expense_type,
+				"amount": flt(amount),
+			},
 		)
 
-		return expense_claim.name
+	def _get_expense_approver(self):
+		"""Resolve an Expense Claim User, never an Employee document name."""
+		employee = frappe.get_cached_value(
+			"Employee",
+			self.employee,
+			["expense_approver", "reports_to"],
+			as_dict=True,
+		) or frappe._dict()
+		if employee.expense_approver:
+			return employee.expense_approver
+		if employee.reports_to:
+			return frappe.get_cached_value("Employee", employee.reports_to, "user_id")
+		return None
+
+
+def get_business_trip_mileage_rate(date_value=None):
+	"""Use an explicit company setting, otherwise the date-effective rate pack."""
+	configured_rate = flt(
+		frappe.get_cached_doc("Business Trip Settings").mileage_allowance_rate
+	)
+	return configured_rate or get_reimbursive_travel_rate(date_value)
 
 
 @frappe.whitelist()
 def create_expense_claim_from_trip(business_trip_name):
-	"""
-	Create Expense Claim from Business Trip (callable from client).
-
-	Args:
-		business_trip_name: Name of Business Trip document
-
-	Returns:
-		str: Name of created Expense Claim
-	"""
-	# frappe.get_doc does not check permissions, and this creates a payable Expense
-	# Claim in the trip owner's name, so require write access to the trip itself.
 	trip = frappe.get_doc("Business Trip", business_trip_name, check_permission=True)
 	trip.check_permission("write")
-
 	if trip.docstatus != 1:
-		frappe.throw(_("Business Trip must be submitted before creating Expense Claim"))
-
+		frappe.throw(_("Business Trip must be submitted before creating an Expense Claim."))
 	return trip.create_expense_claim()
 
 
 @frappe.whitelist()
-def generate_allowances_for_date_range(business_trip_name):
-	"""
-	Auto-generate daily allowance rows for the date range of the trip.
-
-	Args:
-		business_trip_name: Name of Business Trip document
-
-	Returns:
-		list: List of generated allowance rows
-	"""
-	trip = frappe.get_doc("Business Trip", business_trip_name)
-
+def generate_allowances_for_date_range(business_trip_name, region):
+	"""Generate one fully-valued allowance row per trip day."""
+	trip = frappe.get_doc("Business Trip", business_trip_name, check_permission=True)
+	trip.check_permission("write")
+	if trip.docstatus != 0:
+		frappe.throw(_("Allowances can be generated only while the Business Trip is in Draft."))
 	if not trip.from_date or not trip.to_date:
-		frappe.throw(_("Please set From Date and To Date first"))
+		frappe.throw(_("Set From Date and To Date before generating allowances."))
+	if not region:
+		frappe.throw(_("Select a Business Trip Region."))
 
-	from datetime import timedelta
+	region_values = frappe.get_cached_value(
+		"Business Trip Region",
+		region,
+		["is_active", "daily_allowance_rate", "incidental_allowance_rate"],
+		as_dict=True,
+	)
+	if not region_values or not region_values.is_active:
+		frappe.throw(_("Business Trip Region {0} is not active or does not exist.").format(frappe.bold(region)))
 
+	trip.set("allowances", [])
 	current_date = getdate(trip.from_date)
 	end_date = getdate(trip.to_date)
-
-	# Clear existing allowances
-	trip.allowances = []
-
-	# Generate one row per day
 	while current_date <= end_date:
-		trip.append("allowances", {
-			"date": current_date,
-			"region": None,  # User will select
-			"daily_rate": 0,
-			"incidental_rate": 0,
-			"total": 0
-		})
+		trip.append(
+			"allowances",
+			{
+				"date": current_date,
+				"region": region,
+				"daily_rate": region_values.daily_allowance_rate,
+				"incidental_rate": region_values.incidental_allowance_rate,
+				"total": flt(region_values.daily_allowance_rate)
+				+ flt(region_values.incidental_allowance_rate),
+			},
+		)
 		current_date += timedelta(days=1)
 
 	trip.save()
-
 	frappe.msgprint(
-		_("{0} allowance rows generated").format(len(trip.allowances)),
+		_("{0} allowance rows generated for {1}").format(len(trip.allowances), frappe.bold(region)),
 		alert=True,
-		indicator="green"
+		indicator="green",
 	)
-
-	return trip.allowances
+	return len(trip.allowances)

@@ -33,6 +33,7 @@
   "section_break_23",
   "irp5_certificates",
   "section_break_25",
+  "amended_from",
   "amended",
   "column_break_27",
   "previous_submission",
@@ -43,9 +44,7 @@
   "sars_submission_date",
   "column_break_34",
   "sars_submission_reference",
-  "sars_response",
-  "section_break_37",
-  "e_filing_csv"
+  "sars_response"
  ],
  "fields": [
   {
@@ -206,6 +205,14 @@
    "label": "Amendment Details"
   },
   {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "EMP501 Reconciliation",
+   "read_only": 1
+  },
+  {
    "default": "0",
    "fieldname": "amended",
    "fieldtype": "Check",
@@ -262,17 +269,6 @@
    "fieldtype": "Code",
    "label": "SARS Response",
    "options": "JSON"
-  },
-  {
-   "fieldname": "section_break_37",
-   "fieldtype": "Section Break",
-   "label": "Export Files"
-  },
-  {
-   "fieldname": "e_filing_csv",
-   "fieldtype": "Attach",
-   "label": "e-Filing CSV Export",
-   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,

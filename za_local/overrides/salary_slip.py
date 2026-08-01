@@ -16,42 +16,44 @@ from frappe.utils import flt, getdate
 from za_local.utils.hrms_detection import get_hrms_doctype_class, require_hrms, safe_import_hrms
 
 # Conditionally import HRMS classes
-SalarySlip = get_hrms_doctype_class(
-    "hrms.payroll.doctype.salary_slip.salary_slip",
-    "SalarySlip"
-)
+SalarySlip = get_hrms_doctype_class("hrms.payroll.doctype.salary_slip.salary_slip", "SalarySlip")
 
 if SalarySlip is None:
     # HRMS not available - create a dummy class to prevent import errors
     class SalarySlip:
         pass
 
+
 # Try to import other HRMS functions
-get_salary_component_data, = safe_import_hrms(
-    "hrms.payroll.doctype.salary_slip.salary_slip",
-    "get_salary_component_data"
+(get_salary_component_data,) = safe_import_hrms(
+    "hrms.payroll.doctype.salary_slip.salary_slip", "get_salary_component_data"
 )
 
-get_period_factor, = safe_import_hrms(
-    "hrms.payroll.doctype.payroll_period.payroll_period",
-    "get_period_factor"
+(get_period_factor,) = safe_import_hrms(
+    "hrms.payroll.doctype.payroll_period.payroll_period", "get_period_factor"
 )
 
 if get_salary_component_data is None:
+
     def get_salary_component_data(*args, **kwargs):
         require_hrms("Salary Slip")
         return {}
 
+
 if get_period_factor is None:
+
     def get_period_factor(*args, **kwargs):
         require_hrms("Salary Slip")
         return 1.0
 
+
 # Import ZA Local utilities
 from za_local.utils.eti_utils import (
     calculate_eti_amount,
+    cancel_eti_log,
     check_eti_eligibility,
     log_eti_calculation,
+    submit_eti_log,
 )
 from za_local.utils.payroll_utils import (
     get_additional_salaries,
@@ -72,7 +74,7 @@ from za_local.utils.tax_utils import (
     get_tax_rebate,
 )
 
-RETIREMENT_FUND_DEDUCTION_CODES = {"4001", "4003", "4006", "4007"}
+RETIREMENT_FUND_DEDUCTION_CODES = {"4001", "4003", "4006"}
 UIF_CODES = {"4141"}
 SDL_CODES = {"4142"}
 PAYE_CODES = {"4102", "4115"}
@@ -101,17 +103,25 @@ class ZASalarySlip(SalarySlip):
         Validate salary slip with SA-specific checks.
         """
         require_hrms("Salary Slip")
-        self.apply_sa_component_classification_defaults()
+        if self.is_new() and not flt(self.get("za_eti_hours")) and self.employee:
+            self.za_eti_hours = flt(
+                frappe.get_cached_value("Employee", self.employee, "za_hours_per_month")
+            )
         super().validate()
 
         # Prevent duplicate salary slips for payroll frequency
         self.validate_payroll_frequency()
 
     def apply_sa_component_classification_defaults(self):
-        """Apply SA payroll treatment that must be in place before HRMS tax runs."""
+        """Apply retirement classification after deduction rows have been built."""
         for deduction in self.get("deductions") or []:
             if self.is_retirement_fund_component(deduction.salary_component):
                 deduction.exempted_from_income_tax = 1
+
+    def add_tax_components(self):
+        """Classify populated deduction rows immediately before HRMS calculates PAYE."""
+        self.apply_sa_component_classification_defaults()
+        return super().add_tax_components()
 
     def before_submit(self):
         """
@@ -120,6 +130,10 @@ class ZASalarySlip(SalarySlip):
         # Note: Parent class (SalarySlip) doesn't have before_submit, so we don't call super()
         # Validate all components have accounts before allowing submission
         self.validate_component_accounts()
+
+    def after_insert(self):
+        """Persist ETI audit evidence only after the Salary Slip link exists."""
+        self._log_current_eti_calculation()
 
     def validate_payroll_frequency(self):
         """
@@ -130,10 +144,7 @@ class ZASalarySlip(SalarySlip):
             employee_frequency = get_employee_frequency_map()
 
             if self.employee in employee_frequency:
-                if is_payroll_processed(
-                    self.employee,
-                    frequency[employee_frequency[self.employee]]
-                ):
+                if is_payroll_processed(self.employee, frequency[employee_frequency[self.employee]]):
                     frappe.throw(
                         _("Salary Slip already created for current {0}").format(
                             employee_frequency[self.employee]
@@ -143,7 +154,7 @@ class ZASalarySlip(SalarySlip):
             # Log error but don't block creation if frequency validation fails
             frappe.log_error(
                 f"Error validating payroll frequency for employee {self.employee}: {e!s}",
-                "Salary Slip Frequency Validation"
+                "Salary Slip Frequency Validation",
             )
             # Don't throw - allow creation to proceed
 
@@ -159,8 +170,7 @@ class ZASalarySlip(SalarySlip):
         for component_type in ["earnings", "deductions"]:
             for row in self.get(component_type):
                 if not frappe.db.exists(
-                    "Salary Component Account",
-                    {"parent": row.salary_component, "company": self.company}
+                    "Salary Component Account", {"parent": row.salary_component, "company": self.company}
                 ):
                     components_missing_accounts.append(row.salary_component)
 
@@ -181,10 +191,9 @@ class ZASalarySlip(SalarySlip):
                     "Accounts are required for SA payroll compliance."
                 ).format(unique_components[0], self.company)
             else:
-                component_links = ", ".join([
-                    f"<a href='/app/salary-component/{comp}'>{comp}</a>"
-                    for comp in unique_components
-                ])
+                component_links = ", ".join(
+                    [f"<a href='/app/salary-component/{comp}'>{comp}</a>" for comp in unique_components]
+                )
                 error_msg = _(
                     "The following Salary Components are missing account configurations: {0}. "
                     "Please set accounts for these components in their respective Salary Component Account sections for company {1}. "
@@ -208,9 +217,8 @@ class ZASalarySlip(SalarySlip):
         self.apply_retirement_fund_deduction_cap()
 
         # Track taxable earnings without full-tax additional components
-        self.total_taxable_earnings_without_full_tax_addl_components = (
-            self.total_taxable_earnings -
-            getattr(self, 'current_additional_earnings_with_full_tax', 0)
+        self.total_taxable_earnings_without_full_tax_addl_components = self.total_taxable_earnings - getattr(
+            self, "current_additional_earnings_with_full_tax", 0
         )
 
     def apply_retirement_fund_deduction_cap(self):
@@ -229,8 +237,12 @@ class ZASalarySlip(SalarySlip):
             return
 
         base_before_retirement_deduction = flt(self.total_taxable_earnings) + annual_contribution
-        max_by_percentage = base_before_retirement_deduction * get_retirement_deduction_percentage(self.end_date)
-        allowed_deduction = min(annual_contribution, max_by_percentage, get_retirement_annual_cap(self.end_date))
+        max_by_percentage = base_before_retirement_deduction * get_retirement_deduction_percentage(
+            self.end_date
+        )
+        allowed_deduction = min(
+            annual_contribution, max_by_percentage, get_retirement_annual_cap(self.end_date)
+        )
         disallowed_deduction = max(0, annual_contribution - allowed_deduction)
 
         if disallowed_deduction:
@@ -287,17 +299,7 @@ class ZASalarySlip(SalarySlip):
         return total
 
     def is_retirement_fund_component(self, salary_component):
-        # Salary Component is a small, static master read repeatedly inside the
-        # per-component payroll loop; use the cached read to avoid N+1 queries.
-        code = frappe.get_cached_value("Salary Component", salary_component, "za_sars_payroll_code")
-        if code in RETIREMENT_FUND_DEDUCTION_CODES:
-            return True
-
-        component_name = (salary_component or "").lower()
-        return any(
-            token in component_name
-            for token in ("pension", "provident", "retirement annuity", "retirement fund")
-        )
+        return self.get_required_sars_code(salary_component) in RETIREMENT_FUND_DEDUCTION_CODES
 
     def apply_sa_paye_inclusion_adjustments(self):
         """Remove the non-PAYE portion of classified earnings from annual taxable earnings."""
@@ -399,7 +401,10 @@ class ZASalarySlip(SalarySlip):
             return frappe._dict()
         # Cached read: this metadata is fetched repeatedly per component within
         # the payroll loop, and Salary Component master data rarely changes.
-        return frappe.get_cached_value("Salary Component", salary_component, fields, as_dict=True) or frappe._dict()
+        return (
+            frappe.get_cached_value("Salary Component", salary_component, fields, as_dict=True)
+            or frappe._dict()
+        )
 
     def get_annual_bonus(self):
         """
@@ -408,26 +413,27 @@ class ZASalarySlip(SalarySlip):
         Returns:
             float: Annual bonus amount
         """
-        annual_bonus = frappe.db.get_value(
-            "Salary Structure Assignment",
-            {
-                "employee": self.employee,
-                "salary_structure": self.salary_structure,
-                "docstatus": 1,
-                "from_date": ("<=", self.end_date),
-            },
-            "za_annual_bonus",
-            order_by="from_date desc",
-        ) or 0
+        annual_bonus = (
+            frappe.db.get_value(
+                "Salary Structure Assignment",
+                {
+                    "employee": self.employee,
+                    "salary_structure": self.salary_structure,
+                    "docstatus": 1,
+                    "from_date": ("<=", self.end_date),
+                },
+                "za_annual_bonus",
+                order_by="from_date desc",
+            )
+            or 0
+        )
 
         if not annual_bonus:
             return 0
 
         # Check if bonus has already been paid
         bonus_component = frappe.get_all(
-            "Salary Component",
-            filters={"disabled": False, "za_is_annual_bonus": True},
-            pluck="name"
+            "Salary Component", filters={"disabled": False, "za_is_annual_bonus": True}, pluck="name"
         )
 
         if not bonus_component:
@@ -440,8 +446,8 @@ class ZASalarySlip(SalarySlip):
                 "employee": self.employee,
                 "salary_component": ["in", bonus_component],
                 "company": self.company,
-                "payroll_date": ["between", [self.payroll_period.start_date, self.end_date]]
-            }
+                "payroll_date": ["between", [self.payroll_period.start_date, self.end_date]],
+            },
         )
 
         return 0 if is_bonus_paid else annual_bonus
@@ -471,22 +477,40 @@ class ZASalarySlip(SalarySlip):
             medical_credits = self.get_medical_aid_credits()
 
             # Calculate annual tax after rebates/credits
-            annual_tax_after_rebates = max(0,
+            annual_tax_after_rebates = max(
+                0,
                 self._component_based_variable_tax[tax_component]["total_structured_tax_amount"]
-                - tax_rebates - medical_credits
+                - tax_rebates
+                - medical_credits,
             )
 
-            # Recalculate current tax amount (monthly after rebates/credits)
-            previous_total_paid_taxes = self._component_based_variable_tax[tax_component]["previous_total_paid_taxes"]
-            current_tax_amount = max(0, (
-                annual_tax_after_rebates - previous_total_paid_taxes
-            ) / self.remaining_sub_periods)
+            # Recalculate structured PAYE after rebates/credits. Full-tax
+            # additional earnings remain payable in the selected payroll run.
+            previous_total_paid_taxes = self._component_based_variable_tax[tax_component][
+                "previous_total_paid_taxes"
+            ]
+            remaining_sub_periods = flt(self.remaining_sub_periods)
+            current_structured_tax_amount = 0
+            if remaining_sub_periods > 0:
+                current_structured_tax_amount = max(
+                    0,
+                    (annual_tax_after_rebates - previous_total_paid_taxes) / remaining_sub_periods,
+                )
+            full_tax_amount = flt(
+                self._component_based_variable_tax[tax_component].get("full_tax_on_additional_earnings")
+            )
+            current_tax_amount = current_structured_tax_amount + full_tax_amount
 
-            # Update the dictionary with adjusted tax amount
-            self._component_based_variable_tax[tax_component]["current_tax_amount"] = current_tax_amount
-
-            # Store tax value for ETI calculation
-            self.tax_value = current_tax_amount
+            self.total_structured_tax_amount = annual_tax_after_rebates
+            self.current_structured_tax_amount = current_structured_tax_amount
+            self.current_tax_amount = current_tax_amount
+            self._component_based_variable_tax[tax_component].update(
+                {
+                    "total_structured_tax_amount": annual_tax_after_rebates,
+                    "current_structured_tax_amount": current_structured_tax_amount,
+                    "current_tax_amount": current_tax_amount,
+                }
+            )
 
     def calculate_variable_tax(self, tax_component, has_additional_salary_tax_component=False):
         """
@@ -516,10 +540,12 @@ class ZASalarySlip(SalarySlip):
             # Calculate current structured tax amount (standard HRMS logic)
             if has_additional_salary_tax_component:
                 self.current_structured_tax_amount = self.additional_salary_amount
-            else:
+            elif self.remaining_sub_periods > 0:
                 self.current_structured_tax_amount = (
                     self.total_structured_tax_amount - self.previous_total_paid_taxes
                 ) / self.remaining_sub_periods
+            else:
+                self.current_structured_tax_amount = 0.0
 
             # Handle additional earnings with full tax (standard HRMS logic)
             self.full_tax_on_additional_earnings = 0.0
@@ -530,7 +556,9 @@ class ZASalarySlip(SalarySlip):
                     self.whitelisted_globals,
                     eval_locals if eval_locals is not None else {},  # Ensure not None
                 )
-                self.full_tax_on_additional_earnings = self.total_tax_amount - self.total_structured_tax_amount
+                self.full_tax_on_additional_earnings = (
+                    self.total_tax_amount - self.total_structured_tax_amount
+                )
         except ImportError:
             frappe.throw(_("HRMS is required for tax calculations. Please install HRMS app."))
 
@@ -577,20 +605,33 @@ class ZASalarySlip(SalarySlip):
         """
         # Get active medical aid details from Employee Private Benefit. A main
         # member with zero dependants still qualifies for the main-member credit.
-        benefit = frappe.db.get_value(
+        benefits = frappe.get_all(
             "Employee Private Benefit",
-            {
-                "effective_from": ["<=", self.start_date],
+            filters={
+                "effective_from": ["<=", self.end_date],
                 "disable": 0,
                 "employee": self.employee,
             },
-            ["private_medical_aid", "medical_aid_dependant"],
-            as_dict=True,
+            fields=[
+                "private_medical_aid",
+                "medical_aid_dependant",
+                "effective_from",
+                "to",
+            ],
             order_by="effective_from desc",
         )
 
-        if benefit and (benefit.get("private_medical_aid") or benefit.get("medical_aid_dependant") is not None):
-            return get_medical_aid_credit(self, benefit.get("medical_aid_dependant") or 0)
+        for benefit in benefits:
+            if benefit.to and getdate(benefit.to) < getdate(self.start_date):
+                continue
+            if flt(benefit.private_medical_aid) <= 0:
+                continue
+            return get_medical_aid_credit(
+                self,
+                benefit.medical_aid_dependant or 0,
+                membership_start_date=benefit.effective_from,
+                membership_end_date=benefit.to,
+            )
         return 0
 
     def calculate_net_pay(self, skip_tax_breakup_computation: bool = False):
@@ -612,30 +653,40 @@ class ZASalarySlip(SalarySlip):
         """
         Calculate and apply Employment Tax Incentive.
         """
-        # Check ETI eligibility
-        eligibility = check_eti_eligibility(self.employee, self)
+        remuneration = self.get_statutory_earning_basis("za_uif_applicable")
+        eligibility = check_eti_eligibility(self.employee, self, remuneration)
 
         if not eligibility["eligible"]:
             self.za_monthly_eti = 0
+            if not self.is_new():
+                log_eti_calculation(self.employee, self, 0, eligibility)
             return
 
-        # Calculate ETI amount
         eti_amount = calculate_eti_amount(
             self.employee,
             self,
-            self.get_statutory_earning_basis("za_uif_applicable") or self.gross_pay
+            remuneration,
+            eligibility=eligibility,
         )
+
+        if eti_amount <= 0:
+            eligibility["eligible"] = False
+            eligibility["reason"] = "No ETI is available at the employee's monthly remuneration"
 
         # Apply ETI to reduce PAYE
         self.za_monthly_eti = eti_amount
 
-        # Log ETI calculation
-        log_eti_calculation(
-            self.employee,
-            self,
-            eti_amount,
-            eligibility
-        )
+        if not self.is_new():
+            log_eti_calculation(self.employee, self, eti_amount, eligibility)
+
+    def _log_current_eti_calculation(self):
+        remuneration = self.get_statutory_earning_basis("za_uif_applicable")
+        eligibility = check_eti_eligibility(self.employee, self, remuneration)
+        eti_amount = flt(self.za_monthly_eti)
+        if eligibility["eligible"] and eti_amount <= 0:
+            eligibility["eligible"] = False
+            eligibility["reason"] = "No ETI is available at the employee's monthly remuneration"
+        log_eti_calculation(self.employee, self, eti_amount, eligibility)
 
     def calculate_company_contributions(self):
         """
@@ -651,10 +702,7 @@ class ZASalarySlip(SalarySlip):
 
         # Get additional company contributions
         additional_contributions = get_additional_salaries(
-            self.employee,
-            self.start_date,
-            self.end_date,
-            "company_contributions"
+            self.employee, self.start_date, self.end_date, "company_contributions"
         )
 
         contribution_dict = {}
@@ -676,23 +724,23 @@ class ZASalarySlip(SalarySlip):
 
         # Add additional company contributions
         for contrib in additional_contributions:
-            if contrib.salary_component in contribution_dict:
+            if contrib.component in contribution_dict:
                 # Update existing
-                idx = contribution_dict[contrib.salary_component]
+                idx = contribution_dict[contrib.component]
                 self.company_contribution[idx].amount += flt(contrib.amount)
             else:
                 # Add new
-                self.append("company_contribution", {
-                    "salary_component": contrib.salary_component,
-                    "amount": flt(contrib.amount)
-                })
+                self.append(
+                    "company_contribution",
+                    {"salary_component": contrib.component, "amount": flt(contrib.amount)},
+                )
         # Rollup total
         self.apply_statutory_company_contribution_amounts()
         self.total_company_contribution = sum(flt(row.amount) for row in self.get("company_contribution", []))
 
     def apply_statutory_deduction_amounts(self):
         uif_basis = self.get_statutory_earning_basis("za_uif_applicable")
-        employee_uif, _employer_uif = calculate_uif_contribution(uif_basis)
+        employee_uif, _employer_uif = calculate_uif_contribution(uif_basis, self.end_date)
 
         changed = False
         for row in self.get("deductions") or []:
@@ -708,7 +756,7 @@ class ZASalarySlip(SalarySlip):
     def apply_statutory_company_contribution_amounts(self):
         uif_basis = self.get_statutory_earning_basis("za_uif_applicable")
         sdl_basis = self.get_statutory_earning_basis("za_sdl_applicable")
-        _employee_uif, employer_uif = calculate_uif_contribution(uif_basis)
+        _employee_uif, employer_uif = calculate_uif_contribution(uif_basis, self.end_date)
         sdl = sdl_basis * get_sdl_rate(self.end_date)
 
         for row in self.get("company_contribution") or []:
@@ -727,72 +775,96 @@ class ZASalarySlip(SalarySlip):
             if not flt(row.amount) or row.get("statistical_component") or row.get("do_not_include_in_total"):
                 continue
             metadata = self.get_sa_component_metadata(row.salary_component)
+            self.get_required_sars_code(row.salary_component, metadata)
+            if applicability_field not in metadata:
+                frappe.throw(
+                    _("Salary Component {0} is missing the {1} classification field.").format(
+                        frappe.bold(row.salary_component), frappe.bold(applicability_field)
+                    ),
+                    title=_("Incomplete SARS Payroll Classification"),
+                )
             treatment = metadata.get("za_payroll_treatment")
             if treatment in {"Reimbursive Travel", "Non-Taxable Reimbursement", "Working Paper Only"}:
                 continue
             if metadata.get("za_is_reimbursement"):
                 continue
-            if treatment and metadata.get(applicability_field) in (0, "0"):
-                continue
-            if not treatment and not row.get("is_tax_applicable"):
+            if metadata.get(applicability_field) in (0, "0", False, None, ""):
                 continue
             total += flt(row.amount)
         return flt(total, 2)
 
     def is_component_in_codes(self, salary_component, codes):
         metadata = self.get_sa_component_metadata(salary_component)
+        return self.get_required_sars_code(salary_component, metadata) in codes
+
+    def get_required_sars_code(self, salary_component, metadata=None):
+        metadata = metadata or self.get_sa_component_metadata(salary_component)
         code = metadata.get("za_sars_payroll_code")
-        if code in codes:
-            return True
-        component_name = (salary_component or "").lower()
-        if codes == UIF_CODES and "uif" in component_name:
-            return True
-        if codes == SDL_CODES and ("sdl" in component_name or "skills development" in component_name):
-            return True
-        if codes == PAYE_CODES and ("paye" in component_name or "income tax" in component_name):
-            return True
-        return False
+        if code:
+            return code
+
+        frappe.throw(
+            _("Salary Component {0} must have a SARS Payroll Code before payroll can be calculated.").format(
+                frappe.bold(salary_component)
+            ),
+            title=_("Missing SARS Payroll Classification"),
+        )
 
     def recalculate_totals_after_statutory_adjustment(self):
-        self.total_deduction = sum(
-            flt(row.amount)
-            for row in self.get("deductions") or []
-            if not row.get("statistical_component") and not row.get("do_not_include_in_total")
-        )
-        self.net_pay = flt(self.gross_pay) - flt(self.total_deduction)
-        self.rounded_total = self.net_pay
-        if hasattr(self, "base_total_deduction"):
-            self.base_total_deduction = self.total_deduction
-        if hasattr(self, "base_net_pay"):
-            self.base_net_pay = self.net_pay
-        if hasattr(self, "base_rounded_total"):
-            self.base_rounded_total = self.rounded_total
+        self.set_net_pay()
 
     def add_additional_salary_components(self, component_type):
         """
         Add additional salary components, filtering out company contributions.
         """
         additional_salaries = get_additional_salaries(
-            self.employee,
-            self.start_date,
-            self.end_date,
-            component_type
+            self.employee, self.start_date, self.end_date, component_type
         )
 
         for additional_salary in additional_salaries:
+            component_data = get_salary_component_data(additional_salary.component)
+            remove_if_zero_valued = frappe.get_cached_value(
+                "Salary Component", additional_salary.component, "remove_if_zero_valued"
+            )
+            if flt(additional_salary.amount) == 0 and remove_if_zero_valued:
+                continue
             self.update_component_row(
-                get_salary_component_data(additional_salary.salary_component),
+                component_data,
                 additional_salary.amount,
                 component_type,
                 additional_salary,
                 is_recurring=additional_salary.is_recurring,
             )
 
+            if component_type == "earnings" and hasattr(self, "benefit_ledger_components"):
+                if (
+                    additional_salary.ref_doctype == "Employee Benefit Claim"
+                    and component_data.is_flexible_benefit
+                ) or component_data.accrual_component:
+                    if additional_salary.ref_doctype == "Employee Benefit Claim":
+                        remarks = f"Payout against Employee Benefit Claim {additional_salary.ref_docname}"
+                        flexible_benefit = 1
+                    else:
+                        remarks = "Accrual Component payout via Additional Salary"
+                        flexible_benefit = 0
+
+                    self.benefit_ledger_components.append(
+                        {
+                            "salary_component": additional_salary.component,
+                            "amount": additional_salary.amount,
+                            "is_accrual": 0,
+                            "transaction_type": "Payout",
+                            "flexible_benefit": flexible_benefit,
+                            "remarks": remarks,
+                        }
+                    )
+
     def on_submit(self):
         """
         Post-submission tasks.
         """
         super().on_submit()
+        submit_eti_log(self.employee, self)
 
         # Create loan repayment entries if applicable
         if self.get("loans"):
@@ -802,6 +874,7 @@ class ZASalarySlip(SalarySlip):
         """
         Post-cancellation tasks.
         """
+        cancel_eti_log(self.employee, self)
         super().on_cancel()
 
         # Cancel loan repayment entries if applicable
@@ -819,7 +892,12 @@ def get_eti_deduction(salary_slip):
     Returns:
         float: ETI amount
     """
-    eligibility = check_eti_eligibility(salary_slip.employee, salary_slip)
+    remuneration = (
+        salary_slip.get_statutory_earning_basis("za_uif_applicable")
+        if hasattr(salary_slip, "get_statutory_earning_basis")
+        else salary_slip.gross_pay
+    )
+    eligibility = check_eti_eligibility(salary_slip.employee, salary_slip, remuneration)
 
     if not eligibility["eligible"]:
         return 0
@@ -827,7 +905,8 @@ def get_eti_deduction(salary_slip):
     return calculate_eti_amount(
         salary_slip.employee,
         salary_slip,
-        salary_slip.get_statutory_earning_basis("za_uif_applicable") if hasattr(salary_slip, "get_statutory_earning_basis") else salary_slip.gross_pay
+        remuneration,
+        eligibility=eligibility,
     )
 
 

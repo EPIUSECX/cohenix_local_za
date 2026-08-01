@@ -4,7 +4,7 @@
 
 ## Track A — ERPNext-only (VAT & documents)
 
-Choose this if the client uses ERPNext for accounting, sales and purchasing, and needs South African **VAT compliance** and **SARS-compliant document templates**, but runs payroll elsewhere (or not at all).
+Choose this if the client uses ERPNext for accounting, sales and purchasing and needs South African **VAT working papers, controls and SA-oriented document templates**, but runs payroll elsewhere (or not at all).
 
 You get:
 
@@ -46,4 +46,4 @@ You install **HRMS**. Follow:
 
 ## Moving from Track A to Track B later
 
-You can start on Track A and add payroll later. Install HRMS, run `bench --site <site> migrate`, and the payroll DocTypes, overrides, salary components and SA Payroll workspace activate automatically. Then work through the payroll sections of this guide.
+You can start on Track A and add payroll later. Rehearse the HRMS installation and migration on a restored staging site, verify the resulting payroll metadata/configuration, then deploy through the controlled migration process and complete the payroll acceptance matrix.

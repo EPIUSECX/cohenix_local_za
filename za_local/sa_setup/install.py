@@ -15,11 +15,16 @@ from pathlib import Path
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.utils import flt
 from frappe.utils.fixtures import import_fixtures
 
 from za_local.sa_setup.custom_fields import setup_custom_fields
 from za_local.sa_setup.monkey_patches import setup_all_monkey_patches
 from za_local.sa_setup.property_setters import apply_property_setters
+from za_local.sa_setup.statutory_setup import (
+	ensure_all_company_tax_configuration,
+	ensure_company_tax_configuration,
+)
 from za_local.sa_vat.setup import (
 	ensure_vat_custom_fields,
 	migrate_legacy_vat_account_rows,
@@ -180,11 +185,25 @@ DEFAULT_SARS_PAYROLL_CODES = [
 		"print_sequence": 70,
 	},
 	{
+		"code": "3801",
+		"description": "Income - General Taxable Fringe Benefits",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 75,
+	},
+	{
 		"code": "3802",
 		"description": "Income - Use of Motor Vehicle",
 		"category": "Income",
 		"tax_treatment": "Taxable",
 		"print_sequence": 80,
+	},
+	{
+		"code": "3805",
+		"description": "Income - Residential Accommodation",
+		"category": "Income",
+		"tax_treatment": "Taxable",
+		"print_sequence": 85,
 	},
 	{
 		"code": "3901",
@@ -355,6 +374,9 @@ DEFAULT_SALARY_COMPONENT_SARS_CODES = {
 	"Uniform Allowance": "3713",
 	"Company Car Benefit": "3802",
 	"Use of Motor Vehicle": "3802",
+	"Housing Fringe Benefit": "3805",
+	"Low Interest Loan Fringe Benefit": "3801",
+	"Other Fringe Benefit": "3801",
 	"PAYE": "4102",
 	"Income Tax": "4102",
 	"Employment Tax Incentive": "4118",
@@ -384,17 +406,68 @@ DEFAULT_SALARY_COMPONENT_SARS_CODES = {
 }
 
 DEFAULT_IRP5_EXCLUDED_SALARY_COMPONENTS = {
+	"Company Car PAYE Adjustment",
 	"Garnishee Order",
 	"Union Subscription",
 }
 
+FRINGE_BENEFIT_SALARY_COMPONENTS = {
+	"Company Car Benefit",
+	"Company Car PAYE Adjustment",
+	"Housing Fringe Benefit",
+	"Low Interest Loan Fringe Benefit",
+	"Other Fringe Benefit",
+}
+
 DEFAULT_SALARY_COMPONENT_TREATMENTS = {
+	"Basic": {
+		"za_payroll_treatment": "Regular Remuneration",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 1,
+		"za_sdl_applicable": 1,
+		"za_coida_applicable": 1,
+	},
 	"Basic Salary": {
 		"za_payroll_treatment": "Regular Remuneration",
 		"za_paye_inclusion_percentage": 100,
 		"za_uif_applicable": 1,
 		"za_sdl_applicable": 1,
 		"za_coida_applicable": 1,
+	},
+	"Company Car Benefit": {
+		"za_payroll_treatment": "Regular Remuneration",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"Company Car PAYE Adjustment": {
+		"za_payroll_treatment": "Regular Remuneration",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"Housing Fringe Benefit": {
+		"za_payroll_treatment": "Regular Remuneration",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"Low Interest Loan Fringe Benefit": {
+		"za_payroll_treatment": "Regular Remuneration",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
+	},
+	"Other Fringe Benefit": {
+		"za_payroll_treatment": "Regular Remuneration",
+		"za_paye_inclusion_percentage": 100,
+		"za_uif_applicable": 0,
+		"za_sdl_applicable": 0,
+		"za_coida_applicable": 0,
 	},
 	"PAYE": {
 		"za_payroll_treatment": "PAYE",
@@ -540,23 +613,6 @@ def sync_za_local():
 	ensure_vat_custom_fields()
 
 
-def before_install():
-	"""
-	Run before app installation.
-
-	Creates essential DocTypes that are required before the app is fully installed:
-	- Company Contribution (child table for Salary Structure) - only if HRMS is installed
-	"""
-	# Only create Company Contribution if HRMS is available
-	# This is called during install, so we check if HRMS will be available
-	try:
-		create_company_contribution_doctype()
-	except Exception as e:
-		# Don't fail installation if this can't be created
-		print(f"  ! Could not create Company Contribution DocType: {e}")
-		print("  Note: This is only needed when HRMS is installed")
-
-
 def after_install():
 	with suppress_known_setup_warnings():
 		return _after_install()
@@ -580,13 +636,15 @@ def _after_install():
 	seed_statutory_rate_packs()
 	if is_hrms_installed():
 		setup_default_salary_components()
+		ensure_eti_payroll_settings_defaults()
+		ensure_all_company_tax_configuration()
 	seed_vat_vendor_types()
 	migrate_legacy_vat_account_rows()
 	apply_statutory_formulas()
 	repair_salary_component_accounts()
 	import_master_data()
-	seed_sars_payroll_codes()
-	seed_salary_component_classifications()
+	seed_sars_payroll_codes(overwrite=True)
+	seed_salary_component_classifications(overwrite=True)
 	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()
 	ensure_sa_localisation_module_def()
@@ -630,22 +688,33 @@ def _after_migrate():
 	setup_all_monkey_patches()
 	if is_hrms_installed():
 		setup_default_salary_components()
-	apply_statutory_formulas()
+		ensure_eti_payroll_settings_defaults()
+		ensure_all_company_tax_configuration()
 	seed_statutory_rate_packs()
 	repair_salary_component_accounts()
 	seed_vat_vendor_types()
 	migrate_legacy_vat_account_rows()
-	seed_sars_payroll_codes()
-	seed_salary_component_classifications()
+	seed_sars_payroll_codes(overwrite=False)
+	seed_salary_component_classifications(overwrite=False)
 	migrate_irp5_legacy_source_fields()
 	cleanup_orphaned_workspace_records()
 	ensure_sa_localisation_module_def()
 	ensure_modules_visible()
-	set_accounts_settings_for_za_vat()
 	migrate_workspace_sa_localisation_to_sa_overview()
 	sync_sa_navigation()
 	ensure_sa_print_formats()
 	ensure_sa_vat_print_format_field_templates()
+
+
+def ensure_eti_payroll_settings_defaults():
+	"""Populate ETI Single defaults that Custom Field creation cannot backfill."""
+	if not frappe.db.exists("DocType", "Payroll Settings"):
+		return
+	fieldname = "za_eti_unregulated_minimum_monthly_wage"
+	if not frappe.get_meta("Payroll Settings").has_field(fieldname):
+		return
+	if not flt(frappe.db.get_single_value("Payroll Settings", fieldname)):
+		frappe.db.set_single_value("Payroll Settings", fieldname, 2500)
 
 
 def set_accounts_settings_for_za_vat():
@@ -734,9 +803,9 @@ def ensure_sa_print_formats():
 			doc.insert(ignore_permissions=True)
 
 	if hrms_available and frappe.db.exists("DocType", "IRP5 Certificate"):
-		frappe.db.set_value("DocType", "IRP5 Certificate", "default_print_format", "IRP5 Employee Certificate")
+		_set_default_print_format_if_empty("IRP5 Certificate", "IRP5 Employee Certificate")
 	if hrms_available and frappe.db.exists("DocType", "Salary Slip") and frappe.db.exists("Print Format", "SA Salary Slip"):
-		frappe.db.set_value("DocType", "Salary Slip", "default_print_format", "SA Salary Slip")
+		_set_default_print_format_if_empty("Salary Slip", "SA Salary Slip")
 
 	# Make the SA format the default for each statutory/operational document so it
 	# is used out of the box. Only applied when both the DocType and format exist.
@@ -752,9 +821,14 @@ def ensure_sa_print_formats():
 	}
 	for doctype_name, print_format_name in default_print_formats.items():
 		if frappe.db.exists("DocType", doctype_name) and frappe.db.exists("Print Format", print_format_name):
-			frappe.db.set_value("DocType", doctype_name, "default_print_format", print_format_name)
+			_set_default_print_format_if_empty(doctype_name, print_format_name)
 
 	print("  ✓ South African print formats are available")
+
+
+def _set_default_print_format_if_empty(doctype_name, print_format_name):
+	if not frappe.db.get_value("DocType", doctype_name, "default_print_format"):
+		frappe.db.set_value("DocType", doctype_name, "default_print_format", print_format_name)
 
 
 def _load_standard_print_format_records():
@@ -2356,104 +2430,6 @@ def ensure_modules_visible():
 	print("  ✓ Module visibility check complete\n")
 
 
-def create_company_contribution_doctype():
-	"""
-	Create Company Contribution DocType if it doesn't exist.
-
-	This is a child table used in Salary Structure for company contributions
-	like UIF employer portion, SDL, COIDA, etc.
-
-	Note: Only creates if HRMS is installed, as it's used by Salary Structure.
-	"""
-	if not is_hrms_installed():
-		print("  ⊙ Skipping Company Contribution DocType (HRMS not installed)")
-		return
-
-	if frappe.db.exists("DocType", "Company Contribution"):
-		print("Company Contribution DocType already exists")
-		return
-
-	print("Creating Company Contribution DocType...")
-
-	# Determine module - use Payroll if available, otherwise SA Payroll
-	module_name = "Payroll"  # HRMS module
-	if not frappe.db.exists("Module Def", "Payroll"):
-		module_name = "SA Payroll"  # Fallback to our module
-
-	doc = frappe.get_doc(
-		{
-			"doctype": "DocType",
-			"name": "Company Contribution",
-			"module": module_name,
-			"custom": 1,
-			"istable": 1,
-			"editable_grid": 1,
-			"track_changes": 1,
-			"fields": [
-				{
-					"fieldname": "salary_component",
-					"label": "Salary Component",
-					"fieldtype": "Link",
-					"options": "Salary Component",
-					"in_list_view": 1,
-					"reqd": 1,
-				},
-				{
-					"fieldname": "abbr",
-					"label": "Abbr",
-					"fieldtype": "Data",
-					"fetch_from": "salary_component.salary_component_abbr",
-					"read_only": 1,
-				},
-				{
-					"fieldname": "amount",
-					"label": "Amount",
-					"fieldtype": "Currency",
-					"options": "currency",
-					"in_list_view": 1,
-					"allow_on_submit": 1,
-				},
-				{
-					"fieldname": "condition_and_formula_section",
-					"label": "Condition and Formula",
-					"fieldtype": "Section Break",
-					"collapsible": 1,
-				},
-				{
-					"fieldname": "condition",
-					"label": "Condition",
-					"fieldtype": "Code",
-					"fetch_from": "salary_component.condition",
-					"allow_on_submit": 1,
-				},
-				{"fieldname": "column_break_6", "fieldtype": "Column Break"},
-				{
-					"fieldname": "amount_based_on_formula",
-					"label": "Amount based on formula",
-					"fieldtype": "Check",
-					"default": "0",
-					"fetch_from": "salary_component.amount_based_on_formula",
-					"allow_on_submit": 1,
-				},
-				{
-					"fieldname": "formula",
-					"label": "Formula",
-					"fieldtype": "Code",
-					"fetch_from": "salary_component.formula",
-					"allow_on_submit": 1,
-				},
-			],
-			"permissions": [
-				{"role": "HR Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
-				{"role": "HR User", "read": 1, "write": 1, "create": 1},
-			],
-		}
-	)
-
-	doc.insert(ignore_permissions=True)
-	print("✓ Company Contribution DocType created successfully")
-
-
 def setup_default_data():
 	"""
 	Set up default data required for South African localization.
@@ -2473,24 +2449,28 @@ def setup_default_data():
 	print("  Note: Configure ETI Slabs, Tax Rebates, and other settings manually")
 
 
-def seed_sars_payroll_codes():
+def seed_sars_payroll_codes(overwrite=False):
 	"""Ensure the SARS Payroll Code master data exists and link known default salary components."""
 	if not frappe.db.exists("DocType", "SARS Payroll Code"):
 		return
 
 	for row in DEFAULT_SARS_PAYROLL_CODES:
 		if frappe.db.exists("SARS Payroll Code", row["code"]):
-			doc = frappe.get_doc("SARS Payroll Code", row["code"])
-			doc.update(row)
-			doc.flags.ignore_permissions = True
-			doc.save()
+			if overwrite:
+				doc = frappe.get_doc("SARS Payroll Code", row["code"])
+				doc.update(row)
+				doc.flags.ignore_permissions = True
+				doc.save()
 		else:
 			doc = frappe.get_doc({"doctype": "SARS Payroll Code", **row, "active": 1})
 			doc.insert(ignore_permissions=True)
 
 	if frappe.db.exists("DocType", "Salary Component"):
 		for salary_component, code in DEFAULT_SALARY_COMPONENT_SARS_CODES.items():
-			if frappe.db.exists("Salary Component", salary_component):
+			if frappe.db.exists("Salary Component", salary_component) and (
+				overwrite
+				or not frappe.db.get_value("Salary Component", salary_component, "za_sars_payroll_code")
+			):
 				frappe.db.set_value(
 					"Salary Component",
 					salary_component,
@@ -2500,7 +2480,10 @@ def seed_sars_payroll_codes():
 				)
 		if frappe.db.has_column("Salary Component", "za_exclude_from_irp5"):
 			for salary_component in DEFAULT_IRP5_EXCLUDED_SALARY_COMPONENTS:
-				if frappe.db.exists("Salary Component", salary_component):
+				if frappe.db.exists("Salary Component", salary_component) and (
+					overwrite
+					or not frappe.db.get_value("Salary Component", salary_component, "za_exclude_from_irp5")
+				):
 					frappe.db.set_value(
 						"Salary Component",
 						salary_component,
@@ -2512,7 +2495,7 @@ def seed_sars_payroll_codes():
 	print("  ✓ SARS Payroll Codes seeded")
 
 
-def seed_salary_component_classifications():
+def seed_salary_component_classifications(overwrite=False):
 	"""Apply South African payroll treatment metadata to known salary components."""
 	if not frappe.db.exists("DocType", "Salary Component"):
 		return
@@ -2521,7 +2504,17 @@ def seed_salary_component_classifications():
 	for component, values in DEFAULT_SALARY_COMPONENT_TREATMENTS.items():
 		if not frappe.db.exists("Salary Component", component):
 			continue
-		update_values = {field: value for field, value in values.items() if field in fields}
+		current = frappe.db.get_value(
+			"Salary Component",
+			component,
+			[field for field in values if field in fields],
+			as_dict=True,
+		) or {}
+		update_values = {
+			field: value
+			for field, value in values.items()
+			if field in fields and (overwrite or current.get(field) in (None, ""))
+		}
 		if update_values:
 			frappe.db.set_value("Salary Component", component, update_values, update_modified=False)
 
@@ -2535,13 +2528,17 @@ def seed_statutory_rate_packs():
 		return
 
 	data_dir = resolve_app_path("sa_setup", "data")
+	companies = frappe.get_all(
+		"Company",
+		filters={"country": "South Africa"},
+		pluck="name",
+		order_by="creation asc",
+	)
 	for path in sorted(data_dir.glob("statutory_rates_*.json")):
-		try:
-			pack = read_app_json(path)
-			_seed_eti_slabs_from_rate_pack(pack)
-			_seed_travel_rate_from_rate_pack(pack)
-		except Exception as e:
-			print(f"  ! Could not seed statutory rate pack {path.name}: {e}")
+		pack = read_app_json(path)
+		_seed_eti_slabs_from_rate_pack(pack)
+		for company in companies:
+			_seed_travel_rate_from_rate_pack(pack, company)
 
 	print("  ✓ Statutory rate packs seeded")
 
@@ -2550,44 +2547,64 @@ def _seed_eti_slabs_from_rate_pack(pack: dict):
 	if not frappe.db.exists("DocType", "ETI Slab"):
 		return
 	eti = pack.get("eti") or {}
+	rate_periods = eti.get("rate_periods") or [{}]
+	legacy_amendments = {}
 	for period_key, title_suffix in (
 		("first_12_months", "First 12 Months"),
 		("second_12_months", "Second 12 Months"),
 	):
-		title = f"ETI {pack.get('tax_year')} {title_suffix}"
-		existing = frappe.db.exists("ETI Slab", {"title": title})
-		doc = frappe.get_doc("ETI Slab", existing) if existing else frappe.new_doc("ETI Slab")
-		doc.title = title
-		doc.start_date = pack.get("effective_from")
-		doc.minimum_age = eti.get("minimum_age", 18)
-		doc.maximum_age = eti.get("maximum_age", 29)
-		doc.hours_in_a_month = eti.get("hours_in_a_month", 160)
-		doc.set("eti_slab_details", [])
-		for row in eti.get(period_key) or []:
-			doc.append(
-				"eti_slab_details",
-				{
-					"from_amount": row.get("from_amount"),
-					"to_amount": row.get("to_amount") or 999999999,
-					"eti_amount": row.get("amount"),
-					"percentage": row.get("percentage"),
-					"first_qualifying_12_months": (
-						_format_eti_formula(row) if period_key == "first_12_months" else ""
-					),
-					"second_qualifying_12_months": (
-						_format_eti_formula(row) if period_key == "second_12_months" else ""
-					),
-				},
-			)
-		doc.flags.ignore_permissions = True
-		if existing:
-			if doc.docstatus == 1:
-				doc.flags.ignore_validate_update_after_submit = True
-			doc.save(ignore_permissions=True)
-		else:
+		legacy_title = f"ETI {pack.get('tax_year')} {title_suffix}"
+		legacy_name = frappe.db.get_value(
+			"ETI Slab",
+			{"title": legacy_title, "docstatus": 1},
+			"name",
+		)
+		if legacy_name:
+			legacy_doc = frappe.get_doc("ETI Slab", legacy_name)
+			legacy_doc.cancel()
+			legacy_amendments[period_key] = legacy_name
+
+	for rate_period in rate_periods:
+		period_eti = {**eti, **rate_period}
+		period_from = rate_period.get("effective_from") or pack.get("effective_from")
+		period_to = rate_period.get("effective_to") or pack.get("effective_to")
+		period_label = f" ({period_from} to {period_to})"
+		for period_key, title_suffix in (
+			("first_12_months", "First 12 Months"),
+			("second_12_months", "Second 12 Months"),
+		):
+			title = f"ETI {pack.get('tax_year')}{period_label} {title_suffix}"
+			existing = frappe.db.exists("ETI Slab", {"title": title})
+			if existing:
+				continue
+			doc = frappe.new_doc("ETI Slab")
+			doc.title = title
+			if legacy_amendments.get(period_key):
+				doc.amended_from = legacy_amendments.pop(period_key)
+			doc.start_date = period_from
+			doc.minimum_age = period_eti.get("minimum_age", 18)
+			doc.maximum_age = period_eti.get("maximum_age", 29)
+			doc.hours_in_a_month = period_eti.get("hours_in_a_month", 160)
+			for row in period_eti.get(period_key) or []:
+				doc.append(
+					"eti_slab_details",
+					{
+						"from_amount": row.get("from_amount"),
+						"to_amount": row.get("to_amount") or 999999999,
+						"eti_amount": row.get("amount"),
+						"percentage": row.get("percentage"),
+						"first_qualifying_12_months": (
+							_format_eti_formula(row) if period_key == "first_12_months" else ""
+						),
+						"second_qualifying_12_months": (
+							_format_eti_formula(row) if period_key == "second_12_months" else ""
+						),
+					},
+				)
+			doc.flags.ignore_permissions = True
 			doc.insert(ignore_permissions=True)
-		if doc.docstatus == 0:
-			doc.submit()
+			if doc.docstatus == 0:
+				doc.submit()
 
 
 def _format_eti_formula(row: dict) -> str:
@@ -2598,26 +2615,44 @@ def _format_eti_formula(row: dict) -> str:
 	return f"R{row.get('amount')}"
 
 
-def _seed_travel_rate_from_rate_pack(pack: dict):
+def _seed_travel_rate_from_rate_pack(pack: dict, company: str):
 	if not frappe.db.exists("DocType", "Travel Allowance Rate"):
 		return
 	travel = pack.get("travel") or {}
 	rate_name = f"Travel Allowance {pack.get('tax_year')}"
-	existing = frappe.db.exists("Travel Allowance Rate", {"rate_name": rate_name})
-	doc = frappe.get_doc("Travel Allowance Rate", existing) if existing else frappe.new_doc("Travel Allowance Rate")
+	existing_name = frappe.db.get_value(
+		"Travel Allowance Rate",
+		{"rate_name": rate_name, "company": company, "docstatus": ["<", 2]},
+		"name",
+		order_by="creation desc",
+	)
+	doc = frappe.get_doc("Travel Allowance Rate", existing_name) if existing_name else frappe.new_doc(
+		"Travel Allowance Rate"
+	)
+	desired_rate = flt(travel.get("reimbursive_rate_per_km"))
+	desired_fixed_rate = flt(travel.get("fixed_allowance_default_paye_inclusion_percentage"))
+	if (
+		existing_name
+		and flt(doc.reimbursive_rate_per_km) == desired_rate
+		and flt(doc.fixed_allowance_rate) == desired_fixed_rate
+		and str(doc.effective_from) == str(pack.get("effective_from"))
+	):
+		return
+	if existing_name and doc.docstatus == 1:
+		doc.cancel()
+		amended_from = doc.name
+		doc = frappe.copy_doc(doc)
+		doc.amended_from = amended_from
 	doc.rate_name = rate_name
 	doc.effective_from = pack.get("effective_from")
-	doc.reimbursive_rate_per_km = travel.get("reimbursive_rate_per_km")
-	doc.fixed_allowance_rate = travel.get("fixed_allowance_default_paye_inclusion_percentage")
-	if not getattr(doc, "company", None):
-		doc.company = frappe.defaults.get_defaults().get("company")
+	doc.reimbursive_rate_per_km = desired_rate
+	doc.fixed_allowance_rate = desired_fixed_rate
+	doc.company = company
 	doc.flags.ignore_permissions = True
-	if existing:
-		if doc.docstatus == 1:
-			doc.flags.ignore_validate_update_after_submit = True
-		doc.save(ignore_permissions=True)
+	if doc.is_new():
+		doc.insert(ignore_permissions=True)
 	else:
-		doc.insert(ignore_permissions=True, ignore_mandatory=True)
+		doc.save(ignore_permissions=True)
 	if doc.docstatus == 0:
 		doc.submit()
 
@@ -2837,45 +2872,7 @@ def setup_default_salary_components():
 		return
 
 	components = [
-		{
-			"name": "PAYE",
-			"salary_component": "PAYE",
-			"salary_component_abbr": "PAYE",
-			"type": "Deduction",
-			"description": "Pay As You Earn - Income Tax",
-			"is_tax_applicable": 0,
-			"variable_based_on_taxable_salary": 1,
-		},
-		{
-			"name": "UIF Employee Contribution",
-			"salary_component": "UIF Employee Contribution",
-			"salary_component_abbr": "UIF_EE",
-			"type": "Deduction",
-			"description": "Unemployment Insurance Fund - Employee Contribution (1%)",
-			"is_tax_applicable": 0,
-			"formula": UIF_FORMULA,
-			"amount_based_on_formula": 1,
-		},
-		{
-			"name": "UIF Employer Contribution",
-			"salary_component": "UIF Employer Contribution",
-			"salary_component_abbr": "UIF_ER",
-			"type": "Company Contribution",
-			"description": "Unemployment Insurance Fund - Employer Contribution (1%)",
-			"is_tax_applicable": 0,
-			"formula": UIF_FORMULA,
-			"amount_based_on_formula": 1,
-		},
-		{
-			"name": "SDL Contribution",
-			"salary_component": "SDL Contribution",
-			"salary_component_abbr": "SDL",
-			"type": "Company Contribution",
-			"description": "Skills Development Levy (1%)",
-			"is_tax_applicable": 0,
-			"formula": SDL_FORMULA,
-			"amount_based_on_formula": 1,
-		},
+		*read_app_json(resolve_app_path("sa_setup", "data", "salary_components.json")),
 		{
 			"name": "Severance Benefit",
 			"salary_component": "Severance Benefit",
@@ -2913,6 +2910,46 @@ def setup_default_salary_components():
 	for component in components:
 		create_salary_component_if_not_exists(component)
 
+	# These are service-owned, non-cash earnings. Repair their semantic flags on
+	# existing sites so they can affect PAYE/IRP5 without changing cash pay or GL.
+	for component in FRINGE_BENEFIT_SALARY_COMPONENTS:
+		if frappe.db.exists("Salary Component", component):
+			values = {
+				"type": "Earning",
+				"is_tax_applicable": 1,
+				"depends_on_payment_days": 0,
+				"do_not_include_in_total": 1,
+				"do_not_include_in_accounts": 1,
+				"remove_if_zero_valued": 1,
+				"za_payroll_treatment": "Regular Remuneration",
+				"za_paye_inclusion_percentage": 100,
+				"za_uif_applicable": 0,
+				"za_sdl_applicable": 0,
+				"za_coida_applicable": 0,
+			}
+			if component == "Company Car PAYE Adjustment":
+				values["za_exclude_from_irp5"] = 1
+			else:
+				values["za_sars_payroll_code"] = DEFAULT_SALARY_COMPONENT_SARS_CODES[component]
+			frappe.db.set_value(
+				"Salary Component",
+				component,
+				values,
+				update_modified=False,
+			)
+
+	# PAYE is the HRMS income-tax component used by statutory payroll reports.
+	# This is semantic configuration, not a site preference, so repair older
+	# installations that were created from the former divergent hard-coded list.
+	if frappe.db.exists("Salary Component", "PAYE"):
+		frappe.db.set_value(
+			"Salary Component",
+			"PAYE",
+			"is_income_tax_component",
+			1,
+			update_modified=False,
+		)
+
 
 def make_property_setters():
 	"""Compatibility wrapper for the centralized property-setter implementation."""
@@ -2929,6 +2966,19 @@ def apply_statutory_formulas():
 
 	if not frappe.db.table_exists("Salary Component"):
 		print("  ⊙ Skipping statutory formula updates (Salary Component DocType not available)")
+		return
+
+	from za_local.utils.statutory_rates import find_rate_pack
+
+	if not find_rate_pack():
+		frappe.log_error(
+			title="ZA Local statutory formulas not refreshed",
+			message=(
+				"No statutory rate pack exists for the current tax year. "
+				"Existing Salary Component formulas were preserved."
+			),
+		)
+		print("  ! No current statutory rate pack; existing formulas preserved")
 		return
 
 	uif_monthly_cap = get_uif_monthly_cap()
@@ -2965,7 +3015,8 @@ def apply_statutory_formulas():
 			except Exception as e:
 				print(f"  ! Could not update Salary Component {canonical_name}: {e}")
 
-	# Update existing Salary Structure child rows and Salary Detail records
+	# Update draft Salary Structure rows only. Salary Slip child rows are statutory
+	# snapshots and must never be rewritten by install or migrate.
 	_update_statutory_formulas_in_child_tables(component_updates)
 
 	print("✓ Statutory formulas applied")
@@ -2983,20 +3034,12 @@ def _update_statutory_formulas_in_child_tables(component_updates: dict[str, dict
 				UPDATE `tabCompany Contribution`
 				SET amount_based_on_formula = 1, formula = %(formula)s
 				WHERE salary_component = %(name)s
+					AND parenttype = 'Salary Structure'
+					AND docstatus = 0
 				""",
 				{"name": name, "formula": fields["formula"]},
 			)
 
-	if frappe.db.table_exists("Salary Detail"):
-		for name, fields in component_updates.items():
-			frappe.db.sql(
-				"""
-				UPDATE `tabSalary Detail`
-				SET amount_based_on_formula = 1, formula = %(formula)s
-				WHERE salary_component = %(name)s
-				""",
-				{"name": name, "formula": fields["formula"]},
-			)
 
 
 
@@ -3182,38 +3225,14 @@ def run_za_local_setup(setup_doc, progress_user=None):
 				print("✓ Loaded earnings components")
 				applied.append(get_setup_field_label(setup_doc, "load_earnings_components"))
 
-			# Load tax configuration for ALL configured tax years (not just one).
-			# Income Tax Slab and Payroll Period are one record per year; loading is
-			# idempotent (insert_record skips existing). The Tax Rebates and Medical
-			# Tax Credit Single accumulates a row per year, so rebates must be MERGED
-			# rather than reloaded (a plain reload would overwrite prior years).
-			if setup_doc.load_tax_slabs:
-				_p(38, _("Loading income tax slabs and payroll periods"))
-				for filename in (
-					"payroll_period_2025.json",
-					"payroll_period_2026.json",
-					"payroll_period_2027.json",
-					"tax_slabs_2025.json",
-					"tax_slabs_2026.json",
-					"tax_slabs_2027.json",
-				):
-					file_path = data_dir / filename
-					if file_path.exists():
-						load_data_from_json(file_path)
-				print("✓ Loaded income tax slabs and payroll periods (all configured years)")
-				applied.append(get_setup_field_label(setup_doc, "load_tax_slabs"))
-
-			if setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
-				_p(48, _("Loading tax rebates and medical tax credits"))
-				for filename in (
-					"tax_rebates_2025.json",
-					"tax_rebates_2026.json",
-					"tax_rebates_2027.json",
-				):
-					file_path = data_dir / filename
-					if file_path.exists():
-						_merge_tax_rebates_from_file(file_path)
-				print("✓ Loaded tax rebates and medical tax credits (all configured years)")
+			# These records form one interdependent statutory configuration. Create
+			# missing company-scoped records together and preserve existing masters.
+			if setup_doc.load_tax_slabs or setup_doc.load_tax_rebates or setup_doc.load_medical_credits:
+				_p(42, _("Ensuring company payroll tax configuration"))
+				ensure_company_tax_configuration(setup_doc.company)
+				print("✓ Company payroll tax configuration is complete")
+				if setup_doc.load_tax_slabs:
+					applied.append(get_setup_field_label(setup_doc, "load_tax_slabs"))
 				if setup_doc.load_tax_rebates:
 					applied.append(get_setup_field_label(setup_doc, "load_tax_rebates"))
 				if setup_doc.load_medical_credits:
@@ -3332,92 +3351,15 @@ def run_za_local_setup_job(setup_name, user=None):
 
 @frappe.whitelist()
 def refresh_sa_tax_tables():
-    """
-    Idempotently reload South African payroll periods, tax slabs and rebates
-    from fixtures for all configured tax years (2025, 2026, 2027) without
-    recreating the site.
-    Can be run via bench:
-      bench --site <site> execute za_local.sa_setup.install.refresh_sa_tax_tables
-    """
-    # Whitelisted, so it is reachable over /api/method by any authenticated user.
-    # It re-seeds Income Tax Slabs and Tax Rebates from fixtures, which changes the
-    # PAYE every subsequent salary slip is calculated on.
-    frappe.only_for("System Manager")
+	"""Create missing statutory tax masters without rewriting existing records."""
+	frappe.only_for("System Manager")
+	if not is_hrms_installed():
+		frappe.throw(_("South African payroll tax tables require HRMS."), title=_("HRMS Required"))
 
-    require_hrms_message = "South African payroll periods and tax tables"
-    if not is_hrms_installed():
-        frappe.throw(
-            _("{0} require HRMS to be installed on this site.").format(require_hrms_message),
-            title=_("HRMS Required"),
-        )
-
-    data_dir = resolve_app_path("sa_setup", "data")
-    fixture_files = [
-        # Payroll Periods
-        "payroll_period_2025.json",  # 2024-2025 (2025 tax year)
-        "payroll_period_2026.json",  # 2025-2026 (2026 tax year)
-        "payroll_period_2027.json",  # 2026-2027 (2027 tax year)
-        # Income Tax Slabs
-        "tax_slabs_2025.json",  # 2024-2025 (2025 tax year)
-        "tax_slabs_2026.json",  # 2025-2026 (2026 tax year)
-        "tax_slabs_2027.json",  # 2026-2027 (2027 tax year)
-        # Tax Rebates & Medical Credits
-        "tax_rebates_2025.json",  # 2024-2025 (2025 tax year)
-        "tax_rebates_2026.json",  # 2025-2026 (2026 tax year)
-        "tax_rebates_2027.json",  # 2026-2027 (2027 tax year)
-    ]
-
-    print("\nRefreshing South African payroll periods and tax tables from fixtures...")
-    for filename in fixture_files:
-        file_path = data_dir / filename
-        if not file_path.exists():
-            print(f"  ⊙ Skipping {filename} (file not found)")
-            continue
-
-        try:
-            # Single DocType (Tax Rebates and Medical Tax Credit) needs merge behaviour, not delete/recreate
-            if filename.startswith("tax_rebates_"):
-                _merge_tax_rebates_from_file(file_path)
-                print(f"  ✓ Merged rebates from {filename}")
-            else:
-                # Best-effort pre-delete so fixture values overwrite existing ones for non-Single doctypes
-                try:
-                    raw = read_app_json(file_path)
-
-                    records: list[dict] = []
-                    if isinstance(raw, list):
-                        records = raw
-                    elif isinstance(raw, dict) and raw.get("doctype"):
-                        records = [raw]
-                    elif isinstance(raw, dict):
-                        for dt, rows in raw.items():
-                            for row in rows or []:
-                                row = dict(row)
-                                row.setdefault("doctype", dt)
-                                records.append(row)
-
-                    for record in records:
-                        doctype = record.get("doctype")
-                        name = record.get("name")
-                        if (
-                            doctype in ("Payroll Period", "Income Tax Slab")
-                            and name
-                            and frappe.db.exists(doctype, name)
-                        ):
-                            frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
-                            print(f"  ⊙ Deleted existing {doctype}: {name}")
-                except Exception:
-                    # Don't fail refresh if pre-delete inspection fails
-                    pass
-
-                load_data_from_json(file_path)
-                print(f"  ✓ Loaded {filename}")
-        except Exception as e:
-            print(f"  ! Error loading {filename}: {e}")
-
-    seed_statutory_rate_packs()
-    seed_salary_component_classifications()
-    print("✓ SA payroll periods and tax tables refresh complete\n")
+	results = ensure_all_company_tax_configuration()
+	seed_statutory_rate_packs()
+	print("✓ Missing South African tax masters created; existing records preserved\n")
+	return {"refreshed": True, "companies": results}
 
 
 def _merge_tax_rebates_from_file(file_path: Path) -> None:

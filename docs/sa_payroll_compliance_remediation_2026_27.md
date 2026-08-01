@@ -1,81 +1,61 @@
-# SA Payroll Compliance Remediation Verification 2026/27
+# 2026/27 Payroll Remediation Verification Note
 
-Validation date: 2026-05-26
+This document records the current verification scope for the 1 March 2026 to 28 February 2027 tax year. It is not a certificate of statutory compliance and does not replace employer, tax-practitioner, payroll-practitioner, bank or legal approval.
 
-Site: `development.cohenix`
+## Configured headline values
 
-App: `za_local` 3.4.2 on branch `version-16`, base commit `ccb8687` with local compliance remediation changes.
+The date-effective 2026/27 statutory pack currently contains:
 
-Compliance reference: `/workspace/South Africa Payroll Tax Guide 2026-27 (1).pdf`
+| Item | Configured value |
+|---|---:|
+| Primary / secondary / tertiary annual rebates | R17,820 / R9,765 / R3,249 |
+| Under-65 / age-65 / age-75 tax thresholds | R99,000 / R153,250 / R171,300 |
+| Medical scheme fees credit: main / first dependant / additional dependant, monthly | R376 / R376 / R254 |
+| UIF monthly remuneration cap | R17,712 |
+| UIF employee / employer rate | 1% / 1% |
+| SDL employer rate | 1% |
+| Reimbursive travel rate | R4.95/km |
+| Retirement deduction cap | 27.5%, limited to R430,000 annually |
+| COIDA annual earnings cap | R668,000 per employee |
+| Employer-provided housing abatement | R99,000 |
 
-## Confirmed Implementation
+Official-interest-rate entries are date-effective because the prescribed rate may change during a tax year. Do not replace these with one annual constant.
 
-- Added a versioned `2026-2027` statutory rate pack with effective dates, source reference, and active flag.
-- Added date-effective statutory lookup utilities for PAYE brackets, rebates, medical credits, UIF, SDL, ETI, travel allowance, retirement deduction caps, COIDA caps, and severance/lump-sum tax.
-- Seeded 2026/27 ETI slabs and travel allowance rates from the statutory pack.
-- Made setup/migrate idempotently seed statutory packs, SARS payroll codes, salary components, salary component classifications, and retirement fund types.
-- Added Salary Component payroll treatment fields for SARS code mapping, PAYE inclusion, UIF, SDL, COIDA, reimbursement, and variable-pay treatment.
-- Added default treatments for ordinary remuneration, PAYE, UIF, SDL, retirement funds, medical aid, overtime, commission, bonus, fixed travel allowance, reimbursive travel, reimbursements, severance, leave payout, and notice pay.
-- Updated Salary Slip calculations to use classification-backed PAYE inclusion, UIF, SDL, COIDA, ETI, retirement cap, fixed travel, and reimbursive travel treatment.
-- Updated final settlement handling to require a Tax Directive for severance/lump-sum payroll submission, use the 2026/27 lump-sum table, split final payslip components, and calculate UIF on normal termination remuneration.
-- Updated COIDA annual return logic to aggregate by employee and apply the 2026/27 R688,000 annual earnings cap per employee.
-- Hardened Payroll Entry state handling and removed broad `frappe.throw` suppression during salary slip creation.
-- Hardened EMP201 PAYE aggregation to include ordinary PAYE and lump-sum/directive PAYE from submitted slips only.
-- Hardened EMP501 submission readiness checks for employer references, EMP201 period coverage, IRP5 coverage, SARS code completeness, directive numbers, employee statutory readiness, and certificate internal totals.
-- Kept direct SARS/eCOID electronic submission disabled. Records remain manual filing working papers.
-- Updated repository hygiene expectations so `SA Overview` is not treated as a Workspace Sidebar fixture.
-- Added practitioner annual update guidance.
+Before production use, reconcile every value to the applicable SARS guide, Gazette or Department of Employment and Labour notice, including later amendments. In particular, confirm the COIDA ceiling and assessment rate against the Compensation Fund notice for the relevant assessment year.
 
-## Confirmed Test Evidence
+## Remediated behavior to verify
 
-Commands run:
+- PAYE uses date-effective slabs, rebates and medical credits and fails when required statutory configuration is absent.
+- UIF, SDL and COIDA bases use explicit Salary Component classifications instead of unrestricted gross pay.
+- Retirement deductions apply the percentage and annual monetary limit.
+- ETI applies date-effective bands and eligibility controls; reconcile generated, utilised and carried-forward ETI on EMP201.
+- Recurring and overwrite Additional Salary behavior is preserved from HRMS.
+- Loan repayments, exchange rates and rounding remain in net-pay calculations after statutory adjustments.
+- Submitted Company Car, Housing and Low Interest Loan benefits can create taxable non-cash Salary Slip rows without increasing cash net pay.
+- EMP201, IRP5/IT3(a) and EMP501 are internal working papers with readiness/reconciliation controls.
+- COIDA caps assessable remuneration per employee and uses the company/class industry rate.
 
-```sh
-bench --site development.cohenix migrate
-bench --site development.cohenix execute za_local.sa_setup.install.seed_statutory_rate_packs
-bench --site development.cohenix execute za_local.sa_setup.install.seed_salary_component_classifications
-bench --site development.cohenix run-tests --app za_local --module za_local.tests.test_sa_payroll_compliance_2027
-bench --site development.cohenix run-tests --app za_local
-```
+## External-format boundary
 
-Results:
+ZA Local does **not** perform direct SARS or eCOID submission. It does not produce the SARS BRS payroll-import CSV or encrypted reconciliation file. Generic PDF and CSV exports are review aids only and must not be represented or uploaded as statutory submission files.
 
-- Migration completed successfully.
-- Re-running statutory pack seeding completed without duplicate errors.
-- Re-running salary component classification seeding completed without duplicate errors.
-- Focused 2026/27 compliance tests passed: 8/8.
-- Full `za_local` test suite passed: 73 unit tests and 8 repository-hygiene tests.
+Payroll bank export is enabled only for FNB Online Banking Enterprise CSV through a submitted Payroll Payment Batch. Other bank formats require a separately implemented, versioned specification and formal bank acceptance testing.
 
-Database spot checks:
+## Required acceptance evidence
 
-- Salary Component custom payroll treatment fields present: 7 expected fields.
-- 2026/27 ETI slabs present and submitted: first 12 months and second 12 months.
-- 2026/27 travel allowance rate present: R4.95/km reimbursive rate and 80% fixed allowance PAYE inclusion.
-- Salary components with SA payroll classifications present.
+Do not approve go-live from a source-code review alone. On a disposable staging site restored from representative data:
 
-## Previous Failures Addressed
+1. back up and rehearse migration, then repeat it to assess idempotency;
+2. run static checks and the complete server test suite;
+3. stage and verify the documented E2E payroll, statutory, VAT and COIDA scenarios;
+4. reconcile payroll to GL, payment batch, EMP201 and certificates;
+5. reconcile VAT201 to posted tax rows and GL;
+6. inspect role/permission boundaries and private files;
+7. obtain FNB acceptance for a low-value payment file; and
+8. obtain written payroll/tax practitioner approval of statutory sources, mappings, calculations and filing procedures.
 
-| Previous failure | Remediation status |
-|---|---|
-| ETI 2026/27 missing or using old slabs | Fixed with rate pack lookup and 2026/27 ETI slab seeding. |
-| R6,000 first-12-month ETI expected R1,125 but actual R0 | Fixed and covered by automated test. |
-| Fixed travel allowance taxed at 100% by default | Fixed to 80% default PAYE inclusion, with override support. |
-| Reimbursive travel treatment not protected | Fixed helper treats prescribed-rate travel as non-taxable when no fixed allowance applies. |
-| UIF employee mismatch for prorated remuneration | Salary Slip statutory adjustment now recalculates employee and employer UIF from the same capped classified basis. |
-| SDL and COIDA bases included non-taxable items | Bases now use component classifications and exclude non-taxable reimbursements. |
-| COIDA annual cap missing | Fixed by employee-level annual cap aggregation. |
-| Severance used placeholder tax logic | Replaced with 2026/27 lump-sum table support and directive requirement. |
-| Final payslip unavailable from settlement | Implemented final Salary Slip generation with separate final-pay components. |
-| Payroll Entry draft docstatus with Submitted status | Hardened save/submit/cancel status consistency and removed broad exception suppression. |
-| Repository hygiene expected removed `sa_overview.json` fixture | Fixed hygiene tests to require only the active module workspace sidebars. |
+See [TESTING.md](../TESTING.md) for commands and the full acceptance matrix.
 
-## Confirmed Limits And Assumptions
+## Signoff limits
 
-- Direct SARS, EMP501 BRS XML, IRP5 bulk XML, and eCOID electronic submission remain unsupported by design in this pass.
-- The implementation is manual filing-ready working-paper support, not automated statutory submission.
-- Statutory rules outside the supplied 2026/27 guide are not inferred. They require practitioner confirmation before implementation.
-- A new statutory pack must be added and signed off for each future tax year before March payroll is processed.
-
-## Conclusion
-
-Based on the supplied 2026/27 guide, migration success, idempotent seed checks, and passing automated compliance tests, the app is now manual filing-ready for the implemented South African payroll scenarios, subject to practitioner review and annual statutory pack updates.
+Automated tests can establish repeatability against encoded expectations. They cannot determine whether an employee is legally eligible for ETI, whether a benefit valuation reflects all facts, whether a VAT supply is zero-rated, whether a directive applies, whether a COIDA classification/rate is correct, or whether SARS/DEL changed a requirement after the software release. Those decisions remain with the employer and appropriately qualified practitioners.

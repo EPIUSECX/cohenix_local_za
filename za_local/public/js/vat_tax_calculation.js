@@ -47,6 +47,7 @@
 			frm.add_custom_button(__("Check SA Tax Invoice"), () => {
 				frappe.call({
 					method: "za_local.sa_vat.tax_invoice.check_tax_invoice_readiness",
+					type: "GET",
 					args: { sales_invoice: frm.doc.name },
 					freeze: true,
 					freeze_message: __("Reviewing South Africa tax invoice requirements..."),
@@ -147,6 +148,7 @@
 
 		frappe.call({
 			method: "za_local.sa_vat.tax_invoice.get_sales_invoice_print_profile",
+			type: "GET",
 			args: {
 				company: frm.doc.company,
 				base_grand_total: frm.doc.base_grand_total,

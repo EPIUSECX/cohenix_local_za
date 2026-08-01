@@ -6,7 +6,7 @@ Before you capture transactions or run payroll, a few things must already be con
 
 - [ ] **Company created** with country South Africa and the SA registration fields completed (VAT number if registered). → [practitioner: Company & SA Registration](/sa-guide/foundation-setup-both-tracks/company-registration)
 - [ ] **Chart of Accounts** loaded, including VAT Output and VAT Input accounts. → [practitioner: Chart of Accounts](/sa-guide/foundation-setup-both-tracks/chart-of-accounts)
-- [ ] **A March–February Fiscal Year** exists. → [practitioner: ZA Local Setup & Fiscal Year](/sa-guide/foundation-setup-both-tracks/za-local-setup)
+- [ ] The company's normal **accounting Fiscal Year** exists. For payroll add a March–February Payroll Period; for the COIDA working paper add a Fiscal Year exactly 1 March to end February. → [practitioner: ZA Local Setup & Fiscal Year](/sa-guide/foundation-setup-both-tracks/za-local-setup)
 
 ## Required for VAT
 

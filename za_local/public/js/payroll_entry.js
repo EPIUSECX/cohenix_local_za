@@ -1,128 +1,101 @@
 frappe.ui.form.on("Payroll Entry", {
-	refresh: function (frm) {
-		if (frm.doc.docstatus == 1) {
-			// if (frm.custom_buttons) frm.clear_custom_buttons();
-			if (
-				frm.doc.salary_slips_submitted ||
-				(frm.doc.__onload && frm.doc.__onload.submitted_ss)
-			) {
-				frm.remove_custom_button("Make Bank Entry");
-				frm
-					.add_custom_button(__("Make Bank Entry"), function () {
-						// Fetch employee bank accounts from Employee doctype
-						let employee_list = frm.doc.employees.map(row => row.employee);
-						
-						frappe.call({
-							method: "frappe.client.get_list",
-							args: {
-								doctype: "Employee",
-								filters: { name: ["in", employee_list] },
-								fields: ["name", "za_payroll_payable_bank_account", "employee_name"],
-								limit_page_length: 0
-							},
-							callback: function(r) {
-								if (r.message) {
-									// Also fetch bank account details and flags
-									frappe.call({
-										method: "frappe.client.get_list",
-										args: {
-											doctype: "Payroll Employee Detail",
-											filters: { parent: frm.doc.name },
-											fields: ["employee", "za_is_bank_entry_created", "za_is_company_contribution_created"],
-											limit_page_length: 0
-										},
-										callback: function(flags_r) {
-											let flag_map = {};
-											if (flags_r.message) {
-												flags_r.message.forEach(item => {
-													flag_map[item.employee] = {
-														is_bank_entry_created: item.za_is_bank_entry_created || 0,
-														is_company_contribution_created: item.za_is_company_contribution_created || 0
-													};
-												});
-											}
-											
-											// Now fetch bank account currency for each bank account
-											let bank_accounts = [];
-											r.message.forEach(emp => {
-												if (emp.za_payroll_payable_bank_account) {
-													if (!bank_accounts.includes(emp.za_payroll_payable_bank_account)) {
-														bank_accounts.push(emp.za_payroll_payable_bank_account);
-													}
-												}
-											});
-											
-											if (bank_accounts.length === 0) {
-												frappe.msgprint({
-													message: __("No employees have bank accounts configured. Please configure bank accounts on Employee records."),
-													indicator: "orange",
-													title: __("Bank Account Required")
-												});
-												return;
-											}
-											
-											// Bank Account get_list: do not request account_currency (not permitted in this Frappe version).
-											// Use company default currency for dialog/exchange-rate UI only. Ledger currency comes from
-											// the Account doctype (Chart of Accounts) when the server builds the Journal Entry.
-											frappe.call({
-												method: "frappe.client.get_list",
-												args: {
-													doctype: "Bank Account",
-													filters: { name: ["in", bank_accounts] },
-													fields: ["name", "account"],
-													limit_page_length: 0
-												},
-												callback: function(bank_r) {
-													let company_currency = frappe.get_doc(":Company", frm.doc.company).default_currency;
-													let bank_map = {};
-													if (bank_r.message) {
-														bank_r.message.forEach(bank => {
-															bank_map[bank.name] = company_currency;
-														});
-													}
-													
-													// Build account_map
-													let account_map = {};
-													r.message.forEach((emp) => {
-														if (emp.za_payroll_payable_bank_account) {
-															let flags = flag_map[emp.name] || { is_bank_entry_created: 0, is_company_contribution_created: 0 };
-															let account_currency = bank_map[emp.za_payroll_payable_bank_account] || frappe.get_doc(":Company", frm.doc.company).default_currency;
-															
-															if (emp.za_payroll_payable_bank_account in account_map) {
-																account_map[emp.za_payroll_payable_bank_account].push({
-																	employee: emp.name,
-																	employee_name: emp.employee_name,
-																	account_currency: account_currency,
-																	is_bank_entry_created: flags.is_bank_entry_created,
-																	is_company_contribution_created: flags.is_company_contribution_created,
-																});
-															} else {
-																account_map[emp.za_payroll_payable_bank_account] = [
-																	{
-																		employee: emp.name,
-																		employee_name: emp.employee_name,
-																		account_currency: account_currency,
-																		is_bank_entry_created: flags.is_bank_entry_created,
-																		is_company_contribution_created: flags.is_company_contribution_created,
-																	},
-																];
-															}
-														}
-													});
-													
-													// Continue with dialog creation
-													show_bank_entry_dialog(frm, account_map);
-												}
-											});
-										}
-									});
-								}
-							}
-						});
-					})
-					.addClass("btn-primary");
-			}
+	refresh(frm) {
+		if (
+			frm.doc.docstatus !== 1 ||
+			!(frm.doc.salary_slips_submitted || frm.doc.__onload?.submitted_ss)
+		) {
+			return;
 		}
+
+		frm.remove_custom_button(__("Make Bank Entry"));
+		frm.add_custom_button(__("Make Bank Entry"), async () => {
+			try {
+				const employee_list = frm.doc.employees.map((row) => row.employee);
+				const [employee_response, flags_response] = await Promise.all([
+					frappe.call({
+						method: "frappe.client.get_list",
+						args: {
+							doctype: "Employee",
+							filters: { name: ["in", employee_list] },
+							fields: ["name", "za_payroll_payable_bank_account", "employee_name"],
+							limit_page_length: 0,
+						},
+					}),
+					frappe.call({
+						method: "frappe.client.get_list",
+						args: {
+							doctype: "Payroll Employee Detail",
+							filters: { parent: frm.doc.name },
+							fields: [
+								"employee",
+								"za_is_bank_entry_created",
+								"za_is_company_contribution_created",
+							],
+							limit_page_length: 0,
+						},
+					}),
+				]);
+
+				const employees = employee_response.message || [];
+				const flag_map = Object.fromEntries(
+					(flags_response.message || []).map((item) => [
+						item.employee,
+						{
+							is_bank_entry_created: item.za_is_bank_entry_created || 0,
+							is_company_contribution_created: item.za_is_company_contribution_created || 0,
+						},
+					])
+				);
+				const bank_accounts = [
+					...new Set(
+						employees
+							.map((employee) => employee.za_payroll_payable_bank_account)
+							.filter(Boolean)
+					),
+				];
+				if (!bank_accounts.length) {
+					frappe.msgprint({
+						message: __("No employees have bank accounts configured. Please configure bank accounts on Employee records."),
+						indicator: "orange",
+						title: __("Bank Account Required"),
+					});
+					return;
+				}
+
+				const bank_response = await frappe.call({
+					method: "frappe.client.get_list",
+					args: {
+						doctype: "Bank Account",
+						filters: { name: ["in", bank_accounts] },
+						fields: ["name", "account"],
+						limit_page_length: 0,
+					},
+				});
+				const company_currency = frappe.get_doc(":Company", frm.doc.company).default_currency;
+				const bank_map = Object.fromEntries(
+					(bank_response.message || []).map((bank) => [bank.name, company_currency])
+				);
+				const account_map = {};
+				employees.forEach((employee) => {
+					const bank_account = employee.za_payroll_payable_bank_account;
+					if (!bank_account) {
+						return;
+					}
+					const flags = flag_map[employee.name] || {};
+					account_map[bank_account] ||= [];
+					account_map[bank_account].push({
+						employee: employee.name,
+						employee_name: employee.employee_name,
+						account_currency: bank_map[bank_account] || company_currency,
+						is_bank_entry_created: flags.is_bank_entry_created || 0,
+						is_company_contribution_created: flags.is_company_contribution_created || 0,
+					});
+				});
+				show_bank_entry_dialog(frm, account_map);
+			} catch {
+				show_payroll_request_error();
+			}
+		}).addClass("btn-primary");
 	},
 });
 
@@ -131,54 +104,30 @@ function show_bank_entry_dialog(frm, account_map) {
 	let company_currency = frappe.get_doc(":Company", frm.doc.company).default_currency;
 	
 	for (let account in account_map) {
+		const safe_account = frappe.utils.escape_html(account);
 		let is_read_only = 0;
 		if (
 			account_map[account].length ==
 			account_map[account].filter(
-				(item) =>
-					item.is_bank_entry_created &&
-					item.is_company_contribution_created
+				(item) => item.is_bank_entry_created
 			).length
 		) {
 			is_read_only = 1;
 		}
 		field_list.push({
-			label: account,
+			label: safe_account,
 			fieldname: account,
 			fieldtype: "Check",
 			read_only: is_read_only,
 			change: () => {
-				$(".employee-list").empty();
-				for (let account in account_map) {
-					if (d.get_value(account)) {
-						$(".employee-list").append(`
-							<div class="col-sm-12" style="border-bottom: 1px solid #d4d4d4;"><b>Employees paid with <a href="/app/bank-account/${account}">${account}</a></b></div>
-						`);
-						account_map[account].forEach((row) => {
-							let is_disabled = false;
-							if (
-								!(
-									row.is_bank_entry_created ||
-									row.is_company_contribution_created
-								)
-							) {
-								is_disabled = true;
-							}
-							$(`.${row.employee}-col`).remove();
-
-							$(".employee-list").append(`
-								<div class="col-sm-6 ${row.employee}-col" style="border-bottom: 1px solid #d4d4d4;"><input type="checkbox" class="employee-checkbox" account="${account}" employee="${row.employee}" checked ${!is_disabled?"":"disabled"}><a href="/app/employee/${row.employee}" target="_blank" >${row.employee}: ${row.employee_name}</a></div>
-							`);
-						});
-					}
-				}
+				render_employee_list(d, account_map);
 			},
 		});
 		field_list.push({
 			fieldtype: "Column Break"
 		});
 		field_list.push({
-			label: "Payment Date" + " <small>(" + account + ")</small>",
+			label: __("Payment Date") + " <small>(" + safe_account + ")</small>",
 			fieldname: account + "_date",
 			fieldtype: "Date",
 			read_only: is_read_only,
@@ -191,11 +140,12 @@ function show_bank_entry_dialog(frm, account_map) {
 						to_currency: company_currency,
 						transaction_date: d.get_value(account + "_date"),
 					},
-					callback: function (r, rt) {
+					callback: function (r) {
 						if (r.message) {
 							d.set_value(account + "_ex_rate", r.message);
 						}
 					},
+					error: show_payroll_request_error,
 				});
 			},
 		});
@@ -203,7 +153,7 @@ function show_bank_entry_dialog(frm, account_map) {
 			fieldtype: "Column Break"
 		});
 		field_list.push({
-			label: "Exchange Rate" + " <small>(" + account + ")</small>",
+			label: __("Exchange Rate") + " <small>(" + safe_account + ")</small>",
 			fieldname: account + "_ex_rate",
 			fieldtype: "Float",
 			precision: 9,
@@ -220,32 +170,29 @@ function show_bank_entry_dialog(frm, account_map) {
 	});
 	
 	const d = new frappe.ui.Dialog({
-		title: "Enter details",
+		title: __("Enter details"),
 		fields: field_list,
 		size: "extra-large",
-		primary_action_label: "Create Bank Entry",
+		primary_action_label: __("Create Bank Entry"),
 		primary_action(values) {
 			let account_emp_map = {};
-			$(".employee-checkbox:checkbox:checked").each((i, e) => {
-				const acc = $(e).attr("account");
-				const emp = $(e).attr("employee");
-				if (
-					acc in account_emp_map &&
-					!account_emp_map[acc]["employees"].includes(emp)
-				) {
-					account_emp_map[acc]["employees"].push(emp);
-				} else {
-					account_emp_map[acc] = {};
-					account_emp_map[acc]["employees"] = [emp];
+			d.$wrapper.find(".employee-checkbox:checkbox:checked").each((i, e) => {
+				const acc = $(e).attr("data-account");
+				const emp = $(e).attr("data-employee");
+				if (!account_emp_map[acc]) {
+					account_emp_map[acc] = { employees: [] };
+				}
+				if (!account_emp_map[acc].employees.includes(emp)) {
+					account_emp_map[acc].employees.push(emp);
 				}
 			});
 			for (const account in account_emp_map) {
 				if (!values[account + "_date"]) {
-					frappe.throw(`Posting date for ${account} is mandatory`);
+					frappe.throw(__("Posting date for {0} is mandatory", [account]));
 				}
 
 				if (!values[account + "_ex_rate"]){
-					frappe.throw("Exchange rate cannot be zero")
+					frappe.throw(__("Exchange rate cannot be zero"));
 				}
 
 				account_emp_map[account]["currency"] =
@@ -264,26 +211,68 @@ function show_bank_entry_dialog(frm, account_map) {
 					dn: frm.doc.name,
 					selected_payment_account: account_emp_map,
 				},
-				callback: function (r) {
-					if (r.exc) {
-						frappe.msgprint({
-							message: r.exc,
-							indicator: "red",
-							title: __("Error")
-						});
-					} else {
-						frappe.set_route("List", "Journal Entry", {
-							"Journal Entry Account.reference_name": frm.doc.name,
-						});
-					}
+				callback: function () {
+					d.hide();
+					frappe.set_route("List", "Journal Entry", {
+						"Journal Entry Account.reference_name": frm.doc.name,
+					});
 				},
+				error: show_payroll_request_error,
 				freeze: true,
 				freeze_message: __("Creating Payment Entries......"),
 			});
-			d.hide();
-			frm.refresh();
 		},
 	});
 
 	d.show();
+}
+
+function show_payroll_request_error() {
+	frappe.msgprint({
+		title: __("Payroll Request Failed"),
+		message: __("The payroll request could not be completed. Review the error message and try again."),
+		indicator: "red",
+	});
+}
+
+function render_employee_list(dialog, account_map) {
+	const $employee_list = dialog.$wrapper.find(".employee-list");
+	$employee_list.empty();
+
+	for (const account in account_map) {
+		if (!dialog.get_value(account)) {
+			continue;
+		}
+
+		const $account_link = $("<a>", {
+			href: `/app/bank-account/${encodeURIComponent(account)}`,
+			target: "_blank",
+			rel: "noopener noreferrer",
+		}).text(account);
+		const $heading = $("<div>", { class: "col-sm-12" })
+			.css("border-bottom", "1px solid #d4d4d4")
+			.append($("<b>").append(__("Employees paid with "), $account_link));
+		$employee_list.append($heading);
+
+		account_map[account].forEach((row) => {
+			const is_disabled = Boolean(row.is_bank_entry_created);
+			const $checkbox = $("<input>", {
+				type: "checkbox",
+				class: "employee-checkbox",
+			})
+				.attr("data-account", account)
+				.attr("data-employee", row.employee)
+				.prop("checked", !is_disabled)
+				.prop("disabled", is_disabled);
+			const $employee_link = $("<a>", {
+				href: `/app/employee/${encodeURIComponent(row.employee)}`,
+				target: "_blank",
+				rel: "noopener noreferrer",
+			}).text(`${row.employee}: ${row.employee_name || ""}`);
+			const $employee = $("<div>", { class: "col-sm-6" })
+				.css("border-bottom", "1px solid #d4d4d4")
+				.append($checkbox, " ", $employee_link);
+			$employee_list.append($employee);
+		});
+	}
 }

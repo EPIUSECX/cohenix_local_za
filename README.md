@@ -27,9 +27,9 @@ Use the practitioner guides for Desk-first configuration, testing, and validatio
 
 ## Supported Stack
 
-- Frappe Framework v15/v16
-- ERPNext v15/v16
-- HRMS v15/v16 for payroll features
+- Frappe Framework v16
+- ERPNext v16
+- Frappe HR/HRMS v16 for payroll features
 - Python 3.10+
 
 ## Installation
@@ -44,7 +44,7 @@ bench restart
 
 ## Setup Model
 
-ZA Local assumes a South-Africa-first site. The setup wizard and `ZA Local Setup` can load South African defaults, custom fields, workspaces, statutory payroll data, VAT setup helpers, print formats, and module onboarding.
+ZA Local assumes a South-Africa-first site. Installation/migration synchronizes app-owned schema, custom fields, workspaces and print formats. The System-Manager-only `ZA Local Setup` job loads deliberately selected company/master/statutory data sets and may create or refresh app-owned defaults; its completion status is not practitioner signoff.
 
 For existing sites:
 
@@ -65,7 +65,7 @@ SA VAT is company-scoped and integrates with ERPNext accounting rather than repl
 - Unclassified or ambiguous rows are kept visible for practitioner review.
 - `VAT 201 Linked Transactions`, `VAT 201 Account Classifications`, `VAT Analysis`, and ERPNext `VAT Audit Report` are the review surfaces.
 - Tax-invoice readiness distinguishes no-tax-invoice, abridged invoice, and full tax invoice thresholds.
-- Direct SARS electronic submission is not supported; the supported posture is prepare, review, export, and file manually through SARS eFiling.
+- Direct SARS electronic submission is not supported. VAT201 is an internal working paper: review it against the general ledger and capture the approved figures on SARS eFiling. A generic PDF or CSV exported from ERPNext is not a SARS submission file.
 
 Available SA VAT reports:
 
@@ -84,7 +84,8 @@ SA Payroll extends HRMS payroll with South African statutory behaviour.
 - UIF employee and employer contributions are formula-driven and capped at the configured monthly limit.
 - SDL is handled as an employer company contribution.
 - Retirement-fund deductions are treated as pre-tax and capped using the South African annual retirement contribution limit.
-- Medical aid tax credits support main-member-only and dependant scenarios through Employee Private Benefit records.
+- Medical scheme tax credits use date-effective `Employee Private Benefit` records with an active private-medical-aid contribution and dependant count.
+- Submitted Company Car, Housing and Low Interest Loan benefit records can feed taxable non-cash fringe-benefit earnings into Salary Slips. These values affect PAYE and certificate reporting but not cash net pay.
 - ETI eligibility and monthly ETI are calculated from employee age, joining date, SA ID, hours, remuneration, and ETI slabs.
 - Salary Structure supports company contribution rows for UIF employer, SDL, employer retirement fund contributions, and employer medical aid contributions.
 - EMP201 fetches submitted Salary Slip values, including ETI, PAYE, UIF, and SDL.
@@ -104,7 +105,9 @@ Available SA Payroll reports:
 - HRMS payroll reports exposed in the ZA workspace: `Salary Register`, `Bank Remittance`, `Salary Payments Based On Payment Mode`, `Salary Payments via ECS`, `Income Tax Deductions`, `Income Tax Computation`
 - Accounting reports exposed in the ZA Payroll workspace: `General Ledger`, `Accounts Payable`, `Accounts Receivable`
 
-EMP501 and IRP5 / IT3(a) support follows the statutory workflow: monthly EMP201 declarations first, then EMP501 reconciliation, then IRP5 / IT3(a) certificate preparation and PDF review. SARS BRS/XML export and direct SARS electronic submission remain intentionally blocked unless a supported integration is added.
+EMP501 and IRP5 / IT3(a) support follows the statutory workflow: monthly EMP201 working papers, certificate preparation, and interim or annual reconciliation. ZA Local does not generate the SARS BRS payroll-import CSV, encrypted reconciliation file, or a direct eFiling/e@syFile submission. Do not upload a generic app CSV to SARS; capture through an approved SARS channel or use a separately validated BRS-compatible integration.
+
+Payroll EFT export is deliberately limited to the implemented and tested **FNB Online Banking Enterprise CSV** format. It is generated from a submitted `Payroll Payment Batch`, is stored as a private file, and requires the batch's source snapshot to remain unchanged. ABSA, Nedbank and Standard Bank exports are not supported until each current bank specification has completed controlled onboarding and acceptance testing.
 
 India-specific HRMS reports such as `Provident Fund Deductions` and `Professional Tax Deductions` are not exposed in ZA Payroll. ZA Local provides `Retirement Fund Deductions` for South African pension/provident/retirement-annuity deduction review instead.
 
@@ -134,8 +137,8 @@ Detailed labour setup and Desk validation scenarios are documented in [`docs/sa_
 
 SA COIDA supports Compensation Fund setup, annual return working papers, workplace injuries, and OID claims.
 
-- COIDA Settings stores the registration number, reference number, assessment year, submission deadline, and industry assessment rates.
-- COIDA Annual Return fetches submitted Salary Slip data for the 1 March to end-February assessment period and calculates the assessment fee from earnings and the configured rate.
+- `COIDA Settings` is a site-wide settings record. Its industry-rate rows are selected by company and industry class; company registration data remains on the Company master.
+- COIDA Annual Return uses a 1 March to end-February assessment year, includes only submitted Salary Slips fully inside the period, applies Salary Component COIDA classifications and the date-effective per-employee earnings cap, and calculates the working-paper assessment from the configured company/class rate.
 - Workplace Injury records support injury details, medical attention, leave linkage where HRMS leave is available, and OID claim creation.
 - OID Claims track claim date, claim status, medical reports, compensation amount, and payment date after submission.
 - Direct Compensation Fund/eCOID submission is not automated; the supported posture is prepare, review, and manually file.
@@ -170,16 +173,18 @@ The onboarding sequence is practitioner-first: configure company/settings record
 
 ## Development and Verification
 
-Run migrations:
+Before migration, back up the database and files and rehearse the upgrade on a restored staging copy. Then run the site migration in a maintenance window:
 
 ```bash
 bench --site your-site.local migrate
+bench build --app za_local
+bench --site your-site.local clear-cache
 ```
 
-Run all app tests:
+Run all app tests on a dedicated test site:
 
 ```bash
-bench --site your-site.local run-tests --app za_local
+bench --site your-test.local run-tests --app za_local --lightmode
 ```
 
 Useful focused checks:
@@ -193,12 +198,14 @@ Practitioner-facing validation steps are documented in the module guides linked 
 
 ## Important Boundaries
 
-- ZA Local prepares South African VAT and payroll working papers; it does not claim direct SARS electronic filing unless a real integration is added.
+- ZA Local prepares South African VAT and payroll working papers; it does not perform direct SARS electronic filing and its generic exports are not SARS BRS submission files.
+- Setup completion, successful migration, and passing automated tests are technical controls, not statutory signoff. A registered tax practitioner/payroll specialist must approve rates, mappings, calculations, submissions and payment totals for the employer's facts.
+- Statutory figures are date-effective configuration. Confirm the applicable SARS and Department of Employment and Labour publications before the first payroll/return of each period and before back-dated processing.
 - Payroll calculations depend on correct HRMS company, holiday list, salary component account, payroll period, income tax slab, and salary structure setup.
 - VAT201 depends on posted ERPNext tax rows and explicit VAT201 mappings; item categories are classification aids, not substitutes for tax evidence.
 - Labour WSP, ATR, and Employment Equity reports are supporting records and report surfaces; statutory portal submission remains manual.
 - COIDA Annual Return and OID Claim records are working papers and tracking records; Compensation Fund/eCOID submission remains manual.
-- Always confirm SARS rates before changing statutory fixtures.
+- Bank files require bank-specific acceptance testing. Only the FNB Online Banking Enterprise CSV implementation is currently enabled; verify a low-value test batch with the bank before production use.
 - Cohenix, EPI-USE, contributors, and implementers do not accept responsibility for incorrect calculations, incorrect setup, incorrect statutory interpretation, or missed submissions. Employers and practitioners remain responsible for validating all statutory values before filing.
 
 ## License

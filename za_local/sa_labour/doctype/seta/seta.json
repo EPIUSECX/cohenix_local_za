@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "seta_name",
+  "description",
   "code",
   "contact_person",
   "contact_email",
@@ -23,6 +24,11 @@
    "fieldname": "code",
    "fieldtype": "Data",
    "label": "Code"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
   },
   {
    "fieldname": "contact_person",
@@ -77,6 +83,5 @@
  "states": [],
  "track_changes": 1
 }
-
 
 

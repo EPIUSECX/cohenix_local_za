@@ -2,7 +2,6 @@
  "actions": [],
  "creation": "2025-01-28 12:00:00",
  "doctype": "DocType",
- "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "employee",
@@ -13,20 +12,26 @@
   "vehicle_registration",
   "vehicle_make_model",
   "purchase_price",
-  "column_break_8",
   "purchase_date",
-  "co2_emissions",
+  "column_break_8",
+  "has_maintenance_plan",
+  "employee_consideration",
   "section_break_11",
   "private_km_per_month",
   "business_km_per_month",
   "column_break_14",
   "total_km_per_month",
   "private_use_percentage",
+  "business_use_at_least_80_percent",
   "section_break_17",
   "monthly_taxable_value",
+  "paye_inclusion_percentage",
+  "monthly_paye_value",
   "calculation_method",
   "section_break_20",
-  "notes"
+  "notes",
+  "amended_from",
+  "co2_emissions"
  ],
  "fields": [
   {
@@ -60,7 +65,7 @@
   {
    "fieldname": "section_break_4",
    "fieldtype": "Section Break",
-   "label": "Vehicle Details"
+   "label": "Vehicle and Statutory Value"
   },
   {
    "fieldname": "vehicle_registration",
@@ -76,43 +81,50 @@
    "reqd": 1
   },
   {
+   "description": "VAT-inclusive determined value under paragraph 7 of the Seventh Schedule.",
    "fieldname": "purchase_price",
    "fieldtype": "Currency",
-   "label": "Purchase Price",
+   "label": "Determined Value",
    "precision": "2",
    "reqd": 1
+  },
+  {
+   "fieldname": "purchase_date",
+   "fieldtype": "Date",
+   "label": "Employer Acquisition Date"
   },
   {
    "fieldname": "column_break_8",
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "purchase_date",
-   "fieldtype": "Date",
-   "label": "Purchase Date"
+   "description": "Select only when a qualifying maintenance plan was included in the purchase price when the employer acquired the vehicle.",
+   "fieldname": "has_maintenance_plan",
+   "fieldtype": "Check",
+   "label": "Qualifying Maintenance Plan"
   },
   {
-   "description": "CO2 emissions in grams per kilometer",
-   "fieldname": "co2_emissions",
-   "fieldtype": "Int",
-   "label": "CO2 Emissions (g/km)",
-   "reqd": 1
+   "description": "Monthly consideration paid by the employee for private use, excluding fuel costs.",
+   "fieldname": "employee_consideration",
+   "fieldtype": "Currency",
+   "label": "Employee Monthly Consideration",
+   "precision": "2"
   },
   {
    "fieldname": "section_break_11",
    "fieldtype": "Section Break",
-   "label": "Usage"
+   "label": "Expected Usage and PAYE Evidence"
   },
   {
    "fieldname": "private_km_per_month",
    "fieldtype": "Float",
-   "label": "Private km per Month",
+   "label": "Expected Private km per Month",
    "precision": "2"
   },
   {
    "fieldname": "business_km_per_month",
    "fieldtype": "Float",
-   "label": "Business km per Month",
+   "label": "Expected Business km per Month",
    "precision": "2"
   },
   {
@@ -122,15 +134,21 @@
   {
    "fieldname": "total_km_per_month",
    "fieldtype": "Float",
-   "label": "Total km per Month",
+   "label": "Expected Total km per Month",
    "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "private_use_percentage",
    "fieldtype": "Percent",
-   "label": "Private Use %",
+   "label": "Expected Private Use %",
    "read_only": 1
+  },
+  {
+   "description": "Select only where the employer is satisfied that at least 80% of use during the tax year will be for business purposes. This reduces PAYE inclusion from 80% to 20%; it does not reduce the IRP5 cash equivalent.",
+   "fieldname": "business_use_at_least_80_percent",
+   "fieldtype": "Check",
+   "label": "Employer Satisfied: At Least 80% Business Use"
   },
   {
    "fieldname": "section_break_17",
@@ -138,9 +156,23 @@
    "label": "Taxable Calculation"
   },
   {
+   "description": "Full monthly cash equivalent reported under IRP5 code 3802.",
    "fieldname": "monthly_taxable_value",
    "fieldtype": "Currency",
-   "label": "Monthly Taxable Value",
+   "label": "Monthly Cash Equivalent",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "paye_inclusion_percentage",
+   "fieldtype": "Percent",
+   "label": "PAYE Inclusion %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "monthly_paye_value",
+   "fieldtype": "Currency",
+   "label": "Monthly PAYE Value",
    "precision": "2",
    "read_only": 1
   },
@@ -157,12 +189,29 @@
   {
    "fieldname": "notes",
    "fieldtype": "Text Editor",
-   "label": "Notes"
+   "label": "Evidence and Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Company Car Benefit",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "description": "Legacy informational field. CO2 emissions do not determine the South African fringe-benefit value.",
+   "fieldname": "co2_emissions",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "CO2 Emissions (Legacy)"
   }
  ],
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-01-28 12:00:00",
+ "modified": "2026-08-01 12:00:00",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "Company Car Benefit",
@@ -179,6 +228,7 @@
    "report": 1,
    "role": "HR Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
@@ -198,4 +248,3 @@
  "states": [],
  "track_changes": 1
 }
-

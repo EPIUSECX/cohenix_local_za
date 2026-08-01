@@ -45,11 +45,10 @@ def remove_custom_fields():
     Remove all custom fields created by za_local app.
     Names are taken from setup/custom_fields.py (CUSTOM_FIELD_FIXTURES_JSON) so they stay in sync.
     """
-    import json
     print("Removing custom fields...")
-    from za_local.sa_setup.custom_fields import CUSTOM_FIELD_FIXTURES_JSON
-    data = json.loads(CUSTOM_FIELD_FIXTURES_JSON)
-    custom_field_names = [d["name"] for d in data]
+    from za_local.sa_setup.custom_fields import get_custom_field_fixtures
+
+    custom_field_names = [d["name"] for d in get_custom_field_fixtures()]
     count = 0
     for field_name in custom_field_names:
         if frappe.db.exists("Custom Field", field_name):

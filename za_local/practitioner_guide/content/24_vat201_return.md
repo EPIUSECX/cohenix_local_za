@@ -20,7 +20,7 @@ The **VAT201 Return** is a working paper that gathers your posted sales and purc
 
 5. **Check the totals.** The return computes Total Output VAT, Total Input VAT, and **VAT Payable = Output − Input** (or a refund if input exceeds output).
 
-6. **File on SARS eFiling.** Export/print the return and capture it on eFiling. `za_local` does **not** submit electronically to SARS — it produces the working paper and audit trail; the eFiling submission is manual.
+6. **File on SARS eFiling.** Reconcile and capture the approved values on eFiling. `za_local` does **not** submit electronically; generic PDF/CSV exports are evidence aids, not SARS return files.
 
 ## Reconciling before you file
 

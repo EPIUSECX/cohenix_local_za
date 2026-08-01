@@ -8,7 +8,9 @@ SA VAT helps practitioners configure South African VAT in ERPNext, prepare VAT20
 
 SA VAT does not replace ERPNext Accounting. Sales Invoices, Purchase Invoices, tax templates, GL Entries, and ERPNext VAT accounts remain the accounting source. ZA Local adds South African setup, classification, working-paper, report, and print-format support.
 
-Direct SARS electronic submission is not supported. The supported process is prepare, review, export, and file manually through SARS eFiling.
+Direct SARS electronic submission is not supported. VAT201 is an internal working paper: reconcile it to posted tax rows and the general ledger, then capture approved figures on eFiling. Generic ERPNext PDF/CSV exports are not SARS submission files.
+
+Primary operator references include the [SARS tax-invoice requirements](https://www.sars.gov.za/businesses-and-employers/government/tax-invoices/) and the current [SARS Budget FAQ](https://www.sars.gov.za/about/sars-tax-and-customs-system/budget/budget-2026-frequently-asked-questions/) for registration-threshold changes. Retain the exact source/version reviewed.
 
 ## Prerequisites
 
@@ -37,6 +39,8 @@ Review or create:
 - Item Tax Templates where used.
 - Item VAT categories.
 - VAT201 classification mappings.
+
+VAT bootstrap and setup endpoints are System Manager-only. Accounts Managers may prepare/submit VAT working papers; Accounts Users should be review-only unless broader ERPNext permissions are intentionally granted. Apply Company User Permissions on multi-company sites.
 
 ## Configuration Tutorial
 
@@ -362,7 +366,7 @@ Steps:
 Expected result:
 
 - Direct electronic SARS submission is blocked or not available.
-- Practitioner is guided to manual SARS eFiling using reviewed working papers.
+- Practitioner is guided to manual SARS eFiling using reviewed working papers; no generic export is described as an electronic return.
 
 ## Reports And Print Formats To Review
 
@@ -399,5 +403,4 @@ Print formats:
 
 ## Practitioner Responsibility
 
-The practitioner must validate VAT rates, classifications, invoice requirements, VAT201 totals, and final SARS eFiling values before submission. ZA Local provides working papers and controls; it does not guarantee compliance without review.
-
+The practitioner must validate VAT rates, supply classifications, invoice particulars, consideration thresholds (no tax invoice at R50 or less, abridged above R50 through R5,000, full above R5,000), VAT201 totals, and final eFiling values. The thresholds are evaluated on a ZAR basis; foreign-currency cases require explicit review. ZA Local provides working papers and SA-oriented print formats, not legal certification.

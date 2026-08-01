@@ -26,8 +26,7 @@
 {% set company_vat = (company_doc.get("za_vat_number") or company_doc.get("tax_id")) if company_doc else "" %}
 {% set party_vat = party_doc.get("tax_id") if party_doc else "" %}
 {% set company_registration = company_doc.get("company_registration") if company_doc else "" %}
-{% set amount = doc.get("rounded_total") or doc.get("grand_total") or doc.get("base_grand_total") or 0 %}
-{% set inferred_profile = "VAT Adjustment Document" if "credit note" in title_key or "debit note" in title_key else ("Supplier Tax Invoice Evidence" if doc.doctype == "Purchase Invoice" else ("Full Tax Invoice" if "full" in title_key or amount > 5000 else ("Abridged Tax Invoice" if "abridged" in title_key or ("tax invoice" in title_key and amount > 50) else "Business Document"))) %}
+{% set inferred_profile = za_tax_invoice_profile if za_tax_invoice_profile is defined and za_tax_invoice_profile else ("VAT Adjustment Document" if "credit note" in title_key or "debit note" in title_key else ("Supplier Tax Invoice Evidence" if doc.doctype == "Purchase Invoice" else ("Tax Invoice" if "tax invoice" in title_key else "Business Document"))) %}
 {% set is_tax_document = "tax invoice" in title_key or "credit note" in title_key or "debit note" in title_key or doc.doctype == "Purchase Invoice" %}
 {% set document_number_label = za_document_number_label or ("Invoice Number" if "invoice" in title_key else "Document Number") %}
 {% set document_date_label = za_document_date_label or ("Invoice Date" if "invoice" in title_key else "Document Date") %}
@@ -47,10 +46,14 @@
 		{{ fallback_display }}
 	{% elif address_name %}
 		{% set address = frappe.db.get_value("Address", address_name, ["address_line1", "address_line2", "city", "state", "pincode", "country"], as_dict=True) %}
-		{% if entity_name %}{{ entity_name }}<br>{% endif %}
-		{{ address.address_line1 or "" }}<br>
-		{% if address.address_line2 %}{{ address.address_line2 }}<br>{% endif %}
-		{{ address.city or "" }}{% if address.state %}, {{ address.state }}{% endif %}{% if address.pincode %} {{ address.pincode }}{% endif %}{% if address.country %}, {{ address.country }}{% endif %}
+		{% if address %}
+			{% if entity_name %}{{ entity_name }}<br>{% endif %}
+			{{ address.address_line1 or "" }}<br>
+			{% if address.address_line2 %}{{ address.address_line2 }}<br>{% endif %}
+			{{ address.city or "" }}{% if address.state %}, {{ address.state }}{% endif %}{% if address.pincode %} {{ address.pincode }}{% endif %}{% if address.country %}, {{ address.country }}{% endif %}
+		{% elif entity_name %}
+			{{ entity_name }}
+		{% endif %}
 	{% elif entity_name %}
 		{{ entity_name }}
 	{% endif %}
@@ -266,6 +269,16 @@
 					{% endif %}
 				</td>
 			</tr>
+			{% if doc.get("return_against") or doc.get("amended_from") %}
+				<tr>
+					<td>
+						{% if doc.get("return_against") %}<span class="heading">{{ _("Adjusts Document") }}:</span> {{ doc.get("return_against") }}{% endif %}
+					</td>
+					<td>
+						{% if doc.get("amended_from") %}<span class="heading">{{ _("Amended From") }}:</span> {{ doc.get("amended_from") }}{% endif %}
+					</td>
+				</tr>
+			{% endif %}
 		</table>
 
 		{% if doc.get("items") %}

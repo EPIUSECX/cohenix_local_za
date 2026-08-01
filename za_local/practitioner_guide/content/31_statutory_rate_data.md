@@ -25,6 +25,10 @@ From these packs the app also seeds **Desk-reviewable records** so practitioners
 
 5. **Rate pack resolves** — in the console, `get_rate_pack(<a date in the year>)["tax_year"]` returns the expected year.
 
+Also verify date-effective official interest rates for low-interest-loan benefits, the housing abatement/percentages, retirement limit, subsistence rates and COIDA cap. Mid-year changes (for example ETI or official interest) must be tested on both sides of the effective date.
+
+For 2026/27 the current configured headline values include rebates R17,820/R9,765/R3,249, medical credits R376/R376/R254 monthly, UIF cap R17,712, reimbursive travel R4.95/km, retirement cap R430,000 and COIDA cap R668,000. These figures are verification aids, not a substitute for the applicable SARS/DEL publications.
+
 ## Linking the tax slab to employees
 
 Each employee's **Salary Structure Assignment** carries an **Income Tax Slab** link. It must point at the slab for the tax year of the payroll period being processed. If you process across a tax-year boundary, create a new assignment from 1 March linked to the new year's slab. See [Salary Structures & Assignments](salary-structures).

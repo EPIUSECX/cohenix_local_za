@@ -8,6 +8,8 @@ SA Labour provides practitioner support for South African labour administration.
 
 SA Labour does not submit WSP, ATR, Employment Equity, or bargaining council returns electronically. It provides structured data, working papers, and review reports for practitioner use.
 
+Employment Equity, remuneration, training and business-trip records contain personal and financial data. Apply Company User Permissions and least-privilege HR roles, test report access with a restricted user, and reserve setup/master imports for System Manager. External submissions and legal classifications remain practitioner-controlled.
+
 ## Prerequisites
 
 Before configuring SA Labour:
@@ -379,4 +381,3 @@ Expected result:
 ## Practitioner Responsibility
 
 Practitioners must confirm current labour rates, SETA requirements, bargaining council rules, Employment Equity classifications, and submission rules before using the data externally. ZA Local provides structured records and reports, not external portal submission or statutory certification.
-

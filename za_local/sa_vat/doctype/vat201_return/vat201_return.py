@@ -199,16 +199,18 @@ class VAT201Return(Document):
 		if updates:
 			self.db_set(updates, update_modified=False)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["GET"])
 	def submit_to_sars(self):
+		self.check_permission("read")
 		frappe.throw(
 			_(
 				"Direct SARS electronic submission is not supported in this release. Export your VAT201 working papers and complete filing manually through SARS eFiling."
 			)
 		)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["GET"])
 	def get_summary_rows(self):
+		self.check_permission("read")
 		return [
 			{"box": "1", "label": "Standard rated supplies (non-capital)", "amount": self.standard_rated_supplies_non_capital},
 			{"box": "1A", "label": "Standard rated supplies (capital goods)", "amount": self.standard_rated_supplies_capital},
@@ -227,8 +229,9 @@ class VAT201Return(Document):
 			{"box": "REFUND", "label": "VAT refundable", "amount": self.vat_refundable},
 		]
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["GET"])
 	def get_linked_transaction_rows(self):
+		self.check_permission("read")
 		rows = []
 		for row in self.transactions:
 			rows.append(
@@ -250,8 +253,9 @@ class VAT201Return(Document):
 			)
 		return rows
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def get_vat_transactions(self):
+		self.check_permission("write")
 		if not self.company or not self.from_date or not self.to_date:
 			frappe.throw(_("Company, From Date, and To Date are required."))
 		if self.docstatus != 0 or self.status != "Draft":
@@ -323,7 +327,7 @@ class VAT201Return(Document):
 			fields=["name", "posting_date", "taxes_and_charges", "base_net_total", "is_return"],
 		)
 		for invoice in invoices:
-			sign = -1 if cint(invoice.is_return) else 1
+			sign = self.get_invoice_sign(invoice)
 			default_classification = self.get_template_classification(
 				settings, invoice.taxes_and_charges, "Sales Invoice"
 			)
@@ -359,7 +363,7 @@ class VAT201Return(Document):
 			fields=["name", "posting_date", "taxes_and_charges", "base_net_total", "is_return"],
 		)
 		for invoice in invoices:
-			sign = -1 if cint(invoice.is_return) else 1
+			sign = self.get_invoice_sign(invoice)
 			default_classification = self.get_template_classification(
 				settings, invoice.taxes_and_charges, "Purchase Invoice"
 			)
@@ -369,7 +373,7 @@ class VAT201Return(Document):
 			taxes = frappe.get_all(
 				"Purchase Taxes and Charges",
 				filters={"parent": invoice.name, "account_head": settings.input_vat_account},
-				fields=["name", "rate", "tax_amount", "total"],
+				fields=["name", "rate", "base_tax_amount as tax_amount", "base_total as total"],
 				order_by="idx asc",
 			)
 			rows.extend(
@@ -533,10 +537,16 @@ class VAT201Return(Document):
 			item_groups[classification] += flt(item.base_net_amount) * sign
 		return item_groups
 
+	def get_invoice_sign(self, invoice):
+		# ERPNext normally stores return totals as negative values. Older/imported
+		# returns can be positive, so only apply a corrective sign in that case.
+		return -1 if cint(invoice.is_return) and flt(invoice.base_net_total) > 0 else 1
+
 	def build_sales_invoice_rows(self, invoice, item_groups, taxes, default_classification, sign):
 		rows = []
 		total_tax = sum(flt(tax.tax_amount) for tax in taxes) * sign
 		total_amount = flt(invoice.base_net_total) * sign
+		total_consideration = total_amount + total_tax
 
 		if taxes:
 			if item_groups:
@@ -554,7 +564,7 @@ class VAT201Return(Document):
 							posting_date=invoice.posting_date,
 							taxes_and_charges=invoice.taxes_and_charges,
 							tax_amount=total_tax,
-							incl_tax_amount=total_amount,
+							incl_tax_amount=total_consideration,
 							classification_status=NEEDS_REVIEW,
 							classification_issue=_("Invoice item VAT categories produced unsupported sales classifications."),
 							classification_debugging=", ".join(invalid_item_classes),
@@ -580,7 +590,7 @@ class VAT201Return(Document):
 							posting_date=invoice.posting_date,
 							taxes_and_charges=invoice.taxes_and_charges,
 							tax_amount=total_tax,
-							incl_tax_amount=total_amount,
+							incl_tax_amount=total_consideration,
 							classification_status=NEEDS_REVIEW,
 							classification_issue=_("Posted sales VAT exists, but no standard-rated classification could be derived from mappings or item categories."),
 							classification_debugging=f"Template: {invoice.taxes_and_charges}",
@@ -612,7 +622,7 @@ class VAT201Return(Document):
 						posting_date=invoice.posting_date,
 						taxes_and_charges=invoice.taxes_and_charges,
 						tax_amount=total_tax,
-						incl_tax_amount=total_amount,
+						incl_tax_amount=total_consideration,
 						classification=default_classification,
 						classification_status=CLASSIFIED,
 						classification_debugging=f"Classified from sales tax template {invoice.taxes_and_charges}",
@@ -626,7 +636,7 @@ class VAT201Return(Document):
 					posting_date=invoice.posting_date,
 					taxes_and_charges=invoice.taxes_and_charges,
 					tax_amount=total_tax,
-					incl_tax_amount=total_amount,
+					incl_tax_amount=total_consideration,
 					classification_status=NEEDS_REVIEW,
 					classification_issue=_("Posted sales VAT exists, but no explicit VAT201 mapping or supported item VAT category was found."),
 				)
@@ -694,6 +704,7 @@ class VAT201Return(Document):
 	def build_purchase_invoice_rows(self, invoice, item_groups, taxes, default_classification, sign):
 		total_tax = sum(flt(tax.tax_amount) for tax in taxes) * sign
 		total_amount = flt(invoice.base_net_total) * sign
+		total_consideration = total_amount + total_tax
 
 		if taxes:
 			if item_groups:
@@ -715,7 +726,7 @@ class VAT201Return(Document):
 							posting_date=invoice.posting_date,
 							taxes_and_charges=invoice.taxes_and_charges,
 							tax_amount=total_tax,
-							incl_tax_amount=total_amount,
+							incl_tax_amount=total_consideration,
 							classification_status=NEEDS_REVIEW,
 							classification_issue=_("Posted purchase VAT exists, but no deductible input classification could be derived from mappings or item categories."),
 							classification_debugging=f"Template: {invoice.taxes_and_charges}",
@@ -749,7 +760,7 @@ class VAT201Return(Document):
 						posting_date=invoice.posting_date,
 						taxes_and_charges=invoice.taxes_and_charges,
 						tax_amount=total_tax,
-						incl_tax_amount=total_amount,
+						incl_tax_amount=total_consideration,
 						classification=default_classification,
 						classification_status=CLASSIFIED,
 						classification_debugging=f"Classified from purchase tax template {invoice.taxes_and_charges}",
@@ -763,7 +774,7 @@ class VAT201Return(Document):
 					posting_date=invoice.posting_date,
 					taxes_and_charges=invoice.taxes_and_charges,
 					tax_amount=total_tax,
-					incl_tax_amount=total_amount,
+					incl_tax_amount=total_consideration,
 					classification_status=NEEDS_REVIEW,
 					classification_issue=_("Posted purchase VAT exists, but no explicit deductible VAT201 mapping was found."),
 				)
@@ -820,10 +831,12 @@ class VAT201Return(Document):
 					voucher_no=invoice.name,
 					posting_date=invoice.posting_date,
 					taxes_and_charges=template,
-					tax_account_debit=abs(tax_amount) if is_purchase and tax_amount > 0 else 0,
+					tax_account_debit=abs(tax_amount)
+					if (is_purchase and tax_amount > 0) or (not is_purchase and tax_amount < 0)
+					else 0,
 					tax_account_credit=abs(tax_amount) if (is_purchase and tax_amount < 0) or (not is_purchase and tax_amount > 0) else 0,
 					tax_amount=tax_amount,
-					incl_tax_amount=amount,
+					incl_tax_amount=amount + tax_amount,
 					classification=classification,
 					classification_status=CLASSIFIED,
 					classification_debugging="Allocated from posted tax evidence across mapped invoice item groups.",

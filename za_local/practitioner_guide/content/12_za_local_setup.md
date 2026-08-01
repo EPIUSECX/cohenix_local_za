@@ -11,7 +11,7 @@
 3. **Save** the document to store your selections.
 4. Click **Apply Selected Configuration** (top-right). The document moves to *In Progress*, runs the load, and records **Setup Completed On**. A feedback dialog summarises what was applied.
 
-It is **re-runnable**: open it again, adjust the ticks, and click *Apply Selected Configuration* to run it once more. Loading is idempotent — existing records are left in place.
+It is **re-runnable**, but it is a mutating System Manager operation. Some app-owned defaults may be created or refreshed. Run deliberate selections, review the completion warnings and Error Log, and do not infer statutory readiness from a *Completed* status.
 
 ### Options
 
@@ -27,7 +27,7 @@ It is **re-runnable**: open it again, adjust the ticks, and click *Apply Selecte
 
 **Master Data**
 
-- **Load Business Trip Regions** — predefined regions with SARS-compliant rates.
+- **Load Business Trip Regions** — starter region/reference data; verify allowances and rates before use.
 - **Load SETA List** — Sector Education and Training Authorities.
 - **Load Bargaining Councils** — South African bargaining councils.
 
@@ -35,7 +35,7 @@ It is **re-runnable**: open it again, adjust the ticks, and click *Apply Selecte
 
 - **Load Chart of Accounts** — the South African chart with all required tax accounts (VAT, PAYE, UIF, SDL, COIDA).
 
-> Most of this data is also seeded automatically on install/migrate. Use ZA Local Setup to (re)load a specific data set for a particular company, or to confirm everything is in place from one screen. If a load option is ticked but HRMS is missing, the app skips it rather than erroring.
+> Migration synchronizes app-owned configuration; ZA Local Setup loads selected company/master data. Neither process is practitioner signoff. If HRMS is absent, payroll-only options are unavailable.
 
 ### Publish the practitioner guide (optional)
 
@@ -51,7 +51,7 @@ The South African tax year runs **1 March to the last day of February**. Create 
 4. **Year End Date**: `2027-02-28`.
 5. Add the company under *Companies*.
 
-> ERPNext may have created a calendar-aligned fiscal year during the setup wizard. For South African statutory reporting, ensure a March-to-February fiscal year exists, because COIDA returns, EMP501 reconciliation and annual payroll calculations align to it.
+> An accounting Fiscal Year may follow the company's normal year-end. Payroll Periods use the SA tax year. The COIDA working paper specifically requires a Fiscal Year of 1 March to the last day of February; create that additional year where necessary.
 
 ## Payroll Period (full suite)
 

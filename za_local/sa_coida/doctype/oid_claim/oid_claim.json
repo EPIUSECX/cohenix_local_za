@@ -133,9 +133,10 @@
   },
   {
    "allow_on_submit": 1,
-   "fieldname": "claim_date",
-   "fieldtype": "Date",
-   "label": "Claim Date"
+      "fieldname": "claim_date",
+      "fieldtype": "Date",
+      "label": "Claim Date",
+      "read_only": 1
   },
   {
    "allow_on_submit": 1,
@@ -144,8 +145,9 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Claim Status",
-   "options": "Pending\nSubmitted\nUnder Review\nApproved\nRejected\nPaid",
-   "reqd": 1
+      "options": "Pending\nSubmitted\nUnder Review\nApproved\nRejected\nPaid\nCancelled",
+      "read_only": 1,
+      "reqd": 1
   },
   {
    "fieldname": "column_break_19",
@@ -153,23 +155,26 @@
   },
   {
    "allow_on_submit": 1,
-   "fieldname": "compensation_amount",
-   "fieldtype": "Currency",
-   "label": "Compensation Amount"
+      "fieldname": "compensation_amount",
+      "fieldtype": "Currency",
+      "label": "Compensation Amount",
+      "read_only": 1
   },
   {
    "allow_on_submit": 1,
-   "fieldname": "payment_date",
-   "fieldtype": "Date",
-   "label": "Payment Date"
+      "fieldname": "payment_date",
+      "fieldtype": "Date",
+      "label": "Payment Date",
+      "read_only": 1
   },
   {
    "fieldname": "medical_details_section",
    "fieldtype": "Section Break",
    "label": "Medical Details"
   },
-  {
-   "fieldname": "medical_reports",
+    {
+      "allow_on_submit": 1,
+      "fieldname": "medical_reports",
    "fieldtype": "Table",
    "label": "Medical Reports",
    "options": "OID Medical Report"
@@ -229,19 +234,7 @@
    "role": "HR User",
    "share": 1,
    "write": 1
-  },
-  {
-   "create": 0,
-   "delete": 0,
-   "email": 1,
-   "export": 0,
-   "print": 1,
-   "read": 1,
-   "report": 0,
-   "role": "Employee",
-   "share": 0,
-   "write": 0
-  }
+    }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",

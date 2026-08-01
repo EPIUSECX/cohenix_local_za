@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 from collections import defaultdict
 from io import BytesIO
@@ -6,7 +7,9 @@ from io import BytesIO
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_months, cint, flt, get_first_day, getdate, today
+from frappe.utils import cint, escape_html, flt, getdate, today
+
+from za_local.utils.statutory_rates import get_rate_pack
 
 pdf_generation_available = False
 try:
@@ -29,10 +32,56 @@ except Exception:  # pragma: no cover - defensive import
 
 MEDICAL_SCHEME_TAX_CREDIT_CODE = "4116"
 ADDITIONAL_MEDICAL_EXPENSES_TAX_CREDIT_CODE = "4120"
+VALID_IT3A_REASON_CODES = {"02", "03", "04", "05", "06", "07", "08", "09", "10"}
+PAY_PERIODS_PER_YEAR = {
+	"Monthly": 12,
+	"Bimonthly": 24,
+	"Fortnightly": 26,
+	"Weekly": 52,
+}
+
+
+def build_certificate_key(
+	company,
+	employee,
+	tax_year,
+	reconciliation_period,
+):
+	"""Return the canonical identity for one employee certificate period."""
+	parts = [
+		company or "",
+		employee or "",
+		tax_year or "",
+		reconciliation_period or "",
+	]
+	return hashlib.sha256("|".join(str(value).strip() for value in parts).encode()).hexdigest()
+
+
+def get_active_certificate_names(filters):
+	"""Return at most two active matches so legacy duplicates fail deterministically."""
+	return frappe.get_all(
+		"IRP5 Certificate",
+		filters={**filters, "docstatus": ["<", 2]},
+		pluck="name",
+		order_by="docstatus desc, modified desc, creation desc, name desc",
+		limit=2,
+	)
+
+
+def require_certificate_generation_permissions():
+	"""Generation may create new certificates and replace draft snapshots."""
+	for permission_type in ("create", "write"):
+		if not frappe.has_permission("IRP5 Certificate", permission_type):
+			frappe.throw(
+				_("You are not permitted to generate or update IRP5 certificates."),
+				frappe.PermissionError,
+				title=_("Insufficient Permission"),
+			)
 
 
 class IRP5Certificate(Document):
 	def autoname(self):
+		self.set_certificate_key()
 		if getattr(self, "generation_mode", None) == "Bulk":
 			if not self.certificate_number:
 				self.set_bulk_certificate_number()
@@ -66,6 +115,25 @@ class IRP5Certificate(Document):
 				self.set_certificate_number()
 
 		self.validate_dates()
+		self.set_certificate_key()
+
+	def set_certificate_key(self):
+		if not all(
+			[
+				self.company,
+				self.employee,
+				self.tax_year,
+				self.reconciliation_period,
+			]
+		):
+			return
+
+		self.certificate_key = build_certificate_key(
+			self.company,
+			self.employee,
+			self.tax_year,
+			self.reconciliation_period,
+		)
 
 	def validate_dates(self):
 		if not self.from_date or not self.to_date:
@@ -121,6 +189,11 @@ class IRP5Certificate(Document):
 		self.status = "Submitted"
 
 	def on_cancel(self):
+		if self.certificate_key:
+			cancelled_key = hashlib.sha256(
+				f"{self.certificate_key}|cancelled|{self.name}".encode()
+			).hexdigest()
+			self.db_set("certificate_key", cancelled_key, update_modified=False)
 		self.db_set("status", "Cancelled", update_modified=False)
 		frappe.msgprint(_("IRP5 Certificate {0} has been cancelled.").format(self.name))
 
@@ -147,12 +220,17 @@ class IRP5Certificate(Document):
 		# on a gross (pre-ETI) PAYE basis.
 		self.paye = self._sum_child_table(self.deduction_details, "deduction_code", {"4102", "4115"})
 		self.uif = self._sum_child_table(self.deduction_details, "deduction_code", {"4141"})
-		self.sdl = self._sum_child_table(self.company_contribution_details, "contribution_code", {"4142"})
-
-		if not self.gross_taxable_income:
-			self.gross_taxable_income = sum(flt(row.amount) for row in self.income_details)
-		if not self.non_taxable_income:
-			self.non_taxable_income = 0
+		self.uif += self._sum_child_table(
+			self.company_contribution_details,
+			"contribution_code",
+			{"4141"},
+		)
+		self.sdl = self._sum_child_table(self.deduction_details, "deduction_code", {"4142"})
+		self.sdl += self._sum_child_table(
+			self.company_contribution_details,
+			"contribution_code",
+			{"4142"},
+		)
 
 		self.medical_scheme_fees_tax_credit = self._sum_child_table(
 			self.deduction_details,
@@ -164,11 +242,72 @@ class IRP5Certificate(Document):
 			"deduction_code",
 			{ADDITIONAL_MEDICAL_EXPENSES_TAX_CREDIT_CODE},
 		)
-		self.total_deductions_contributions = (
-			sum(flt(row.amount) for row in self.deduction_details)
-			+ sum(flt(row.amount) for row in self.company_contribution_details)
+		self.total_deductions_contributions = sum(
+			flt(row.amount) for row in self.deduction_details if self._is_4497_detail_code(row.deduction_code)
+		) + sum(
+			flt(row.amount)
+			for row in self.company_contribution_details
+			if self._is_4497_detail_code(row.contribution_code)
 		)
-		self.total_tax_payable = self.paye + self.uif + self.sdl - flt(self.eti)
+		# SARS code 4149 is tax (4102/4115) + combined UIF (4141) + SDL
+		# (4142). Medical credits and ETI are explicitly excluded.
+		self.total_tax_payable = self.paye + self.uif + self.sdl
+		self._apply_certificate_tax_control()
+
+	@staticmethod
+	def _is_4497_detail_code(code):
+		code = str(code or "")
+		return code != "4497" and code.startswith(("40", "44", "45"))
+
+	def _apply_certificate_tax_control(self):
+		if flt(self.paye) > 0:
+			self.certificate_type = "IRP5"
+			self.reason_for_non_deduction = None
+			return
+
+		self.certificate_type = "IT3(a)"
+		if flt(self.gross_taxable_income) > 0 and not self.reason_for_non_deduction:
+			if self._annualized_taxable_income_is_below_threshold():
+				# SARS reason code 02: employee earns less than the applicable
+				# annual tax threshold. This is deterministic from the statutory
+				# pack and certificate period snapshot, so practitioner input is
+				# only required for the remaining reason codes.
+				self.reason_for_non_deduction = "02"
+				return
+
+		if (
+			flt(self.gross_taxable_income) == 0
+			and flt(self.non_taxable_income) > 0
+			and not self.reason_for_non_deduction
+		):
+			# SARS reason code 04: non-taxable earnings. Other cases require
+			# an explicit practitioner-selected code.
+			self.reason_for_non_deduction = "04"
+
+	def _annualized_taxable_income_is_below_threshold(self):
+		if not self.tax_year or not self.date_of_birth:
+			return False
+
+		periods_worked = flt(self.periods_worked)
+		periods_in_year = flt(self.periods_in_year)
+		if periods_worked <= 0 or periods_in_year <= 0:
+			return False
+
+		pack = get_rate_pack(tax_year=self.tax_year)
+		tax_year_end = getdate(pack["effective_to"])
+		date_of_birth = getdate(self.date_of_birth)
+		age = tax_year_end.year - date_of_birth.year - (
+			(tax_year_end.month, tax_year_end.day) < (date_of_birth.month, date_of_birth.day)
+		)
+		if age >= 75:
+			threshold_key = "age_75_plus"
+		elif age >= 65:
+			threshold_key = "age_65_to_74"
+		else:
+			threshold_key = "under_65"
+
+		annualized_taxable_income = flt(self.gross_taxable_income) * periods_in_year / periods_worked
+		return annualized_taxable_income <= flt(pack["paye"]["thresholds"][threshold_key])
 
 	@frappe.whitelist()
 	def validate_statutory_readiness(self, throw=False):
@@ -180,7 +319,6 @@ class IRP5Certificate(Document):
 			("Employer UIF Reference Number", self.employer_uif_reference_number),
 			("Employee identity type", self.identity_type),
 			("Employee identity number", self.employee_id_number),
-			("Employee income tax reference number", self.income_tax_reference_number),
 			("Residential address", self.res_address_line_1),
 			("Employment start date", self.employed_from),
 			("Periods in year", self.periods_in_year),
@@ -189,6 +327,15 @@ class IRP5Certificate(Document):
 		for label, value in required_pairs:
 			if not value:
 				missing.append(label)
+
+		reason_code = str(self.reason_for_non_deduction or "").zfill(2)
+		ordinary_paye = self._sum_child_table(self.deduction_details, "deduction_code", {"4102"})
+		lump_sum_tax = self._sum_child_table(self.deduction_details, "deduction_code", {"4115"})
+		tax_reference_optional = (self.certificate_type == "IT3(a)" and reason_code in {"02", "04"}) or (
+			self.certificate_type == "IRP5" and not ordinary_paye and lump_sum_tax
+		)
+		if not self.income_tax_reference_number and not tax_reference_optional:
+			missing.append("Employee income tax reference number")
 
 		if not self.not_paid_electronically:
 			for label, value in [
@@ -210,10 +357,18 @@ class IRP5Certificate(Document):
 			missing.extend(sorted(set(getattr(self, "_unmapped_salary_components", []))))
 			missing.extend(sorted(set(getattr(self, "_mapping_errors", []))))
 
-		if not self.paye and flt(self.gross_taxable_income) > 0 and not (
-			self.directive_numbers or self.reason_for_non_deduction
-		):
-			missing.append("Directive number or reason for non-deduction")
+		if flt(self.paye) > 0:
+			if self.certificate_type != "IRP5":
+				missing.append("Certificate Type must be IRP5 when employees' tax was deducted")
+			if self.reason_for_non_deduction:
+				missing.append("Reason code 4150 must be blank when employees' tax was deducted")
+		else:
+			if self.certificate_type != "IT3(a)":
+				missing.append("Certificate Type must be IT3(a) when no employees' tax was deducted")
+			if reason_code not in VALID_IT3A_REASON_CODES:
+				missing.append("Valid SARS reason code 4150 (02-10)")
+			else:
+				self._validate_it3a_reason_code(reason_code, missing)
 
 		self.missing_sars_data = "\n".join(f"- {item}" for item in missing)
 
@@ -221,14 +376,30 @@ class IRP5Certificate(Document):
 			frappe.throw(
 				_(
 					"Cannot generate or export this certificate until the following SARS fields are complete:<br><br>{0}"
-				).format("<br>".join(f"• {frappe.bold(item)}" for item in missing)),
+				).format("<br>".join(f"• {frappe.bold(escape_html(item))}" for item in missing)),
 				title=_("Missing SARS Data"),
 			)
 
 		return missing
 
+	def _validate_it3a_reason_code(self, reason_code, missing):
+		income_codes = {str(row.income_code or "") for row in self.income_details or []}
+		deduction_codes = {str(row.deduction_code or "") for row in self.deduction_details or []}
+		if reason_code == "03" and not income_codes.intersection({"3616", "3666", "3620", "3670"}):
+			missing.append("Reason code 03 requires income code 3616/3666 or 3620/3670")
+		elif reason_code == "04" and not (
+			self.directive_numbers
+			or (flt(self.non_taxable_income) > 0 and flt(self.gross_taxable_income) == 0)
+		):
+			missing.append("Reason code 04 requires directive information or only non-taxable income")
+		elif reason_code == "08" and not deduction_codes.intersection({"4116", "4120"}):
+			missing.append("Reason code 08 requires medical tax credit code 4116 or 4120")
+		elif reason_code == "10" and not (income_codes == {"4588"} or "4042" in deduction_codes):
+			missing.append("Reason code 10 requires only code 4588 or deduction code 4042")
+
 	@frappe.whitelist()
 	def generate_certificate_data(self):
+		require_certificate_generation_permissions()
 		if not self.employee:
 			frappe.throw(_("Employee is required to generate certificate data."))
 		if not self.company:
@@ -237,8 +408,6 @@ class IRP5Certificate(Document):
 			frappe.throw(_("Tax Year, Reconciliation Period, From Date, and To Date are required."))
 
 		self.validate_employee()
-		if not self.certificate_number:
-			self.set_certificate_number()
 
 		self.issue_date = today()
 		self._reset_snapshot()
@@ -246,12 +415,15 @@ class IRP5Certificate(Document):
 		counts = self._generate_certificate_lines()
 		self.calculate_eti()
 		self.calculate_totals()
+		self.set_certificate_key()
+		if not self.certificate_number:
+			self.set_certificate_number()
 		missing = self.validate_statutory_readiness(throw=False)
 		if missing:
 			frappe.throw(
 				_(
 					"IRP5 certificate data was not generated because required SARS data is missing:<br><br>{0}"
-				).format("<br>".join(f"• {frappe.bold(item)}" for item in missing)),
+				).format("<br>".join(f"• {frappe.bold(escape_html(item))}" for item in missing)),
 				title=_("Missing SARS Data"),
 			)
 
@@ -303,7 +475,6 @@ class IRP5Certificate(Document):
 			"bank_account_holder_name",
 			"bank_account_holder_relationship",
 			"directive_numbers",
-			"reason_for_non_deduction",
 			"missing_sars_data",
 		]:
 			self.set(fieldname, None)
@@ -329,6 +500,7 @@ class IRP5Certificate(Document):
 		self.set("company_contribution_details", [])
 		self._unmapped_salary_components = []
 		self._mapping_errors = []
+		self._sars_code_cache = {}
 
 	def _snapshot_master_data(self):
 		employee = frappe.get_doc("Employee", self.employee)
@@ -353,11 +525,12 @@ class IRP5Certificate(Document):
 		self.employee_id_number = employee.get("za_id_number") or employee.get("passport_number")
 		self.passport_number = employee.get("passport_number")
 		self.passport_country_of_issue = employee.get("za_passport_country_of_issue")
-		self.employee_first_names = " ".join(
-			part
-			for part in [employee.get("first_name"), employee.get("middle_name")]
-			if part
-		).strip() or employee.employee_name
+		self.employee_first_names = (
+			" ".join(
+				part for part in [employee.get("first_name"), employee.get("middle_name")] if part
+			).strip()
+			or employee.employee_name
+		)
 		self.employee_surname = employee.get("last_name") or employee.employee_name
 		self.employee_initials = _make_initials(
 			employee.get("first_name"),
@@ -386,14 +559,11 @@ class IRP5Certificate(Document):
 		self.bank_account_no = bank_details.get("bank_account_no")
 		self.bank_account_type = bank_details.get("bank_account_type")
 		self.bank_account_holder_name = bank_details.get("bank_account_holder_name")
-		self.bank_account_holder_relationship = bank_details.get(
-			"bank_account_holder_relationship"
-		)
+		self.bank_account_holder_relationship = bank_details.get("bank_account_holder_relationship")
 		self.not_paid_electronically = bank_details.get("not_paid_electronically", 0)
 
 		self.employed_from = employee.get("date_of_joining") or self.from_date
 		self.employed_to = employee.get("relieving_date") or self.to_date
-		self.periods_in_year = self._estimate_periods_in_year()
 		self.directive_numbers = self._get_directive_numbers()
 
 	def _generate_certificate_lines(self):
@@ -401,13 +571,7 @@ class IRP5Certificate(Document):
 		if not salary_slips:
 			frappe.throw(_("No salary slips found for this employee in the selected period."))
 
-		full_year_salary_slips = self._get_salary_slips(
-			self.employee,
-			self.from_date,
-			self._get_tax_year_end_date(),
-		)
-		self.periods_worked = len(salary_slips)
-		self.periods_in_year = max(self.periods_in_year, len(full_year_salary_slips), len(salary_slips))
+		self._set_pay_period_snapshot(salary_slips)
 
 		income_map = defaultdict(lambda: {"description": "", "amount": 0.0})
 		deduction_map = defaultdict(lambda: {"description": "", "amount": 0.0})
@@ -430,10 +594,14 @@ class IRP5Certificate(Document):
 					continue
 				income_map[code_doc.code]["description"] = code_doc.description
 				income_map[code_doc.code]["amount"] += flt(earning.amount)
-				if code_doc.tax_treatment == "Non-Taxable":
-					non_taxable_income += flt(earning.amount)
-				else:
+				if code_doc.tax_treatment == "Taxable":
 					gross_taxable_income += flt(earning.amount)
+				elif code_doc.tax_treatment == "Non-Taxable":
+					non_taxable_income += flt(earning.amount)
+				elif code_doc.tax_treatment != "Reference":
+					self._mapping_errors.append(
+						f"{earning.salary_component} has unsupported tax treatment '{code_doc.tax_treatment}'"
+					)
 
 			for deduction in salary_slip_doc.deductions:
 				code_doc = self._get_sars_payroll_code(deduction.salary_component)
@@ -520,13 +688,6 @@ class IRP5Certificate(Document):
 			ADDITIONAL_MEDICAL_EXPENSES_TAX_CREDIT_CODE,
 			0.0,
 		)
-		if not self.reason_for_non_deduction and not self.paye:
-			self.reason_for_non_deduction = (
-				_("No taxable remuneration in period")
-				if gross_taxable_income <= 0
-				else _("No PAYE deducted in payroll period - practitioner review required")
-			)
-
 		return {
 			"income_count": len(income_map),
 			"deduction_count": len(deduction_map),
@@ -538,35 +699,79 @@ class IRP5Certificate(Document):
 			"Salary Slip",
 			filters={
 				"employee": employee,
-				"start_date": [">=", getdate(from_date)],
-				"end_date": ["<=", getdate(to_date)],
+				"end_date": ["between", [getdate(from_date), getdate(to_date)]],
 				"docstatus": 1,
 			},
-			fields=["name", "start_date", "end_date"],
+			fields=[
+				"name",
+				"start_date",
+				"end_date",
+				"payroll_frequency",
+				"total_working_days",
+				"payment_days",
+			],
 			order_by="start_date",
 		)
 
-	def _get_tax_year_end_date(self):
-		return self.to_date
+	def _set_pay_period_snapshot(self, salary_slips):
+		frequency = next(
+			(slip.payroll_frequency for slip in salary_slips if slip.payroll_frequency),
+			"Monthly",
+		)
+		if frequency == "Daily":
+			fiscal_year = frappe.db.get_value(
+				"Fiscal Year",
+				self.tax_year,
+				["year_start_date", "year_end_date"],
+				as_dict=True,
+			)
+			self.periods_in_year = (
+				(getdate(fiscal_year.year_end_date) - getdate(fiscal_year.year_start_date)).days + 1
+				if fiscal_year
+				else 365
+			)
+		else:
+			self.periods_in_year = PAY_PERIODS_PER_YEAR.get(frequency, 12)
 
-	def _estimate_periods_in_year(self):
-		count = 0
-		temp_from_date = getdate(self.from_date)
-		loop_to_date = getdate(self.to_date)
-		while temp_from_date <= loop_to_date:
-			count += 1
-			temp_from_date = get_first_day(add_months(temp_from_date, 1))
-		return count
+		period_fractions = {}
+		for slip in salary_slips:
+			end_date = getdate(slip.end_date)
+			if frequency == "Monthly":
+				period_key = (end_date.year, end_date.month)
+			elif frequency == "Bimonthly":
+				period_key = (end_date.year, end_date.month, 1 if end_date.day <= 15 else 2)
+			else:
+				period_key = slip.name
+
+			total_days = flt(slip.total_working_days)
+			payment_days = flt(slip.payment_days)
+			fraction = min(1.0, max(0.0, payment_days / total_days)) if total_days else 1.0
+			period_fractions[period_key] = max(period_fractions.get(period_key, 0.0), fraction)
+
+		self.periods_worked = min(
+			flt(self.periods_in_year),
+			sum(period_fractions.values()),
+		)
 
 	def _get_sars_payroll_code(self, salary_component_name):
-		component = frappe.db.get_value(
-			"Salary Component",
-			salary_component_name,
-			["za_sars_payroll_code", "za_exclude_from_irp5"],
-			as_dict=True,
-		) or frappe._dict()
+		cache = getattr(self, "_sars_code_cache", None)
+		if cache is None:
+			cache = self._sars_code_cache = {}
+		if salary_component_name in cache:
+			return cache[salary_component_name]
+
+		component = (
+			frappe.get_cached_value(
+				"Salary Component",
+				salary_component_name,
+				["za_sars_payroll_code", "za_exclude_from_irp5"],
+				as_dict=True,
+			)
+			or frappe._dict()
+		)
 
 		if component.get("za_exclude_from_irp5"):
+			cache[salary_component_name] = None
 			return None
 
 		code = component.get("za_sars_payroll_code")
@@ -574,13 +779,25 @@ class IRP5Certificate(Document):
 			self._unmapped_salary_components.append(
 				f"Salary Component '{salary_component_name}' has no SARS Payroll Code"
 			)
+			cache[salary_component_name] = None
 			return None
-		if not frappe.db.exists("SARS Payroll Code", code):
+		try:
+			code_doc = frappe.get_cached_doc("SARS Payroll Code", code)
+		except frappe.DoesNotExistError:
 			self._unmapped_salary_components.append(
 				f"SARS Payroll Code '{code}' linked from Salary Component '{salary_component_name}' does not exist"
 			)
+			cache[salary_component_name] = None
 			return None
-		return frappe.get_doc("SARS Payroll Code", code)
+		if not cint(code_doc.get("active", 1)):
+			self._mapping_errors.append(
+				f"Salary Component '{salary_component_name}' uses inactive SARS Payroll Code '{code}'"
+			)
+			cache[salary_component_name] = None
+			return None
+
+		cache[salary_component_name] = code_doc
+		return code_doc
 
 	def _resolve_employee_residential_address(self, employee):
 		return self._resolve_address(
@@ -602,7 +819,9 @@ class IRP5Certificate(Document):
 		address_name = employee.get("za_business_address_override") or company.get("za_business_address")
 		return self._resolve_address(address_name, "Company", company.name)
 
-	def _resolve_address(self, explicit_address_name=None, link_doctype=None, link_name=None, fallback_text=None):
+	def _resolve_address(
+		self, explicit_address_name=None, link_doctype=None, link_name=None, fallback_text=None
+	):
 		if explicit_address_name and frappe.db.exists("Address", explicit_address_name):
 			return {"type": "doc", "value": frappe.get_doc("Address", explicit_address_name)}
 
@@ -628,8 +847,7 @@ class IRP5Certificate(Document):
 			"bank_name": employee.get("bank_name"),
 			"bank_account_no": employee.get("bank_ac_no"),
 			"bank_account_type": employee.get("za_bank_account_type"),
-			"bank_account_holder_name": employee.get("za_bank_account_holder_name")
-			or employee.employee_name,
+			"bank_account_holder_name": employee.get("za_bank_account_holder_name") or employee.employee_name,
 			"bank_account_holder_relationship": employee.get("za_bank_account_holder_relationship")
 			or "Employee",
 			"not_paid_electronically": cint(employee.get("za_not_paid_electronically")),
@@ -645,9 +863,9 @@ class IRP5Certificate(Document):
 			bank_details["bank_account_type"] = bank_details["bank_account_type"] or bank_account.get(
 				"account_type"
 			)
-			bank_details["bank_account_holder_name"] = (
-				bank_details["bank_account_holder_name"] or bank_account.get("account_name")
-			)
+			bank_details["bank_account_holder_name"] = bank_details[
+				"bank_account_holder_name"
+			] or bank_account.get("account_name")
 
 		return bank_details
 
@@ -682,24 +900,20 @@ class IRP5Certificate(Document):
 		return (cint(meta.print_sequence) if meta else 9999, code)
 
 	def calculate_eti(self):
-		"""ETI on the certificate is the ETI actually claimed on the employee's
+		"""ETI code 4118 is the theoretical ETI calculated for the employee's
 		submitted salary slips for the period.
 
 		The slip is the single source of truth: it already applied the statutory
 		rate pack and every eligibility rule (age, employment months, SEZ,
-		remuneration band, hours proration), and the same per-slip ``za_monthly_eti``
-		is what flowed to the EMP201. Summing it here makes the certificate reconcile
-		to the EMP201 by construction, instead of recomputing with a separate table.
+		remuneration band, hours proration). EMP201 records the same generated value
+		separately from ETI utilised against the employer's PAYE liability.
 		"""
 		if not self.employee or not self.from_date or not self.to_date:
 			self.eti = 0
 			return
 
 		slips = self._get_salary_slips(self.employee, self.from_date, self.to_date)
-		self.eti = sum(
-			flt(frappe.db.get_value("Salary Slip", slip.name, "za_monthly_eti"))
-			for slip in slips
-		)
+		self.eti = sum(flt(frappe.db.get_value("Salary Slip", slip.name, "za_monthly_eti")) for slip in slips)
 
 	@frappe.whitelist()
 	def export_pdf(self):
@@ -830,7 +1044,10 @@ class IRP5Certificate(Document):
 				("Certificate Number", self.certificate_number or self.name),
 				("Year of Assessment", self.year_of_assessment),
 				("Transaction Year", self.transaction_year),
-				("Reconciliation", f"{clean(self.reconciliation_period)} {clean(self.reconciliation_period_yyyymm)}"),
+				(
+					"Reconciliation",
+					f"{clean(self.reconciliation_period)} {clean(self.reconciliation_period_yyyymm)}",
+				),
 				("Period", f"{clean(self.from_date)} to {clean(self.to_date)}"),
 				("Issue Date", self.issue_date),
 				("Status", self.status),
@@ -922,6 +1139,11 @@ class IRP5Certificate(Document):
 				("Postal 3", self.post_address_line_3),
 				("Postal 4", self.post_address_line_4),
 				("Postal Code", self.post_postal_code),
+				("Business", self.biz_address_line_1),
+				("Business 2", self.biz_address_line_2),
+				("Business 3", self.biz_address_line_3),
+				("Business 4", self.biz_address_line_4),
+				("Business Code", self.biz_postal_code),
 			],
 			margin,
 			y,
@@ -953,6 +1175,7 @@ class IRP5Certificate(Document):
 				("Non-Taxable Income", money(self.non_taxable_income)),
 				("Deductions & Contributions", money(self.total_deductions_contributions)),
 				("Medical Tax Credit", money(self.medical_scheme_fees_tax_credit)),
+				("Additional Medical Credit", money(self.additional_medical_expenses_tax_credit)),
 			],
 			margin,
 			y,
@@ -963,8 +1186,7 @@ class IRP5Certificate(Document):
 				("PAYE", money(self.paye)),
 				("UIF", money(self.uif)),
 				("SDL", money(self.sdl)),
-				("ETI", money(self.eti)),
-				("Total Tax Payable", money(self.total_tax_payable)),
+				("Total Tax, SDL & UIF (4149)", money(self.total_tax_payable)),
 			],
 			width / 2 + 12,
 			y,
@@ -972,10 +1194,18 @@ class IRP5Certificate(Document):
 		)
 		y = min(left_y, right_y) - 10
 
-		if self.reason_for_non_deduction:
-			y = draw_section_title("Practitioner Review Notes", y)
+		if self.directive_numbers or self.reason_for_non_deduction:
+			y = draw_section_title("Directive and Non-Deduction Details", y)
 			can.setFont("Helvetica", 8.5)
-			can.drawString(margin, y, clean(self.reason_for_non_deduction)[:110])
+			if self.directive_numbers:
+				can.drawString(margin, y, f"Directive Number(s): {clean(self.directive_numbers)[:90]}")
+				y -= line_gap
+			if self.reason_for_non_deduction:
+				can.drawString(
+					margin,
+					y,
+					f"Reason Code for IT3(a) (4150): {clean(self.reason_for_non_deduction)[:2]}",
+				)
 
 		can.showPage()
 		draw_header("IRP5 / IT3(a) Employee Tax Certificate - SARS Code Detail")
@@ -1078,7 +1308,11 @@ def _build_address_snapshot(source):
 	line_2 = address.get("address_line2") or ""
 	line_3 = ", ".join(
 		part
-		for part in [address.get("za_suburb_or_district"), address.get("city"), address.get("za_address_line_3")]
+		for part in [
+			address.get("za_suburb_or_district"),
+			address.get("city"),
+			address.get("za_address_line_3"),
+		]
 		if part
 	)
 	line_4 = ", ".join(
@@ -1155,7 +1389,7 @@ def _wrap_pdf_text(value, max_width, font_name="Helvetica", font_size=8.5):
 						break
 					chunk += char
 				lines.append(chunk)
-				word = word[len(chunk):]
+				word = word[len(chunk) :]
 			current = word
 		if current:
 			lines.append(current)
@@ -1183,12 +1417,7 @@ def bulk_generate_certificates(filters_json=None):
 	# and saves with ignore_permissions below, so gate the whole endpoint first.
 	# Permission-based rather than role-based so it tracks whatever roles the site
 	# has actually granted on the DocType.
-	if not frappe.has_permission("IRP5 Certificate", "create"):
-		frappe.throw(
-			_("You are not permitted to generate IRP5 certificates."),
-			frappe.PermissionError,
-			title=_("Insufficient Permission"),
-		)
+	require_certificate_generation_permissions()
 
 	filters = json.loads(filters_json) if filters_json else {}
 	company = filters.get("company")
@@ -1219,20 +1448,24 @@ def bulk_generate_certificates(filters_json=None):
 
 	for employee in employees:
 		try:
-			existing = frappe.get_all(
-				"IRP5 Certificate",
-				filters={
+			existing = get_active_certificate_names(
+				{
 					"employee": employee.name,
+					"company": company,
 					"tax_year": tax_year,
-					"from_date": from_date,
-					"to_date": to_date,
-					"certificate_type": certificate_type,
-				},
-				fields=["name"],
-				limit=1,
+					"reconciliation_period": reconciliation_period,
+				}
 			)
+			if len(existing) > 1:
+				frappe.throw(
+					_(
+						"Multiple active certificates exist for employee {0}, tax year {1}, and {2} reconciliation. "
+						"Cancel the duplicate before generating again."
+					).format(employee.name, tax_year, reconciliation_period),
+					title=_("Duplicate IRP5 Certificates"),
+				)
 			if existing:
-				doc = frappe.get_doc("IRP5 Certificate", existing[0].name)
+				doc = frappe.get_doc("IRP5 Certificate", existing[0])
 				action = updated
 			else:
 				doc = frappe.new_doc("IRP5 Certificate")
@@ -1250,15 +1483,19 @@ def bulk_generate_certificates(filters_json=None):
 			doc.save(ignore_permissions=True)
 			action.append(doc.name)
 		except Exception as exc:
+			frappe.log_error(
+				title=f"IRP5 bulk generation failed - {employee.name}",
+				message=frappe.get_traceback(),
+			)
 			skipped.append({"employee": employee.name, "error": str(exc)})
 
 	return {
 		"created": created,
 		"updated": updated,
 		"errors": skipped,
-		"message": _(
-			"Bulk certificate generation complete. Created: {0}, Updated: {1}, Skipped: {2}"
-		).format(len(created), len(updated), len(skipped)),
+		"message": _("Bulk certificate generation complete. Created: {0}, Updated: {1}, Skipped: {2}").format(
+			len(created), len(updated), len(skipped)
+		),
 	}
 
 

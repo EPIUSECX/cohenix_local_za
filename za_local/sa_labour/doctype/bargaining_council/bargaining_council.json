@@ -6,6 +6,8 @@
  "field_order": [
   "council_name",
   "industry_sector",
+  "sector",
+  "description",
   "registration_number",
   "contact_person",
   "contact_email",
@@ -22,6 +24,17 @@
    "fieldname": "industry_sector",
    "fieldtype": "Data",
    "label": "Industry Sector"
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Legacy CSV Sector"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
   },
   {
    "fieldname": "registration_number",

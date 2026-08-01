@@ -4,19 +4,13 @@ With the payroll posted, pay employees and use the reports to validate and recon
 
 ## Paying employees (EFT)
 
-`za_local` includes an **EFT file generator** to produce bank payment files from a submitted Payroll Entry. It supports Standard Bank and FNB formats (other banks can be prepared manually).
+`za_local` enables one bank-specific format: **FNB Online Banking Enterprise CSV**. ABSA, Nedbank and Standard Bank are deliberately disabled until a current official specification and controlled bank acceptance test are completed.
 
-To generate a file, call the endpoint for the payroll entry, choosing the bank format:
+Create a **Payroll Payment Batch** from a submitted Payroll Entry, review the employee rows/control total, then submit the batch and generate its private file. The Payroll Entry and Salary Slips must be submitted, currency must be ZAR, employee/company bank data must pass validation, and the payment date must be inside the permitted window. The source hash freezes the snapshot; cancel/amend the batch if payroll or bank data changes.
 
-```
-za_local.utils.integrations.eft_file_generator.generate_eft_file
-  payroll_entry=<Payroll Entry name>
-  bank_format="standard_bank"   # or "fnb"
-```
+Export requires Payroll Payment Batch write access and an authorised HR Manager, Accounts Manager or System Manager role. Do not distribute the private file through email or public attachments.
 
-It returns the file content and a filename to download and upload to your banking portal. Access requires read permission on the Payroll Entry (it contains employee banking details and net pay), and the bank format is validated.
-
-> Employees must have valid banking details (and *Not Paid Electronically* unticked) for inclusion. The net pay total in the file should equal the **Payroll Payable** credit from the posting.
+> Employees must have valid banking details (and *Not Paid Electronically* unticked). Reconcile the file total to Payroll Payable and perform an FNB low-value acceptance upload before first production use and after any bank specification change.
 
 ## Distributing payslips
 

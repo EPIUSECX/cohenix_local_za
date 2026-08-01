@@ -15,13 +15,13 @@
 
 ## 3. Generate the bank payment file (EFT)
 
-The localisation can produce a bank payment file from the submitted Payroll Entry (Standard Bank and FNB formats; other banks prepared manually).
+The localisation currently enables only **FNB Online Banking Enterprise CSV**. ABSA, Nedbank and Standard Bank formats are not supported.
 
-- From the Payroll Entry, run the EFT export and choose your **bank format**.
-- Download the file and upload it to your banking portal.
+- Create and review a **Payroll Payment Batch** from the submitted Payroll Entry, then submit it and generate its private FNB OBE CSV.
+- Reconcile its source hash and control total, download securely, and upload through FNB's approved portal.
 - The total in the file should equal the **Payroll Payable** amount from the posting.
 
-> Employees must have valid banking details and not be marked *Not Paid Electronically* to be included. Access to generate the file requires permission on the Payroll Entry, since it contains banking details and net pay.
+> Employees must have valid banking details and not be marked *Not Paid Electronically*. Export is restricted to authorised HR Manager, Accounts Manager or System Manager users with batch write access. Complete an FNB low-value acceptance test before production use.
 
 ## 4. Distribute payslips
 

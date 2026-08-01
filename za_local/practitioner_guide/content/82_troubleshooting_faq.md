@@ -3,7 +3,7 @@
 ## Troubleshooting
 
 **Workspaces, fields or print formats are missing.**
-Run `bench --site <site> migrate` then `bench --site <site> clear-cache`. The install/migrate sync is idempotent and restores fixtures, custom fields and navigation.
+Preserve the migration output and inspect Error Log/app versions. Reproduce and fix on a restored staging site; then back up and run the controlled migration/build/cache-clear workflow. Do not repeatedly migrate production as a diagnostic shortcut.
 
 **"No South African statutory rate pack is configured for ..."**
 The payroll engine has no rate pack covering that date. Add the rate pack for that tax year and migrate — see [Annual Statutory Update](annual-statutory-update). For back-dated runs, confirm a prior-year pack exists.
@@ -12,7 +12,7 @@ The payroll engine has no rate pack covering that date. Add the rate pack for th
 HRMS is not installed. Install Frappe HR, then `bench --site <site> migrate`. Payroll features register only when HRMS is present.
 
 **PAYE looks wrong (too high / too low / zero).**
-Almost always the **Income Tax Slab** on the employee's Salary Structure Assignment is for the wrong tax year, or no slab is linked. Link the correct year's slab and reprocess. Also confirm rebates and the medical credit are being applied.
+Check payroll/slip dates, Payroll Period, Income Tax Slab, rate-pack coverage, rebates/medical benefit record, Salary Component classifications, prior slips/additional salaries and employee age/status. Reprocess only after identifying the mismatch.
 
 **UIF is not capped / employer and employee differ.**
 Check the UIF components' *UIF Applicable* flags and that the statutory components are mapped in Payroll Settings. UIF employee and employer should both be 1% of the same capped base.
@@ -33,9 +33,9 @@ This is intentional — `za_local` protects the SARS audit trail. Cancel and ame
 
 **Do I need HRMS?** Only for payroll. VAT, print formats, chart of accounts, COIDA and SA Labour work without it. See [Choosing Your Track](../getting-started/choosing-your-track).
 
-**Does the app file to SARS electronically?** No. It produces compliant working papers and audit trails (VAT201, EMP201, EMP501, IRP5). Submission is done manually on SARS eFiling / e@syFile.
+**Does the app file to SARS electronically?** No. It produces internal working papers and audit trails. It does not create the SARS BRS payroll-import/encrypted reconciliation formats; generic CSV/PDF exports must not be uploaded as SARS files.
 
-**Can I start ERPNext-only and add payroll later?** Yes. Install HRMS, migrate, and the payroll features activate.
+**Can I start ERPNext-only and add payroll later?** Yes, but restore to staging, install HRMS, rehearse migration, and verify all payroll metadata/settings before production activation.
 
 **Where do the rates live?** In date-effective JSON rate packs (`statutory_rates_<YYYY>.json`), surfaced as Income Tax Slab, Tax Rebates, ETI Slab and Travel Allowance Rate records.
 

@@ -78,17 +78,7 @@ frappe.ui.form.on('EMP501 Reconciliation', {
         }
         
         if (frm.doc.docstatus === 1) {
-            frm.set_intro(__('Direct SARS electronic submission is not supported in this release. Use the filing export below and complete submission manually in SARS eFiling.'), 'orange');
-            
-            // Download CSV for SARS e-Filing (available after submission).
-            // The server streams the file via a Frappe "download" response, so we
-            // navigate the browser to the endpoint (GET) rather than calling it over
-            // AJAX. The session cookie authenticates the request.
-            frm.add_custom_button(__('Download Filing CSV'), function() {
-                const url = '/api/method/za_local.utils.emp501_utils.generate_emp501_csv'
-                    + '?emp501_name=' + encodeURIComponent(frm.doc.name);
-                window.open(url, '_blank');
-            });
+            frm.set_intro(__('Direct SARS electronic submission is not supported in this release. Complete submission through SARS eFiling or an approved e@syFile-compatible payroll export.'), 'orange');
         }
         
         // Helper function to fetch EMP201 submissions
@@ -100,19 +90,31 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                 freeze_message: __('Fetching EMP201 Submissions...'),
                 callback: function(r) {
                     if (r.message) {
-                        let count = r.message.count || 0;
-                        let message = r.message.message || __('EMP201 submissions fetched');
+                        const count = r.message.count || 0;
+                        const message = r.message.message || __('EMP201 submissions fetched');
                         const missingPeriods = r.message.missing_periods || [];
+                        const duplicatePeriods = r.message.duplicate_periods || [];
                         
-                        if (count > 0 && missingPeriods.length === 0) {
+                        if (count > 0 && missingPeriods.length === 0 && duplicatePeriods.length === 0) {
                             frappe.show_alert({
-                                message: __(`Step 1 Complete: ${message} You can now proceed to Step 2.`),
+                                message: __('Step 1 Complete: {0} You can now proceed to Step 2.', [
+                                    frappe.utils.escape_html(message),
+                                ]),
                                 indicator: 'green'
                             }, 5);
                         } else {
+                            const issues = [];
+                            if (missingPeriods.length) {
+                                issues.push(__('Missing: {0}', [missingPeriods.join(', ')]));
+                            }
+                            if (duplicatePeriods.length) {
+                                issues.push(__('Duplicates: {0}', [duplicatePeriods.join(', ')]));
+                            }
                             frappe.msgprint({
                                 title: __('Incomplete EMP201 Coverage'),
-                                message: __('Step 1 is not complete yet. Missing submitted EMP201 declarations for: {0}').replace('{0}', missingPeriods.join(', ') || __('the selected period')),
+                                message: __('Step 1 is not complete yet. Resolve EMP201 coverage issues: {0}', [
+                                    frappe.utils.escape_html(issues.join('; ') || __('the selected period')),
+                                ]),
                                 indicator: 'orange'
                             });
                         }
@@ -141,8 +143,8 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                         freeze_message: __('Generating IRP5 Certificates... This may take a few moments.'),
                         callback: function(r) {
                             if (r.message) {
-                                let msg = r.message.message || __('IRP5 certificates generated');
-                                let details = [];
+                                const msg = r.message.message || __('IRP5 certificates generated');
+                                const details = [];
                                 
                                 if (r.message.created !== undefined) {
                                     details.push(__('Created: ') + r.message.created);
@@ -154,7 +156,7 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                                     details.push(__('Errors: ') + r.message.error_count);
                                 }
                                 
-                                let full_message = msg;
+                                let full_message = frappe.utils.escape_html(msg);
                                 if (details.length > 0) {
                                     full_message += '<br>' + details.join(', ');
                                 }
@@ -162,7 +164,8 @@ frappe.ui.form.on('EMP501 Reconciliation', {
                                 // Show error details if available
                                 if (r.message.errors && Array.isArray(r.message.errors) && r.message.errors.length > 0) {
                                     let error_list = r.message.errors.slice(0, 5).map(function(e) {
-                                        return '- ' + (e.employee || 'Unknown') + ': ' + (e.error || 'Unknown error');
+                                        return '- ' + frappe.utils.escape_html(e.employee || __('Unknown')) + ': '
+                                            + frappe.utils.escape_html(e.error || __('Unknown error'));
                                     }).join('<br>');
                                     if (r.message.errors.length > 5) {
                                         error_list += '<br>... and ' + (r.message.errors.length - 5) + ' more errors';

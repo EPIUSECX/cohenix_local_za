@@ -47,4 +47,4 @@ Calculate Annual Taxable Amount Based On, Disable ETI Calculation; statutory com
 
 ## Re-applying
 
-If a field is missing, run `bench --site <site> migrate` — the custom-field sync is idempotent and restores any missing fields.
+If a field is missing, preserve migration output and diagnose the schema sync on a restored staging site. Back up before a controlled production migration; do not use repeated migrations as a blind repair step.

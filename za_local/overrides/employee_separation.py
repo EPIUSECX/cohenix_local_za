@@ -189,6 +189,11 @@ class ZAEmployeeSeparation(EmployeeSeparation):
 	@frappe.whitelist()
 	def create_final_settlement(self):
 		"""Create Employee Final Settlement document"""
+		# Document methods invoked through ``run_doc_method`` are gated by read
+		# permission only. Creating a financial settlement requires write access to
+		# the submitted separation as well as create access to the target DocType.
+		self.check_permission("write")
+		frappe.has_permission("Employee Final Settlement", "create", throw=True)
 		if not self.docstatus == 1:
 			frappe.throw(_("Employee Separation must be submitted first"))
 

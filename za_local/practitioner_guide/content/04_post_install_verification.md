@@ -1,6 +1,6 @@
 # Post-Install Verification
 
-Run these checks immediately after installing (or migrating) so you start configuration on a known-good base. If any check fails, re-run `bench --site <site> migrate` and `bench --site <site> clear-cache`, then re-check.
+Run these checks immediately after installing or migrating. If a check fails, preserve the logs and diagnose it on staging; do not repeatedly migrate production without a backup and identified cause.
 
 ## 1. The app and workspaces are present
 
@@ -16,7 +16,7 @@ Spot-check a few standard DocTypes:
 - **Item Group** → an *Is Capital Goods* checkbox.
 - With HRMS: **Employee** → South African Details, Tax Certificate and Employment Equity sections; **Salary Component** → SARS payroll code, payroll treatment, PAYE inclusion %, and UIF/SDL/COIDA applicability checkboxes.
 
-If fields are missing, the custom-field sync did not complete — re-run `bench migrate`.
+If fields are missing, the custom-field sync did not complete. Inspect migration output/Error Log and resolve on staging before another production migration.
 
 ## 3. Print formats are installed
 
@@ -48,3 +48,5 @@ Open the **ETI Slab** and **Travel Allowance Rate** lists. Each configured tax y
 ## Ready
 
 With these checks passing, proceed to [Foundation Setup](../foundation-setup-both-tracks/company-registration).
+
+These are technical checks only. Before transactions/payroll, a practitioner must approve statutory rates, account/component mappings, role access and representative reconciliations.

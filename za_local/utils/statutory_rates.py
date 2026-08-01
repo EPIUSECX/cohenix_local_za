@@ -38,6 +38,19 @@ def get_tax_year_for_date(date_value) -> str:
 
 def get_rate_pack(date_value=None, tax_year: str | None = None) -> dict:
 	"""Return the active statutory pack for a date or tax year."""
+	pack = find_rate_pack(date_value, tax_year)
+	if pack:
+		return pack
+
+	tax_year = tax_year or get_tax_year_for_date(date_value)
+	frappe.throw(
+		frappe._("No South African statutory rate pack is configured for {0}.").format(tax_year),
+		title=frappe._("Missing Statutory Rates"),
+	)
+
+
+def find_rate_pack(date_value=None, tax_year: str | None = None) -> dict | None:
+	"""Return a matching rate pack without raising when one has not shipped yet."""
 	if tax_year is None:
 		tax_year = get_tax_year_for_date(date_value)
 	date_value = getdate(date_value or f"{tax_year.split('-')[0]}-03-01")
@@ -49,11 +62,7 @@ def get_rate_pack(date_value=None, tax_year: str | None = None) -> dict:
 		end = getdate(pack.get("effective_to"))
 		if start <= date_value <= end:
 			return pack
-
-	frappe.throw(
-		frappe._("No South African statutory rate pack is configured for {0}.").format(tax_year),
-		title=frappe._("Missing Statutory Rates"),
-	)
+	return None
 
 
 def get_nested_rate(path: str, date_value=None, default=None):
@@ -96,11 +105,29 @@ def calculate_lump_sum_benefit_tax(amount, date_value=None, previous_lump_sums=0
 
 def calculate_eti_from_pack(monthly_remuneration, months_employed, date_value=None, hours_per_month=None):
 	eti = get_rate_pack(date_value).get("eti") or {}
+	calculation_date = getdate(date_value or frappe.utils.today())
+	for period in eti.get("rate_periods") or []:
+		if getdate(period.get("effective_from")) <= calculation_date <= getdate(period.get("effective_to")):
+			eti = {**eti, **period}
+			break
+
 	if months_employed <= 0 or months_employed > 24:
 		return 0
 
 	rows = eti.get("first_12_months" if months_employed <= 12 else "second_12_months") or []
 	remuneration = flt(monthly_remuneration)
+	standard_hours = flt(eti.get("hours_in_a_month")) or 160
+	hours_ratio = 1
+	if hours_per_month is not None:
+		hours = flt(hours_per_month)
+		if hours <= 0:
+			return 0
+		if hours < standard_hours:
+			hours_ratio = hours / standard_hours
+			# ETI Act s7(5): determine the bracket on 160-hour-equivalent
+			# remuneration, then gross the incentive down to actual hours.
+			remuneration /= hours_ratio
+
 	amount = 0
 	for row in rows:
 		from_amount = flt(row.get("from_amount"))
@@ -121,9 +148,7 @@ def calculate_eti_from_pack(monthly_remuneration, months_employed, date_value=No
 			amount = flt(row.get("amount"))
 		break
 
-	standard_hours = flt(eti.get("hours_in_a_month")) or 160
-	if hours_per_month and flt(hours_per_month) > 0 and flt(hours_per_month) < standard_hours:
-		amount *= flt(hours_per_month) / standard_hours
+	amount *= hours_ratio
 
 	return flt(max(0, amount), 2)
 

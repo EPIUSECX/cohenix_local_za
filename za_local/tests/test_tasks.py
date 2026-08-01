@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import frappe
-from frappe.utils import add_days, today
+from frappe.utils import add_days, getdate, today
 
 from za_local.tests.compat import UnitTestCase
 
@@ -128,7 +128,7 @@ class TestScheduledTaskNotifications(UnitTestCase):
 			name="TD-0001",
 			employee="EMP-0001",
 			employee_name="Test Employee",
-			effective_to=add_days(today(), 5),
+			effective_to=add_days(today(), 7),
 		)
 
 		with (
@@ -141,6 +141,72 @@ class TestScheduledTaskNotifications(UnitTestCase):
 		notify.assert_called_once()
 		self.assertEqual(notify.call_args.kwargs["doctype"], "Tax Directive")
 		self.assertEqual(notify.call_args.kwargs["docname"], "TD-0001")
+		self.assertEqual(notify.call_args.kwargs["deduplicate_since"], getdate(today()))
+
+	def test_tax_directive_expiry_ignores_non_milestone_days(self):
+		from za_local.tasks import check_tax_directive_expiry
+
+		directive = frappe._dict(
+			name="TD-0001",
+			employee="EMP-0001",
+			employee_name="Test Employee",
+			effective_to=add_days(today(), 5),
+		)
+		with (
+			patch("za_local.tasks._doctype_has_fields", return_value=True),
+			patch("za_local.tasks.frappe.get_all", return_value=[directive]),
+			patch("za_local.tasks.notify_hr_admin") as notify,
+		):
+			check_tax_directive_expiry()
+
+		notify.assert_not_called()
+
+	def test_notify_hr_admin_is_idempotent_within_deduplication_window(self):
+		from za_local.tasks import notify_hr_admin
+
+		users = {
+			"hr@example.com": {"name": "hr@example.com", "enabled": 1, "user_type": "System User"},
+		}
+		with (
+			patch("za_local.tasks.frappe.db.get_value", side_effect=user_lookup(users)),
+			patch("za_local.tasks.frappe.db.exists", return_value="NOTIFICATION-0001"),
+			patch("za_local.tasks.frappe.new_doc") as new_doc,
+		):
+			count = notify_hr_admin(
+				"Tax Directive Expiry Reminder (7 days): Test Employee",
+				"Reminder",
+				doctype="Tax Directive",
+				docname="TD-0001",
+				recipients=["hr@example.com"],
+				deduplicate_since="2026-08-01",
+			)
+
+		self.assertEqual(count, 0)
+		new_doc.assert_not_called()
+
+	def test_sars_reminder_uses_full_march_recovery_window(self):
+		from za_local.tasks import check_sars_rate_updates
+
+		with (
+			patch("za_local.tasks.today", return_value="2026-03-20"),
+			patch("za_local.tasks.notify_hr_admin", return_value=1) as notify,
+		):
+			check_sars_rate_updates()
+
+		notify.assert_called_once()
+		self.assertEqual(notify.call_args.kwargs["deduplicate_since"], getdate("2026-03-01"))
+
+	def test_eea_reminder_uses_full_december_recovery_window(self):
+		from za_local.tasks import reminder_for_eea_reporting
+
+		with (
+			patch("za_local.tasks.today", return_value="2026-12-18"),
+			patch("za_local.tasks.notify_hr_admin", return_value=1) as notify,
+		):
+			reminder_for_eea_reporting()
+
+		notify.assert_called_once()
+		self.assertEqual(notify.call_args.kwargs["deduplicate_since"], getdate("2026-12-01"))
 
 	def test_weekly_invalid_id_notifications_do_not_fail_scheduler(self):
 		from za_local.tasks import weekly

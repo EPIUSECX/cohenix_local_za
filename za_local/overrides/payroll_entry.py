@@ -11,7 +11,7 @@ Note: This module only works when HRMS is installed.
 import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import get_accounting_dimensions
 from frappe import _
-from frappe.utils import flt, getdate
+from frappe.utils import escape_html, flt, getdate
 
 from za_local.utils.hrms_detection import get_hrms_doctype_class, require_hrms
 
@@ -41,6 +41,8 @@ from za_local.utils.payroll_utils import (
     is_payroll_processed,
 )
 
+LOGGER = frappe.logger("za_local_payroll")
+
 
 class ZAPayrollEntry(PayrollEntry):
     """
@@ -52,125 +54,11 @@ class ZAPayrollEntry(PayrollEntry):
     - Employee type validation
     """
 
-    def __init__(self, *args, **kwargs):
-        """Ensure HRMS is available before initialization"""
-        # Initialize parent first - wrap in try-catch to prevent errors during load
-        try:
-            super().__init__(*args, **kwargs)
-        except Exception as e:
-            # If initialization fails and document has a name, it's an existing document being loaded
-            # Log error but don't block - allow document to load
-            if hasattr(self, 'name') and self.name:
-                frappe.log_error(
-                    f"Error initializing Payroll Entry {self.name}: {e!s}",
-                    "Payroll Entry Init Error"
-                )
-                # Continue anyway to allow document to load
-            else:
-                # New document - raise the error
-                raise
-
-        # Set a flag to indicate this is an existing document being loaded
-        # This helps us skip validation during load
-        try:
-            self._za_is_loading = bool(getattr(self, 'name', None)) and not self.get("__islocal", False)
-        except Exception:
-            self._za_is_loading = False
-
-        # Only check HRMS if PayrollEntry class wasn't available
-        # This check is done after initialization to allow loading existing documents
-        if PayrollEntry is None:
-            # Only throw error if this is a new document being created
-            # For existing documents, allow loading even if HRMS check fails
-            doc_name = getattr(self, 'name', None)
-            if not doc_name:
-                try:
-                    require_hrms("Payroll Entry")
-                except Exception:
-                    # If HRMS check fails for new doc, that's okay - let it fail normally
-                    raise
-
     def validate(self):
-        """
-        Validate payroll entry with SA-specific checks.
-        Only validate when document is being saved, not when loading existing documents.
-        """
-        # CRITICAL FIX: If document has ANY name, skip ALL validation
-        # This is the most aggressive approach - if it exists in DB, don't validate
-        # Only validate when creating new documents (no name) or explicitly saving (__islocal)
-        try:
-            # Check if document has a name (exists in database)
-            doc_name = getattr(self, 'name', None) or getattr(self, '_name', None)
-            has_name = bool(doc_name)
-
-            # Check if being saved (has __islocal flag)
-            is_being_saved = self.get("__islocal", False)
-
-            # If document has a name and is NOT being saved, skip EVERYTHING
-            # This means it's an existing document being loaded
-            if has_name and not is_being_saved:
-                # Existing document - skip ALL validation completely
-                # Don't call parent validate() - just return immediately
-                return
-        except Exception:
-            # If ANY error occurs in the check, just return to be safe
-            # Better to skip validation than to block document load
-            return
-
-        # For new documents (no name) or documents being saved (has __islocal), run validation
-        # Wrap everything in try-catch to be extra safe
-        try:
-            # Check HRMS availability
-            try:
-                require_hrms("Payroll Entry")
-            except Exception as hrms_error:
-                # Only throw HRMS error for new documents
-                if not has_name:
-                    raise
-                # For existing documents, log and continue
-                frappe.log_error(
-                    f"HRMS check failed for Payroll Entry {doc_name}: {hrms_error!s}",
-                    "Payroll Entry HRMS Check Error"
-                )
-                return
-
-            # Call parent validate
-            try:
-                super().validate()
-            except Exception as parent_error:
-                # Only throw parent validation error for new documents
-                if not has_name:
-                    raise
-                # For existing documents, log and continue
-                frappe.log_error(
-                    f"Parent validation failed for Payroll Entry {doc_name}: {parent_error!s}",
-                    "Payroll Entry Parent Validation Error"
-                )
-                return
-
-            # Only validate employee requirements when document is being saved
-            # This means: new document, or document being modified
-            try:
-                self.validate_employee_requirements()
-            except Exception as emp_error:
-                # Only throw employee validation error for new documents
-                if not has_name:
-                    raise
-                # For existing documents, log but don't block
-                frappe.log_error(
-                    f"Employee validation failed for Payroll Entry {doc_name}: {emp_error!s}",
-                    "Payroll Entry Employee Validation Error"
-                )
-        except Exception as e:
-            # Catch-all for any unexpected errors
-            # Only throw for new documents
-            if not has_name:
-                raise
-            # For existing documents, log but don't block
-            frappe.log_error(
-                f"Unexpected error in Payroll Entry validation for {doc_name}: {e!s}",
-                "Payroll Entry Validation Unexpected Error"
-            )
+        """Run stock HRMS validation and mandatory SA employee checks on every save."""
+        require_hrms("Payroll Entry")
+        super().validate()
+        self.validate_employee_requirements()
 
     def before_save(self):
         self.ensure_consistent_status()
@@ -200,74 +88,56 @@ class ZAPayrollEntry(PayrollEntry):
         Note: Bank account is only needed when creating bank entries (payments),
         not for creating salary slips. Employee type is always required.
 
-        For existing documents (especially submitted ones), show warnings instead of errors
-        to allow viewing historical records.
+        Employee metadata is fetched in one query so large payrolls do not cause
+        two database round trips per employee during every save.
         """
-        # Safety check: If document exists and is not being saved, skip validation
-        # This is a double-check in case this method is called directly
-        doc_name = getattr(self, 'name', None)
-        is_loading = getattr(self, '_za_is_loading', False)
-        is_being_saved = self.get("__islocal", False) or frappe.flags.in_import or frappe.flags.in_migrate
-
-        if (doc_name and not is_being_saved) or is_loading:
-            # Existing document being loaded - skip validation
-            return
-
-        employees_without_employee_type = []
-        employees_without_bank_account = []
-
-        # Safety check: If no employees, nothing to validate
-        employees = getattr(self, 'employees', None)
+        employees = self.get("employees") or []
         if not employees:
             return
 
-        for emp in self.employees:
-            # Get employee type from Employee doctype (not stored on child table)
-            # Employee type is required for tax calculations
-            emp_type = frappe.db.get_value("Employee", emp.employee, "za_employee_type")
-            if not emp_type:
-                employees_without_employee_type.append(emp)
-
-            # Get bank account from Employee doctype (not stored on child table)
-            # Bank account is optional - only needed when creating payment entries
-            bank_account = frappe.db.get_value(
+        employee_names = list(dict.fromkeys(row.employee for row in employees if row.employee))
+        employee_details = {
+            row.name: row
+            for row in frappe.get_all(
                 "Employee",
-                emp.employee,
-                "za_payroll_payable_bank_account"
+                filters={"name": ["in", employee_names]},
+                fields=[
+                    "name",
+                    "employee_name",
+                    "za_employee_type",
+                    "za_payroll_payable_bank_account",
+                ],
             )
-            if not bank_account:
-                employees_without_bank_account.append(emp)
+        }
+        employees_without_employee_type = [
+            row for row in employees if not employee_details.get(row.employee, {}).get("za_employee_type")
+        ]
+        employees_without_bank_account = [
+            row
+            for row in employees
+            if not employee_details.get(row.employee, {}).get("za_payroll_payable_bank_account")
+        ]
 
-        # For existing documents (especially submitted ones), be lenient
-        # Only throw errors for new documents or when actively saving
-        is_existing_document = self.name and (self.docstatus > 0 or self.salary_slips_created)
-
-        # Employee type is always required (for tax calculations)
         if employees_without_employee_type:
-            error_msg = "Employee Type not found for the following employees:<br><ul>"
-            for emp in employees_without_employee_type:
-                error_msg += f"<li><a href='/app/employee/{emp.employee}'>{emp.employee}: {emp.employee_name}</a></li>"
-            error_msg += "</ul>"
+            labels = []
+            for row in employees_without_employee_type:
+                detail = employee_details.get(row.employee) or {}
+                employee_name = detail.get("employee_name") or row.get("employee_name") or ""
+                labels.append(escape_html(f"{row.employee}: {employee_name}"))
+            frappe.throw(
+                _("Employee Type is required for the following employees:")
+                + "<br><ul><li>"
+                + "</li><li>".join(labels)
+                + "</li></ul>",
+                title=_("Missing Required Field"),
+            )
 
-            # For existing documents, skip validation to allow viewing
-            # Don't use frappe.msgprint in validate() as it can cause issues
-            if is_existing_document:
-                # Just log a warning, don't block
-                frappe.log_error(
-                    f"Payroll Entry {self.name}: Missing Employee Type for employees: {', '.join([emp.employee for emp in employees_without_employee_type])}",
-                    "Payroll Entry Missing Employee Type"
-                )
-            else:
-                # For new documents, throw error to prevent saving
-                frappe.throw(error_msg, title=_("Missing Required Field"))
-
-        # Bank account is optional - only log if missing, don't show message in validate()
-        # It will be required later when creating bank entries for payment
         if employees_without_bank_account:
-            # Just log, don't show message during validate
-            frappe.log_error(
-                f"Payroll Entry {self.name}: Missing Bank Account for employees: {', '.join([emp.employee for emp in employees_without_bank_account])}",
-                "Payroll Entry Missing Bank Account"
+            LOGGER.warning(
+                "Payroll Entry %s has %s employee(s) without a payroll bank account: %s",
+                self.name or "New Payroll Entry",
+                len(employees_without_bank_account),
+                ", ".join(row.employee for row in employees_without_bank_account),
             )
 
     def validate_mandatory_fields(self):
@@ -520,12 +390,12 @@ class ZAPayrollEntry(PayrollEntry):
             else:
                 # No frequency data - include all employees
                 employees = [emp.employee for emp in self.employees]
-        except Exception as e:
+        except Exception:
             # If frequency check fails, include all employees
             # Log error but don't block creation
             frappe.log_error(
-                f"Error checking payroll frequency for Payroll Entry {self.name}: {e!s}",
-                "Payroll Entry Frequency Check"
+                title=f"Payroll Entry frequency check failed: {self.name}",
+                message=frappe.get_traceback(),
             )
             # Include all employees if frequency check fails
             employees = [emp.employee for emp in self.employees]
@@ -568,6 +438,26 @@ class ZAPayrollEntry(PayrollEntry):
                 else:
                     create_salary_slips_for_employees(employees, args, publish_progress=False)
                     self.reload()
+
+                    created_for = set(
+                        frappe.get_all(
+                            "Salary Slip",
+                            filters={
+                                "payroll_entry": self.name,
+                                "employee": ["in", employees],
+                                "docstatus": ["<", 2],
+                            },
+                            pluck="employee",
+                        )
+                    )
+                    missing = sorted(set(employees) - created_for)
+                    if missing:
+                        frappe.throw(
+                            _(
+                                "Salary Slips were not created for: {0}. Review the Payroll Entry Error Message and Error Log before continuing."
+                            ).format(", ".join(missing)),
+                            title=_("Salary Slip Creation Incomplete"),
+                        )
                     frappe.msgprint(
                         _("Salary slips created successfully."),
                         indicator="green",
@@ -578,8 +468,8 @@ class ZAPayrollEntry(PayrollEntry):
             except Exception as e:
                 # Log the full error
                 frappe.log_error(
-                    f"Error creating salary slips for Payroll Entry {self.name}: {e!s}",
-                    "Payroll Entry Create Salary Slips"
+                    title=f"Payroll Entry salary slip creation failed: {self.name}",
+                    message=frappe.get_traceback(),
                 )
                 # Re-raise with a user-friendly message
                 frappe.throw(
@@ -589,7 +479,7 @@ class ZAPayrollEntry(PayrollEntry):
 
         return False
 
-    @frappe.whitelist()
+    @frappe.whitelist(methods=["POST"])
     def make_payment_entry(self, selected_payment_account=None):
         """
         Create bank entry journal entries for employees grouped by bank account.
@@ -612,7 +502,12 @@ class ZAPayrollEntry(PayrollEntry):
             selected_payment_account: Dictionary of bank accounts and employees (passed from JavaScript)
         """
         # Log for debugging permission issues
-        frappe.logger().debug(f"make_payment_entry called by {frappe.session.user} for {self.name}, docstatus={self.docstatus}")
+        LOGGER.debug(
+            "make_payment_entry called by %s for %s, docstatus=%s",
+            frappe.session.user,
+            self.name,
+            self.docstatus,
+        )
 
         # This creates bank Journal Entries, i.e. it moves money. run_doc_method only
         # enforces READ on the document (frappe/handler.py -> get_doc(check_permission=True)
@@ -635,14 +530,31 @@ class ZAPayrollEntry(PayrollEntry):
             selected_accounts = json.loads(selected_accounts)
 
         # Validate that employees have bank accounts configured
-        missing_bank_accounts = []
-        for account_data in selected_accounts.values():
-            employees = account_data.get("employees", [])
-            for employee in employees:
-                bank_account = frappe.db.get_value("Employee", employee, "za_payroll_payable_bank_account")
-                if not bank_account:
-                    emp_name = frappe.db.get_value("Employee", employee, "employee_name")
-                    missing_bank_accounts.append(f"{employee}: {emp_name}")
+        selected_employees = list(
+            dict.fromkeys(
+                employee
+                for account_data in selected_accounts.values()
+                for employee in account_data.get("employees", [])
+            )
+        )
+        if not selected_employees:
+            frappe.throw(_("Select at least one employee for payment."))
+
+        employee_details = {
+            row.name: row
+            for row in frappe.get_all(
+                "Employee",
+                filters={"name": ["in", selected_employees]},
+                fields=["name", "employee_name", "za_payroll_payable_bank_account"],
+            )
+        }
+        missing_bank_accounts = [
+            escape_html(
+                f"{employee}: {(employee_details.get(employee) or {}).get('employee_name') or ''}"
+            )
+            for employee in selected_employees
+            if not (employee_details.get(employee) or {}).get("za_payroll_payable_bank_account")
+        ]
 
         if missing_bank_accounts:
             frappe.throw(
@@ -657,16 +569,12 @@ class ZAPayrollEntry(PayrollEntry):
         )
 
         # Get salary slip details for all employees
-        all_employees = []
-        for account_data in selected_accounts.values():
-            all_employees.extend(account_data.get("employees", []))
-
         salary_slips = frappe.get_all(
             "Salary Slip",
             filters={
                 "payroll_entry": self.name,
                 "docstatus": 1,
-                "employee": ["in", all_employees]
+                "employee": ["in", selected_employees]
             },
             fields=["name", "employee", "net_pay", "base_net_pay"]
         )
@@ -850,7 +758,7 @@ class ZAPayrollEntry(PayrollEntry):
         return created_journal_entries
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def make_payment_entry_for_payroll(dt, dn, selected_payment_account=None):
     """
     Standalone wrapper function to call make_payment_entry on a Payroll Entry document.
@@ -879,26 +787,10 @@ def make_payment_entry_for_payroll(dt, dn, selected_payment_account=None):
             title=_("Permission Denied")
         )
 
-    # frappe.get_doc does not check permissions itself; the check above is the gate.
-    try:
-        doc = frappe.get_doc(dt, dn)
-    except Exception as e:
-        # If get_doc fails, it might be due to permissions or other issues
-        # Log the error for debugging
-        frappe.log_error(
-            f"Error getting {dt} {dn} in make_payment_entry_for_payroll: {e!s}",
-            "Payroll Entry Bank Entry Permission Error"
-        )
-        # Provide user-friendly error message
-        if "permission" in str(e).lower() or "not permitted" in str(e).lower():
-            frappe.throw(
-                _("You do not have permission to access {0} {1}. Please contact your manager to get access.").format(dt, dn),
-                title=_("Permission Denied")
-            )
-        else:
-            frappe.throw(_("Error accessing {0} {1}: {2}").format(dt, dn, str(e)))
-
-    # Call the document method - it should work since we have the document loaded
+    # frappe.get_doc does not check permissions itself; the explicit write/submit
+    # check above is the gate. Unexpected load failures should retain their native
+    # traceback and status rather than being converted to a data-leaking message.
+    doc = frappe.get_doc(dt, dn)
     return doc.make_payment_entry(selected_payment_account)
 
 

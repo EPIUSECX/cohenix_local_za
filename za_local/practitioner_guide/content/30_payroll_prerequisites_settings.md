@@ -30,7 +30,7 @@ Also set:
 - **Calculate Annual Taxable Amount Based On** — *Payroll Period* (default, recommended) or *Joining/Relieving Date*. This controls how income is annualised for PAYE.
 - **Disable ETI Calculation** — leave unticked unless the employer does not claim ETI.
 
-> These statutory components are seeded on install (when HRMS is present). If a dropdown is empty, the component seeding did not run — re-run `bench migrate`, then re-open Payroll Settings.
+> These statutory components are seeded when HRMS is present. If a dropdown is empty, preserve logs and diagnose setup/migration on staging; do not repeatedly migrate production as a repair shortcut.
 
 ## Mileage / reimbursement rate
 

@@ -97,6 +97,7 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",
@@ -232,6 +233,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "expense_claim",
    "fieldtype": "Link",
    "label": "Expense Claim",
@@ -296,6 +298,7 @@
   {
    "create": 1,
    "email": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "role": "Employee",
@@ -309,4 +312,3 @@
  "title_field": "trip_purpose",
  "track_changes": 1
 }
-

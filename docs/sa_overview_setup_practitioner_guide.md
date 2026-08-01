@@ -17,7 +17,7 @@ Before starting:
 - At least one South African company exists.
 - The company's chart of accounts has the accounts required for VAT, payroll liabilities, payroll expenses, and statutory clearing accounts.
 - The current fiscal year and payroll period exist where payroll will be used.
-- The practitioner has System Manager, Accounts Manager, HR Manager, Payroll Manager, or equivalent permissions.
+- A System Manager performs installation, migration, ZA Local Setup and company VAT bootstrap. Operational users receive only the module roles and Company User Permissions needed for their work.
 
 ## Initial Setup Tutorial
 
@@ -26,14 +26,7 @@ Before starting:
 3. Create or open the setup record for the company.
 4. Select the South African company.
 5. Review the available setup sections.
-6. Apply the setup sections required for the site:
-   - Workspaces and sidebar navigation.
-   - Custom fields.
-   - VAT defaults.
-   - Payroll defaults, if HRMS is installed.
-   - Labour and COIDA defaults.
-   - Print formats.
-   - Module onboarding.
+6. Apply only the setup data sets deliberately selected for that company. Schema/custom-field, workspace and print-format synchronization occurs through app installation/migration, not through an operator checkbox.
 7. Save the setup record.
 8. Open the `SA Overview` workspace.
 9. Confirm the module cards are visible:
@@ -60,10 +53,10 @@ Open the Company record and confirm:
 
 Confirm the right users have access:
 
-- Accounts users can access VAT settings, VAT201 returns, tax templates, and accounting reports.
-- Payroll users can access HRMS payroll records, SA Payroll settings, EMP201, EMP501, and IRP5 / IT3(a).
-- HR users can access Employee records, Employment Equity fields, Labour records, and COIDA incident records.
-- System administrators can access setup, custom fields, and print formats.
+- Accounts Managers can configure and submit VAT working papers; Accounts Users are review users unless separately granted broader ERPNext rights.
+- Payroll and HR roles must be limited by company and job function; certificates, bank data and statutory references are sensitive personal/financial data.
+- HR Users may prepare injury/claim records but approval/submission is reserved for the configured HR Manager/System Manager controls.
+- System Managers alone should run setup, migration helpers, VAT bootstrap and practitioner-guide publishing.
 
 ### Workspaces
 
@@ -177,13 +170,12 @@ Expected result:
 
 ## Troubleshooting
 
-- If a workspace is missing, run migration and confirm the app is installed on the site.
+- If a workspace is missing, inspect the migration log and app installation first. Back up and reproduce on staging before re-running migration in production.
 - If onboarding is missing, check the `Workspace Sidebar` record for the relevant module.
 - If payroll links fail, confirm HRMS is installed.
 - If print formats do not appear, confirm the Print Format records are enabled and linked to the correct DocType.
-- If custom fields are missing, rerun ZA Local setup or migration and confirm customizations synced successfully.
+- If custom fields are missing, migration did not complete correctly; ZA Local Setup is not a substitute for schema synchronization.
 
 ## Practitioner Responsibility
 
-The setup process creates a starting point. Practitioners must still review every statutory setting, account, tax rate, salary component, and report before live use.
-
+The setup process creates a starting point. A green setup status means the background configuration job finished; it is not statutory signoff. Review its warnings, Error Log, created/updated records, accounts, rates, permissions and reports before live use.

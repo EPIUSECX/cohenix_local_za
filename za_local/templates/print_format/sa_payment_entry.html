@@ -7,13 +7,18 @@
 
 <style>
 .za-pay { color: #111827; font-size: 9px; line-height: 1.35; }
-.za-pay__header { border-bottom: 2px solid #111827; display: grid; gap: 16px; grid-template-columns: 1fr 210px; margin-bottom: 12px; padding-bottom: 10px; }
+.za-pay__header { border-bottom: 2px solid #111827; display: table; margin-bottom: 12px; padding-bottom: 10px; width: 100%; }
+.za-pay__header > div { display: table-cell; vertical-align: top; }
+.za-pay__header > div:last-child { width: 210px; }
 .za-pay__company { font-size: 18px; font-weight: 700; }
 .za-pay__title { font-size: 22px; font-weight: 700; letter-spacing: .08em; margin: 10px 0 12px; text-align: center; text-transform: uppercase; }
-.za-pay__grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-bottom: 12px; }
+.za-pay__grid { border-collapse: separate; border-spacing: 6px 0; display: table; margin: 0 -6px 12px; width: calc(100% + 12px); }
+.za-pay__grid > .za-pay__box { display: table-cell; width: 50%; }
 .za-pay__box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
 .za-pay__box-title { color: #4b5563; font-size: 8px; font-weight: 700; letter-spacing: .05em; margin-bottom: 6px; text-transform: uppercase; }
-.za-pay__row { display: grid; gap: 8px; grid-template-columns: 130px 1fr; margin-bottom: 3px; }
+.za-pay__row { display: table; margin-bottom: 3px; width: 100%; }
+.za-pay__row > div { display: table-cell; vertical-align: top; }
+.za-pay__row > div:first-child { width: 130px; }
 .za-pay__label { color: #4b5563; font-weight: 600; }
 .za-pay__value { font-weight: 600; overflow-wrap: anywhere; }
 .za-pay table { border-collapse: collapse; margin-top: 8px; width: 100%; }

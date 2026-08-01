@@ -14,6 +14,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from za_local.sa_labour.doctype.business_trip.business_trip import get_business_trip_mileage_rate
+
 
 class BusinessTripSettings(Document):
 	"""Single DocType for Business Trip configuration settings"""
@@ -30,11 +32,7 @@ class BusinessTripSettings(Document):
 				frappe.throw(_("Mileage Allowance Rate cannot be negative"))
 
 			if self.mileage_allowance_rate > 50:
-				frappe.msgprint(
-					_("Mileage Allowance Rate seems high. SARS recommended rate is R4.25/km (2024)"),
-					alert=True,
-					indicator="orange"
-				)
+				frappe.throw(_("Mileage Allowance Rate cannot exceed R50 per kilometre."))
 
 	def validate_expense_claim_types(self):
 		"""Validate that expense claim types exist if specified"""
@@ -51,15 +49,14 @@ class BusinessTripSettings(Document):
 
 
 @frappe.whitelist()
-def get_mileage_rate():
+def get_mileage_rate(date_value=None):
 	"""
 	Get the configured mileage allowance rate.
 
 	Returns:
-		float: Mileage rate per kilometer, defaults to 4.25 (SARS 2024 rate)
+		float: Configured rate or the date-effective statutory rate pack value.
 	"""
-	settings = frappe.get_single("Business Trip Settings")
-	return settings.mileage_allowance_rate or 4.25
+	return get_business_trip_mileage_rate(date_value)
 
 
 @frappe.whitelist()
@@ -76,4 +73,3 @@ def get_expense_claim_types():
 		"meal": settings.meal_expense_claim_type,
 		"incidental": settings.incidental_expense_claim_type
 	}
-

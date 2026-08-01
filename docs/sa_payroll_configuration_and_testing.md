@@ -8,7 +8,9 @@ SA Payroll extends HRMS payroll for South African statutory payroll processing. 
 
 HRMS is required for payroll execution. ZA Local does not replace HRMS payroll; it extends HRMS Salary Slip, Salary Structure, Payroll Entry, and related payroll workflows where HRMS is installed.
 
-Direct SARS electronic submission is not supported. Practitioners must review working papers, exports, PDFs, and reports before manual SARS submission.
+Direct SARS electronic submission is not supported. The app does not generate the SARS BRS payroll-import CSV or encrypted reconciliation file. Generic exports and PDFs are review aids only; capture approved figures through eFiling/e@syFile or use a separately validated BRS-compatible integration.
+
+Use the current [SARS Guide for Employers](https://www.sars.gov.za/guide-for-employers-in-respect-of-employees-tax-2027/) and the applicable PAYE BRS/validation rules as primary references. Archive the exact publications used for annual signoff.
 
 ## Annual Statutory Update Checklist
 
@@ -19,7 +21,7 @@ Each year, before the first March payroll:
 1. Add a new `statutory_rates_YYYY.json` rate pack under `za_local/sa_setup/data`.
 2. Capture PAYE brackets, rebates, tax thresholds, medical tax credits, UIF cap and rates, ETI brackets, reimbursive travel rate, subsistence rates, retirement cap, COIDA earnings cap, source reference, and effective dates.
 3. Add or update Payroll Period, Income Tax Slab, and Tax Rebates fixtures for the new year.
-4. Run setup/migrate or `refresh_sa_tax_tables` to seed the Desk-reviewable records.
+4. Commit the versioned pack and fixtures, back up, migrate a restored staging site, and verify the Desk-reviewable records. `refresh_sa_tax_tables` is a System Manager maintenance action, not a normal payroll-user step.
 5. Run the payroll compliance tests and compare golden fictional payroll cases for the new year.
 6. Practitioner signs off the new pack before processing March payroll.
 
@@ -52,7 +54,8 @@ Review or create:
 - Salary Components with SARS code mappings.
 - Employee Type.
 - Employees with South African identity and tax fields.
-- Employee Private Benefit records for medical aid and other private benefits.
+- Date-effective Employee Private Benefit records for private medical scheme contributions and dependants.
+- Submitted Fringe Benefit records and linked Company Car, Housing or Low Interest Loan detail records where non-cash benefits apply.
 - Salary Structure and Salary Structure Assignment.
 - Payroll Entry.
 
@@ -147,23 +150,18 @@ Validation:
 - Employee can be used on Salary Structure Assignment.
 - IRP5 readiness checks do not report avoidable missing fields.
 
-### 6. Configure Employee Private Benefits
+### 6. Configure Medical And Fringe Benefits
 
-Create `Employee Private Benefit` rows where applicable:
+Use `Employee Private Benefit` only for date-effective private medical scheme/medical-credit and retirement-annuity data. A medical credit requires an active record with a positive private-medical-aid contribution; capture the dependant count on that record and prevent overlapping active periods.
 
-- Medical aid main member.
-- Medical aid dependants.
-- Company car.
-- Housing.
-- Low-interest loan.
-- Cellphone.
-- Fuel card.
-- Bursary.
+Use the separate submittable `Fringe Benefit` workflow for non-cash benefits. Link and submit the applicable Company Car, Housing or Low Interest Loan detail record, then submit the Fringe Benefit. Active submitted benefits are added to Salary Slips as taxable non-cash earnings: they affect PAYE and certificate reporting but do not increase cash gross/net pay or accounting earnings.
 
 Validation:
 
-- Medical tax credits apply only where a medical aid benefit exists.
-- Fringe benefits are visible and reviewable.
+- Company car uses 3.5%, or 3.25% with a maintenance plan, and the documented 80%/20% PAYE inclusion basis.
+- Housing follows the paragraph 9 valuation and employee consideration rules using date-effective values.
+- Low-interest loan uses current outstanding balance and the date-effective official rate.
+- Draft, expired, disabled or unlinked benefit records do not affect payroll.
 
 ### 7. Configure Salary Structure
 
@@ -378,8 +376,9 @@ Steps:
 
 Expected result:
 
-- Missing EMP201 months are reported.
+- Missing months are reported (six for an interim reconciliation, twelve for the annual reconciliation).
 - EMP501 cannot proceed without required monthly declarations.
+- EMP201 totals reconcile to submitted certificate totals before the internal working paper is submitted.
 
 ### Test 13: IRP5 / IT3(a) Certificate
 
@@ -453,9 +452,10 @@ Print formats:
 - If SDL is missing, check company contribution rows.
 - If EMP201 is incomplete, check submitted Salary Slips and SARS payroll code mappings.
 - If EMP501 blocks submission, complete missing EMP201 months or IRP5 certificate references.
+- Do not upload a generic EMP501/IRP5 CSV exported from the app to SARS; it is not a BRS payroll-import file.
 - If IRP5 PDF is incomplete, review Company, Employee, Address, Salary Component, and certificate line data.
 - If GL does not post correctly, review salary component account rows for the company.
 
 ## Practitioner Responsibility
 
-Payroll practitioners must validate every statutory rate, employee classification, PAYE value, UIF value, SDL value, ETI value, EMP201 value, EMP501 value, IRP5 / IT3(a) certificate, and GL posting before filing or payment. ZA Local supports calculation and review; it does not remove practitioner responsibility.
+Payroll practitioners must validate every statutory rate, employee classification, benefit valuation, PAYE/UIF/SDL/ETI value, EMP201/EMP501 working paper, certificate, bank control total and GL posting before filing or payment. Only FNB Online Banking Enterprise CSV is currently enabled, through a submitted Payroll Payment Batch, and it requires bank acceptance testing. ZA Local supports calculation and review; it does not remove practitioner responsibility.

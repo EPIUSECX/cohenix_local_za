@@ -13,7 +13,7 @@ SA COIDA does not submit directly to the Compensation Fund or eCOID. The support
 Before configuring SA COIDA:
 
 - Company exists.
-- Fiscal year exists.
+- A Fiscal Year exists with exactly 1 March to the last day of February for the COIDA assessment year.
 - Employees exist.
 - Payroll Salary Slips are submitted if the annual return should fetch payroll-backed earnings.
 - COIDA registration and Compensation Fund reference details are available.
@@ -38,11 +38,11 @@ Review or create:
 ### 1. Configure COIDA Settings
 
 1. Open `COIDA Settings`.
-2. Capture COIDA registration number.
-3. Capture Compensation Fund reference number.
+2. Confirm the company's COIDA registration number on the Company master. `COIDA Settings` is a site-wide Single, not one document per company.
+3. Capture shared reference/deadline information only where it applies to every company on the site.
 4. Capture assessment year.
 5. Capture submission deadline.
-6. Add industry rate rows.
+6. Add an industry rate row with the Company and industry class that the Compensation Fund assigned.
 7. Save.
 
 Validation:
@@ -50,17 +50,17 @@ Validation:
 - Industry rates are numeric and greater than or equal to zero.
 - Registration and reference numbers are available for practitioner review.
 
-### 2. Configure COIDA Industry Rate
+### 2. Configure COIDA Industry Rate Rows
 
-1. Open `COIDA Industry Rate`.
-2. Create the applicable industry class.
+1. Open the Industry Rates table inside `COIDA Settings` (the row DocType is not a standalone master).
+2. Select the company and create the applicable industry class.
 3. Capture industry description.
 4. Capture assessment rate percentage.
 5. Save.
 
 Validation:
 
-- The industry class can be selected on the COIDA Annual Return.
+- The server resolves the row by company and industry class on the COIDA Annual Return.
 - The assessment rate matches the practitioner-confirmed current rate.
 
 ### 3. Prepare Payroll Evidence
@@ -82,7 +82,7 @@ Validation:
 2. Create a new return.
 3. Select company.
 4. Select fiscal year.
-5. Confirm from date and to date.
+5. Confirm the selected Fiscal Year is exactly 1 March to the last day of February; other accounting fiscal years are rejected for this working paper.
 6. Select industry class.
 7. Click `Fetch Employee Data` if payroll-backed values are required.
 8. Review employee count, total annual earnings, director earnings, assessment rate, and assessment fee.
@@ -92,7 +92,8 @@ Validation:
 Validation:
 
 - Date range aligns to the selected fiscal year.
-- Assessment fee equals total annual earnings multiplied by the assessment rate percentage.
+- Assessable earnings use COIDA-applicable Salary Components, exclude reimbursements, and are capped per employee using the rate pack effective at the period start. For 2026/27 the configured cap is R668,000; verify it against the applicable Compensation Fund notice before filing.
+- Assessment fee equals capped assessable earnings multiplied by the company/class assessment rate percentage.
 - Status updates after submission.
 
 ### 5. Capture Workplace Injury
@@ -327,7 +328,7 @@ Also review:
 ## Common Mistakes And Troubleshooting
 
 - If employee data does not fetch, confirm Salary Slips are submitted and within the annual return period.
-- If assessment fee is zero, confirm total earnings and assessment rate.
+- If assessment fee is zero, confirm submitted slips are fully contained in the period, Salary Component COIDA classifications, the company/class industry-rate row and capped earnings.
 - If director earnings are missing, review Employee designation/classification.
 - If OID Claim cannot save, check injury date, claim date, and linked employee.
 - If leave automation does not run, confirm HRMS leave setup, leave type, approver, and employee leave allocation.
@@ -335,5 +336,4 @@ Also review:
 
 ## Practitioner Responsibility
 
-Practitioners must confirm COIDA registration details, Compensation Fund reference details, assessment rates, earnings values, director earnings, injury evidence, claim evidence, and final external submissions. ZA Local provides working papers and workflow tracking, not Compensation Fund filing or statutory certification.
-
+Practitioners must confirm COIDA registration details, Compensation Fund references, gazetted earnings cap, company/class assessment rate, component classifications, earnings, injury/medical evidence, role access, and final external submission. Injury/claim health data requires least-privilege access. ZA Local provides working papers and workflow tracking, not Compensation Fund filing or statutory certification.

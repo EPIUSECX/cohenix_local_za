@@ -26,6 +26,21 @@ def get_columns():
 
 
 def get_data(filters):
+	frappe.has_permission("VAT201 Return", "read", throw=True)
+	parent_filters = {}
+	if filters.get("company"):
+		parent_filters["company"] = filters.company
+	if filters.get("vat_return"):
+		parent_filters["name"] = filters.vat_return
+	permitted_returns = frappe.get_list(
+		"VAT201 Return",
+		filters=parent_filters,
+		pluck="name",
+		limit_page_length=0,
+	)
+	if not permitted_returns:
+		return []
+
 	return_doc = frappe.qb.DocType("VAT201 Return")
 	row = frappe.qb.DocType("VAT201 Return Transaction")
 
@@ -50,12 +65,11 @@ def get_data(filters):
 		)
 		.orderby(row.posting_date)
 		.orderby(row.voucher_no)
+		.where(row.parent.isin(permitted_returns))
+		.where(row.parenttype == "VAT201 Return")
+		.where(row.parentfield == "transactions")
 	)
 
-	if filters.get("company"):
-		query = query.where(return_doc.company == filters.company)
-	if filters.get("vat_return"):
-		query = query.where(row.parent == filters.vat_return)
 	if filters.get("from_date"):
 		query = query.where(row.posting_date >= filters.from_date)
 	if filters.get("to_date"):

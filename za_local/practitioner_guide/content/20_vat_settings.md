@@ -31,7 +31,7 @@ The **VAT Rates** table auto-populates Standard (15%), Zero (0%) and Exempt (0%)
 
 ## 2. Action: Apply Recommended VAT Setup
 
-The **Apply Recommended VAT Setup** button (South Africa menu) bootstraps the company's VAT configuration in one step. It:
+The **Apply Recommended VAT Setup** button (South Africa menu) is a System-Manager-only, mutating bootstrap for the selected company. Rehearse it on staging and review every resulting account/template/mapping. It:
 
 - Creates the full set of **Sales tax templates**: SA Standard Rated Sales 15% (and an "Additional" variant), SA Capital Goods Sales 15%, SA Zero Rated Sales 0%, SA Export Zero Rated Sales 0%, SA Exempt Sales 0% — each named with the company suffix and mapped to the **Output VAT** account.
 - Creates the **Purchase tax templates**: SA Capital Purchases 15%, SA Capital Imports 15%, SA Standard Rated Purchases 15%, SA Other Imports 15% — mapped to the **Input VAT** account.

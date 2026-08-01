@@ -25,7 +25,7 @@
    "label": "Mileage Allowance"
   },
   {
-   "description": "Standard mileage rate per kilometer (SARS rate: R4.25/km for 2024)",
+   "description": "Optional company reimbursement rate per kilometre. Leave blank to use the date-effective statutory rate pack.",
    "fieldname": "mileage_allowance_rate",
    "fieldtype": "Currency",
    "label": "Mileage Allowance Rate (per km)",
@@ -129,4 +129,3 @@
  "states": [],
  "track_changes": 1
 }
-

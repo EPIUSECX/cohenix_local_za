@@ -1,15 +1,19 @@
 # Copyright (c) 2024, Kartoza and contributors
 # For license information, please see license.txt
 
+import hashlib
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_months, get_first_day, get_last_day, getdate
+from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate
 
 PAYE_CODES = {"4102", "4115"}
 UIF_CODES = {"4141"}
 SDL_CODES = {"4142"}
 ETI_CODES = {"4118"}
+ETI_RECONCILIATION_END_MONTHS = {2, 8}
+ETI_RECONCILIATION_OPENING_MONTHS = {3, 9}
 
 
 def _get_salary_component_metadata(component_name):
@@ -59,9 +63,37 @@ def _looks_like_legacy_statutory_component(component_name, metadata):
 	)
 
 
+def calculate_eti_utilisation(gross_paye, eti_generated, previous_carry_forward, period_start_date):
+	"""Apply the employer PAYE cap and six-month ETI reconciliation boundaries."""
+	period_start_date = getdate(period_start_date)
+	gross_paye = max(0, flt(gross_paye))
+	eti_generated = max(0, flt(eti_generated))
+	previous_carry_forward = max(0, flt(previous_carry_forward))
+
+	if period_start_date.month in ETI_RECONCILIATION_OPENING_MONTHS:
+		previous_carry_forward = 0
+
+	total_available = previous_carry_forward + eti_generated
+	utilized = min(gross_paye, total_available)
+	unused = total_available - utilized
+	is_reconciliation_end = period_start_date.month in ETI_RECONCILIATION_END_MONTHS
+	refund_due = unused if is_reconciliation_end else 0
+	carry_forward = 0 if is_reconciliation_end else unused
+
+	return frappe._dict(
+		eti_carried_forward_from_previous=flt(previous_carry_forward, 2),
+		total_eti_available=flt(total_available, 2),
+		eti_utilized_current_month=flt(utilized, 2),
+		net_paye_payable=flt(gross_paye - utilized, 2),
+		eti_to_be_carried_forward=flt(carry_forward, 2),
+		eti_reconciliation_refund=flt(refund_due, 2),
+	)
+
+
 class EMP201Submission(Document):
 	# Main class for EMP201 Submission
 	def validate(self):
+		self.set_submission_key()
 		# Ensure company, fiscal_year, and month are set before checking for duplicates
 		if self.company and self.fiscal_year and self.month:
 			# For new documents, self.name will be temporary (e.g., "New EMP201 Submission-X")
@@ -94,40 +126,63 @@ class EMP201Submission(Document):
 
 		self.set_submission_period_dates()
 
+	def set_submission_key(self):
+		"""Persist a database-enforced identity for one active company period."""
+		if not (self.company and self.fiscal_year and self.month):
+			return
+		identity = "|".join((self.company, self.fiscal_year, self.month))
+		self.submission_key = hashlib.sha256(identity.encode()).hexdigest()
+
 	@frappe.whitelist()
 	def set_submission_period_dates(self):
-		if self.month and self.fiscal_year:
-			year = int(self.fiscal_year.split("-")[0])
-			month_number = {
-				"January": 1,
-				"February": 2,
-				"March": 3,
-				"April": 4,
-				"May": 5,
-				"June": 6,
-				"July": 7,
-				"August": 8,
-				"September": 9,
-				"October": 10,
-				"November": 11,
-				"December": 12,
-			}[self.month]
+		if not self.month or not self.fiscal_year:
+			return None
 
-			# Adjust year for months that fall in the next calendar year of the fiscal year
-			if month_number < 3:  # Jan & Feb belong to the previous fiscal year's start
-				year += 1
+		month_number = {
+			"January": 1,
+			"February": 2,
+			"March": 3,
+			"April": 4,
+			"May": 5,
+			"June": 6,
+			"July": 7,
+			"August": 8,
+			"September": 9,
+			"October": 10,
+			"November": 11,
+			"December": 12,
+		}.get(self.month)
+		if not month_number:
+			frappe.throw(_("Invalid EMP201 month: {0}").format(self.month))
 
-			start_date = get_first_day(f"{year}-{month_number}-01")
-			end_date = get_last_day(f"{year}-{month_number}-01")
+		fiscal_year = frappe.get_doc("Fiscal Year", self.fiscal_year)
+		fiscal_start = getdate(fiscal_year.year_start_date)
+		fiscal_end = getdate(fiscal_year.year_end_date)
+		matching_periods = []
+		for year in range(fiscal_start.year, fiscal_end.year + 1):
+			start_date = getdate(f"{year}-{month_number:02d}-01")
+			end_date = get_last_day(start_date)
+			if fiscal_start <= start_date and end_date <= fiscal_end:
+				matching_periods.append((start_date, end_date))
 
-			self.submission_period_start_date = start_date
-			self.submission_period_end_date = end_date
+		if len(matching_periods) != 1:
+			frappe.throw(
+				_("Month {0} does not resolve to exactly one period inside Fiscal Year {1}.").format(
+					self.month,
+					self.fiscal_year,
+				),
+				title=_("Invalid EMP201 Period"),
+			)
 
-			return {"submission_period_start_date": start_date, "submission_period_end_date": end_date}
+		start_date, end_date = matching_periods[0]
+		self.submission_period_start_date = start_date
+		self.submission_period_end_date = end_date
+
+		return {"submission_period_start_date": start_date, "submission_period_end_date": end_date}
 
 	@frappe.whitelist()
 	def fetch_emp201_data(self):
-		from frappe.utils import flt, get_first_day
+		from frappe.utils import flt
 
 		if not self.company or not self.submission_period_start_date or not self.submission_period_end_date:
 			frappe.throw(_("Company and submission period dates are required to fetch data."))
@@ -143,8 +198,10 @@ class EMP201Submission(Document):
 			"Salary Slip",
 			filters={
 				"company": self.company,
-				"start_date": [">=", self.submission_period_start_date],
-				"end_date": ["<=", self.submission_period_end_date],
+				"end_date": [
+					"between",
+					[self.submission_period_start_date, self.submission_period_end_date],
+				],
 				"docstatus": 1,
 			},
 			fields=["name"],
@@ -193,33 +250,36 @@ class EMP201Submission(Document):
 				title=_("Missing SARS Payroll Codes"),
 			)
 
-		# Get previous month's ETI carried forward
-		previous_month_date = add_months(self.submission_period_start_date, -1)
-		previous_submission = frappe.db.get_value(
-			"EMP201 Submission",
-			{
-				"company": self.company,
-				"submission_period_start_date": get_first_day(previous_month_date),
-				"docstatus": 1,
-			},
-			"eti_to_be_carried_forward",
-		)
+		previous_submission = 0
+		if getdate(self.submission_period_start_date).month not in ETI_RECONCILIATION_OPENING_MONTHS:
+			previous_month_date = add_months(self.submission_period_start_date, -1)
+			previous_submission = frappe.db.get_value(
+				"EMP201 Submission",
+				{
+					"company": self.company,
+					"submission_period_start_date": get_first_day(previous_month_date),
+					"docstatus": 1,
+				},
+				"eti_to_be_carried_forward",
+			)
 
-		eti_carried_forward_from_previous = flt(previous_submission)
-		total_eti_available = eti_carried_forward_from_previous + eti_generated
-		eti_utilized = min(gross_paye, total_eti_available)
-		net_paye = gross_paye - eti_utilized
-		eti_to_be_carried_forward = total_eti_available - eti_utilized
+		eti_values = calculate_eti_utilisation(
+			gross_paye,
+			eti_generated,
+			previous_submission,
+			self.submission_period_start_date,
+		)
 
 		# Return a dictionary of calculated values
 		return {
 			"gross_paye_before_eti": gross_paye,
-			"eti_carried_forward_from_previous": eti_carried_forward_from_previous,
+			"eti_carried_forward_from_previous": eti_values.eti_carried_forward_from_previous,
 			"eti_generated_current_month": eti_generated,
-			"total_eti_available": total_eti_available,
-			"eti_utilized_current_month": eti_utilized,
-			"net_paye_payable": net_paye,
-			"eti_to_be_carried_forward": eti_to_be_carried_forward,
+			"total_eti_available": eti_values.total_eti_available,
+			"eti_utilized_current_month": eti_values.eti_utilized_current_month,
+			"net_paye_payable": eti_values.net_paye_payable,
+			"eti_to_be_carried_forward": eti_values.eti_to_be_carried_forward,
+			"eti_reconciliation_refund": eti_values.eti_reconciliation_refund,
 			"uif_payable": uif,
 			"sdl_payable": sdl,
 		}
@@ -228,4 +288,6 @@ class EMP201Submission(Document):
 		self.db_set("status", "Submitted", update_modified=False)
 
 	def on_cancel(self):
+		cancelled_key = hashlib.sha256(f"{self.submission_key}|cancelled|{self.name}".encode()).hexdigest()
+		self.db_set("submission_key", cancelled_key, update_modified=False)
 		self.db_set("status", "Cancelled", update_modified=False)

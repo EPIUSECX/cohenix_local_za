@@ -1,26 +1,73 @@
 import frappe
 from frappe import _
 
-RETIREMENT_FUND_CODES = {"4001", "4003", "4006", "4007"}
+RETIREMENT_FUND_CODES = {"4001", "4003", "4006"}
 
 
 def execute(filters=None):
-	filters = frappe._dict(filters or {})
+	filters = _validate_filters(filters)
 	return get_columns(), get_data(filters)
+
+
+def _validate_filters(filters):
+	filters = frappe._dict(filters or {})
+	if not filters.company:
+		frappe.throw(_("Company is required."))
+	frappe.has_permission("Company", "read", doc=filters.company, throw=True)
+	return filters
 
 
 def get_columns():
 	return [
-		{"label": _("Salary Slip"), "fieldname": "salary_slip", "fieldtype": "Link", "options": "Salary Slip", "width": 170},
-		{"label": _("Employee"), "fieldname": "employee", "fieldtype": "Link", "options": "Employee", "width": 120},
+		{
+			"label": _("Salary Slip"),
+			"fieldname": "salary_slip",
+			"fieldtype": "Link",
+			"options": "Salary Slip",
+			"width": 170,
+		},
+		{
+			"label": _("Employee"),
+			"fieldname": "employee",
+			"fieldtype": "Link",
+			"options": "Employee",
+			"width": 120,
+		},
 		{"label": _("Employee Name"), "fieldname": "employee_name", "fieldtype": "Data", "width": 180},
-		{"label": _("Department"), "fieldname": "department", "fieldtype": "Link", "options": "Department", "width": 140},
+		{
+			"label": _("Department"),
+			"fieldname": "department",
+			"fieldtype": "Link",
+			"options": "Department",
+			"width": 140,
+		},
 		{"label": _("Posting Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 110},
-		{"label": _("Salary Component"), "fieldname": "salary_component", "fieldtype": "Link", "options": "Salary Component", "width": 220},
+		{
+			"label": _("Salary Component"),
+			"fieldname": "salary_component",
+			"fieldtype": "Link",
+			"options": "Salary Component",
+			"width": 220,
+		},
 		{"label": _("SARS Code"), "fieldname": "za_sars_payroll_code", "fieldtype": "Data", "width": 90},
-		{"label": _("Employee Deduction"), "fieldname": "employee_deduction", "fieldtype": "Currency", "width": 140},
-		{"label": _("Employer Contribution"), "fieldname": "employer_contribution", "fieldtype": "Currency", "width": 150},
-		{"label": _("Retirement Taxable Excess"), "fieldname": "retirement_taxable_excess", "fieldtype": "Currency", "width": 170},
+		{
+			"label": _("Employee Deduction"),
+			"fieldname": "employee_deduction",
+			"fieldtype": "Currency",
+			"width": 140,
+		},
+		{
+			"label": _("Employer Contribution"),
+			"fieldname": "employer_contribution",
+			"fieldtype": "Currency",
+			"width": 150,
+		},
+		{
+			"label": _("Retirement Taxable Excess"),
+			"fieldname": "retirement_taxable_excess",
+			"fieldtype": "Currency",
+			"width": 170,
+		},
 	]
 
 
@@ -33,7 +80,7 @@ def get_data(filters):
 		"ss.docstatus = 1",
 	]
 	if filters.get("from_date"):
-		conditions.append("ss.start_date >= %(from_date)s")
+		conditions.append("ss.end_date >= %(from_date)s")
 	if filters.get("to_date"):
 		conditions.append("ss.end_date <= %(to_date)s")
 	if filters.get("employee"):
@@ -60,6 +107,7 @@ def get_data(filters):
 			UNION ALL
 			SELECT parent, salary_component, amount, 'company_contribution' AS source_table
 			FROM `tabCompany Contribution`
+			WHERE parenttype = 'Salary Slip'
 		) src
 			INNER JOIN `tabSalary Slip` ss ON ss.name = src.parent
 			INNER JOIN `tabEmployee` e ON e.name = ss.employee
@@ -67,13 +115,7 @@ def get_data(filters):
 			WHERE """
 	query += " AND ".join(conditions)
 	query += """
-				AND (
-					sc.za_sars_payroll_code IN %(retirement_codes)s
-					OR LOWER(src.salary_component) LIKE '%%pension%%'
-					OR LOWER(src.salary_component) LIKE '%%provident%%'
-				OR LOWER(src.salary_component) LIKE '%%retirement annuity%%'
-				OR LOWER(src.salary_component) LIKE '%%retirement fund%%'
-			)
+				AND sc.za_sars_payroll_code IN %(retirement_codes)s
 		GROUP BY
 			ss.name,
 			ss.employee,
@@ -85,8 +127,15 @@ def get_data(filters):
 			ORDER BY ss.posting_date, ss.employee_name, src.salary_component
 			"""
 
-	return frappe.db.sql(
+	rows = frappe.db.sql(
 		query,
 		{**filters, "retirement_codes": tuple(RETIREMENT_FUND_CODES)},
 		as_dict=True,
 	)
+	seen_salary_slips = set()
+	for row in rows:
+		if row.salary_slip in seen_salary_slips:
+			row.retirement_taxable_excess = 0
+		else:
+			seen_salary_slips.add(row.salary_slip)
+	return rows

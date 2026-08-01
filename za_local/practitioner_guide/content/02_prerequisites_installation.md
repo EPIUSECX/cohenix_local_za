@@ -9,7 +9,7 @@
 | Frappe HR (HRMS) | **Optional.** Install only if you need payroll. Without it, all payroll DocTypes, overrides and the SA Payroll workspace are disabled and the rest of the app works normally. |
 | A site | A Frappe site on the bench where you will install the app. |
 
-> If you are unsure whether to install HRMS, read [Choosing Your Track](choosing-your-track) first. You can install HRMS later and re-run `bench migrate`; the payroll features activate automatically.
+> If you are unsure whether to install HRMS, read [Choosing Your Track](choosing-your-track) first. HRMS can be added later, but rehearse the combined migration on staging and verify all payroll metadata/settings before use.
 
 ## Install the app
 
@@ -43,11 +43,11 @@ bench --site <site> clear-cache
 - **Salary Components** with SA payroll treatment are seeded (PAYE, UIF Employee, UIF Employer, SDL, Severance Benefit, Leave Payout, Notice Pay, Tax on Lump Sum) — **only when HRMS is installed**.
 - **Workspaces and desktop icons** are created: SA Overview, SA VAT, SA Payroll (HRMS only), SA Labour, SA COIDA, nested under a single "SA Localisation" app tile.
 
-Because install and migrate run the same idempotent sync, **`bench migrate` is safe to re-run** and will repair missing fixtures.
+Install/migrate synchronizes app-owned schema and defaults. It may create or update configuration, so do not treat it as a harmless repair button. Back up database and files, rehearse on a restored staging site, review logs and local customizations, then run it in a controlled production maintenance window.
 
 ## Upgrading
 
-This app is deployed to **new sites**. To pick up a newer version on an existing site:
+To pick up a newer version on an existing site, first restore the production backup to staging and complete the documented acceptance matrix. In the controlled deployment window:
 
 ```bash
 bench --site <site> migrate
@@ -55,7 +55,7 @@ bench build --app za_local
 bench --site <site> clear-cache
 ```
 
-`migrate` re-applies custom fields, refreshes statutory packs and rebuilds navigation.
+`migrate` synchronizes schema/configuration. Review migration output, Error Log, custom fields, statutory coverage, accounts, permissions and navigation afterwards; successful execution is not practitioner signoff.
 
 ## Next
 

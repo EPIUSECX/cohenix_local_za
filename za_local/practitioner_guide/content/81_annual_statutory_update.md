@@ -1,6 +1,6 @@
 # Annual Statutory Update
 
-South African rates change annually. This is the procedure to roll `za_local` forward to a new tax year. A normal year is data-only — adding JSON files and a holiday list, with no code changes. (The authoritative version ships in the app at `docs/annual_statutory_rate_update.md`.)
+South African rates change annually and sometimes during a year. This is the controlled procedure to roll `za_local` forward. Do not assume a change is data-only until release notes, schema and calculation impacts have been assessed. (The authoritative version ships in `docs/annual_statutory_rate_update.md`.)
 
 Remember: the tax year runs **1 March to end February**, and files are suffixed with the **year of assessment** (the calendar year the tax year ends).
 
@@ -22,7 +22,9 @@ The loader globs `statutory_rates_*.json` and picks the pack whose effective win
 
 In the same folder, add for the new year: `tax_slabs_<YYYY>.json`, `tax_rebates_<YYYY>.json`, `payroll_period_<YYYY>.json`, and `holiday_list_<YYYY>.json` (include any once-off public holidays). ETI slabs and travel rates seed automatically from the rate pack.
 
-## Step 3 — Migrate, clear cache, verify
+## Step 3 — Rehearse, migrate, clear cache, verify
+
+Commit the new files and source references, run static/unit tests, restore representative production data to staging, and back up database/files. On staging:
 
 ```bash
 bench --site <site> migrate
@@ -36,7 +38,7 @@ from za_local.utils.statutory_rates import get_rate_pack
 get_rate_pack("<a date in the new tax year>")["tax_year"]
 ```
 
-Add a `test_sa_payroll_compliance_<YYYY>.py` (copy the latest) asserting the new year's headline values — the cheapest guard against a transcription error.
+Add date-parameterised tests asserting headline values, boundaries and every mid-year effective-date change. Then run the documented payroll/VAT/COIDA E2E scenarios and obtain practitioner signoff before the controlled production migration.
 
 ## Watch list — confirm each year
 
@@ -48,7 +50,10 @@ Add a `test_sa_payroll_compliance_<YYYY>.py` (copy the latest) asserting the new
 - Subsistence daily amounts.
 - COIDA annual earnings cap (separate assessment-year cycle).
 - Retirement lump-sum / severance tax tables.
+- Date-effective official interest rates and housing valuation values.
 
 ## After updating
 
 Update each employee's **Salary Structure Assignment** from 1 March to link the new year's **Income Tax Slab**, so PAYE uses the new brackets from the new tax year's first run.
+
+Successful migration and tests prove technical consistency with encoded expectations, not legal correctness. Preserve the official source, review evidence and signoff with the release record.

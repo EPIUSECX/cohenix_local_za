@@ -76,11 +76,13 @@
    "reqd": 1
   },
   {
-   "default": "Active",
+   "allow_on_submit": 1,
+   "default": "Inactive",
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Active\nInactive\nExpired"
+   "options": "Pending\nActive\nInactive\nExpired",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_7",
@@ -103,12 +105,16 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:['Cellphone','Fuel Card','Other'].includes(doc.benefit_type)",
    "fieldname": "benefit_value",
    "fieldtype": "Currency",
    "label": "Benefit Value",
+   "mandatory_depends_on": "eval:['Cellphone','Fuel Card','Other'].includes(doc.benefit_type)",
    "precision": "2"
   },
   {
+   "allow_on_submit": 1,
+   "description": "Full monthly cash equivalent. Company-car PAYE inclusion is applied separately and does not reduce this IRP5 value.",
    "fieldname": "taxable_value",
    "fieldtype": "Currency",
    "label": "Taxable Value",
@@ -127,6 +133,7 @@
    "fieldname": "company_car_details",
    "fieldtype": "Link",
    "label": "Company Car Benefit",
+   "mandatory_depends_on": "eval:doc.benefit_type=='Company Car'",
    "options": "Company Car Benefit"
   },
   {
@@ -135,6 +142,7 @@
    "fieldname": "housing_details",
    "fieldtype": "Link",
    "label": "Housing Benefit",
+   "mandatory_depends_on": "eval:doc.benefit_type=='Housing'",
    "options": "Housing Benefit"
   },
   {
@@ -143,6 +151,7 @@
    "fieldname": "loan_details",
    "fieldtype": "Link",
    "label": "Loan Benefit",
+   "mandatory_depends_on": "eval:doc.benefit_type=='Low Interest Loan'",
    "options": "Low Interest Loan Benefit"
   },
   {
@@ -151,6 +160,7 @@
    "label": "Monthly Breakdown"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "monthly_breakdown",
    "fieldtype": "Table",
    "label": "Monthly Breakdown",
@@ -215,4 +225,3 @@
  "states": [],
  "track_changes": 1
 }
-

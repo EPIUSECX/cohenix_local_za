@@ -9,16 +9,16 @@ Submitted sales and purchase documents can't be deleted — this protects the SA
 The items on those documents are missing a VAT category, or the wrong tax template was used. Fix the item's VAT category or the document's tax template, then re-fetch the return. See [Prepare & Review the VAT201 Return](../working-with-vat/vat201-return).
 
 **Full tax invoice or abridged — which do I send?**
-Full (with the customer's name, address and VAT number) above the prescribed threshold or when the customer is a VAT vendor; abridged for smaller supplies. See [Tax Invoices, Credit & Debit Notes](../working-with-vat/tax-invoices-credit-notes).
+Full above R5,000 consideration; abridged above R50 through R5,000; no tax invoice required at R50 or less. Recipient vendor status supplies full-invoice particulars but does not replace the value test. See [Tax Invoices, Credit & Debit Notes](../working-with-vat/tax-invoices-credit-notes).
 
 **An employee's PAYE looks wrong.**
-Usually the **Income Tax Slab** on their Salary Structure Assignment is for the wrong tax year, or no slab is linked. Have it corrected and reprocess.
+Check dates, Payroll Period, Income Tax Slab, rate pack, rebates/medical-benefit record, component classifications and prior/additional salary data. Have the cause identified before reprocessing.
 
 **Why is there no SA Payroll workspace?**
 Frappe HR (HRMS) isn't installed — payroll is turned off on this site. That's normal for VAT-only setups.
 
 **Does the system submit to SARS for me?**
-No. It produces compliant working papers (VAT201, EMP201, EMP501, IRP5) and audit trails. You file on SARS eFiling / e@syFile.
+No. It produces internal working papers and audit trails. It does not produce the SARS BRS payroll-import/encrypted reconciliation formats; generic exports must not be uploaded as SARS files.
 
 **Does ETI reduce an employee's pay?**
 No. ETI is an employer incentive that reduces the PAYE the employer pays over on the EMP201. The employee's PAYE and net pay are unaffected.
@@ -39,7 +39,7 @@ Those are statutory configuration maintained by your administrator. See the prac
 | **EMP501** | Annual/interim employer reconciliation. |
 | **IRP5 / IT3(a)** | Employee annual tax certificate (IT3(a) where no tax was deducted). |
 | **COIDA / OID** | Compensation for Occupational Injuries and Diseases / Occupational Injury or Disease. |
-| **Tax invoice** | A VAT-compliant invoice; full or abridged depending on value/recipient. |
+| **Tax invoice** | A document containing the required VAT particulars; full/abridged requirements depend primarily on ZAR consideration. |
 | **Input / Output VAT** | VAT paid on purchases / VAT charged on sales. |
 | **SARS** | South African Revenue Service. |
 | **CIPC** | Companies and Intellectual Property Commission. |

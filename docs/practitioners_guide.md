@@ -60,5 +60,6 @@ A module should be considered ready only when:
 
 ZA Local provides configuration, calculation support, working papers, reports, print formats, and workflow guidance. It does not replace professional statutory review.
 
-Cohenix, EPI-USE, contributors, and implementers do not accept responsibility for incorrect calculations, incorrect setup, incorrect statutory interpretation, or missed submissions. The employer, payroll practitioner, tax practitioner, and appointed reviewers remain responsible for validating all calculations, statutory rates, return values, exports, and filings before submission to SARS, the Compensation Fund, SETAs, the Department of Employment and Labour, or any other authority.
+VAT201, EMP201, EMP501 and IRP5/IT3(a) records are internal working papers. The app does not generate a SARS BRS payroll-import file or submit to SARS/eCOID. Payroll EFT is enabled only for FNB Online Banking Enterprise CSV through a submitted Payroll Payment Batch. Generic exports must not be described as authority- or bank-approved files.
 
+Cohenix, EPI-USE, contributors, and implementers do not accept responsibility for incorrect calculations, incorrect setup, incorrect statutory interpretation, or missed submissions. The employer, payroll practitioner, tax practitioner, and appointed reviewers remain responsible for validating all calculations, statutory rates, return values, exports, and filings before submission to SARS, the Compensation Fund, SETAs, the Department of Employment and Labour, or any other authority.

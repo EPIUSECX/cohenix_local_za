@@ -67,6 +67,9 @@ frappe.ui.form.on("Business Trip Journey", {
 		if (row.transport_mode === "Car (Private)") {
 			frappe.call({
 				method: "za_local.sa_labour.doctype.business_trip_settings.business_trip_settings.get_mileage_rate",
+				args: {
+					date_value: row.date || frm.doc.to_date || frm.doc.from_date,
+				},
 				callback: function(r) {
 					if (r.message) {
 						frappe.model.set_value(cdt, cdn, "mileage_rate", r.message);
@@ -129,17 +132,30 @@ function set_status_indicator(frm) {
 
 function add_custom_buttons(frm) {
 	if (frm.doc.docstatus === 0 && frm.doc.from_date && frm.doc.to_date) {
-		// Generate Allowances button
 		frm.add_custom_button(__("Generate Allowances"), function() {
-			frappe.call({
-				method: "za_local.sa_labour.doctype.business_trip.business_trip.generate_allowances_for_date_range",
-				args: {
-					business_trip_name: frm.doc.name
+			frappe.prompt(
+				[
+					{
+						fieldname: "region",
+						label: __("Business Trip Region"),
+						fieldtype: "Link",
+						options: "Business Trip Region",
+						reqd: 1,
+						get_query: () => ({ filters: { is_active: 1 } }),
+					},
+				],
+				(values) => {
+					frappe.call({
+						method: "za_local.sa_labour.doctype.business_trip.business_trip.generate_allowances_for_date_range",
+						args: {
+							business_trip_name: frm.doc.name,
+							region: values.region,
+						},
+					}).then(() => frm.reload_doc());
 				},
-				callback: function(r) {
-					frm.reload_doc();
-				}
-			});
+				__("Generate Daily Allowances"),
+				__("Generate")
+			);
 		});
 	}
 	
@@ -243,4 +259,3 @@ function calculate_all_totals(frm) {
 	let grand_total = total_allowance + total_incidental + total_mileage + total_receipts + total_accommodation + total_other;
 	frm.set_value("grand_total", grand_total);
 }
-

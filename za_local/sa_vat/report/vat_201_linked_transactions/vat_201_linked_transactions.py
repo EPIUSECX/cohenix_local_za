@@ -28,11 +28,14 @@ def get_columns():
 def get_data(filters):
 	if not filters.get("vat_return"):
 		return []
+	frappe.get_doc("VAT201 Return", filters["vat_return"], check_permission=True)
 
 	return frappe.get_all(
 		"VAT201 Return Transaction",
 		filters={
 			"parent": filters["vat_return"],
+			"parenttype": "VAT201 Return",
+			"parentfield": "transactions",
 			**({"classification": filters["classification"]} if filters.get("classification") else {}),
 			**({} if filters.get("include_cancelled") else {"is_cancelled": 0}),
 		},

@@ -9,6 +9,8 @@
  "field_order": [
   "certificate_details_tab",
   "certificate_number",
+  "certificate_key",
+  "amended_from",
   "certificate_type",
   "column_break_certificate_1",
   "tax_year",
@@ -112,9 +114,27 @@
    "fieldname": "certificate_number",
    "fieldtype": "Data",
    "label": "Certificate Number",
+   "no_copy": 1,
    "read_only": 1,
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "certificate_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Certificate Key",
+   "no_copy": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "IRP5 Certificate",
+   "read_only": 1
   },
   {
    "default": "IRP5",
@@ -528,14 +548,16 @@
   },
   {
    "fieldname": "periods_in_year",
-   "fieldtype": "Int",
+   "fieldtype": "Float",
    "label": "Periods in Year",
+   "precision": "4",
    "read_only": 1
   },
   {
    "fieldname": "periods_worked",
-   "fieldtype": "Int",
+   "fieldtype": "Float",
    "label": "Periods Worked",
+   "precision": "4",
    "read_only": 1
   },
   {
@@ -549,10 +571,11 @@
    "read_only": 1
   },
   {
+   "description": "SARS source code 4150. Required only for an IT3(a) certificate where no employees' tax was deducted.",
    "fieldname": "reason_for_non_deduction",
-   "fieldtype": "Small Text",
-   "label": "Reason for Non-Deduction",
-   "read_only": 1
+   "fieldtype": "Select",
+   "label": "Reason Code for IT3(a) (4150)",
+   "options": "\n02\n03\n04\n05\n06\n07\n08\n09\n10"
   },
   {
    "fieldname": "gross_taxable_income",
@@ -611,7 +634,7 @@
   {
    "fieldname": "total_tax_payable",
    "fieldtype": "Currency",
-   "label": "Total Tax Payable",
+   "label": "Total Tax, SDL and UIF (4149)",
    "read_only": 1
   },
   {

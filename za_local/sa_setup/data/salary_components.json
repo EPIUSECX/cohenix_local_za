@@ -42,6 +42,65 @@
         "amount_based_on_formula": 1,
         "is_flexible_benefit": 0,
         "description": "Skills Development Levy (1% of gross pay)"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Company Car Benefit",
+        "salary_component_abbr": "CARFB",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0,
+        "do_not_include_in_total": 1,
+        "do_not_include_in_accounts": 1,
+        "remove_if_zero_valued": 1,
+        "description": "Non-cash company vehicle fringe benefit; full cash equivalent for IRP5 code 3802"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Company Car PAYE Adjustment",
+        "salary_component_abbr": "CARPA",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0,
+        "do_not_include_in_total": 1,
+        "do_not_include_in_accounts": 1,
+        "remove_if_zero_valued": 1,
+        "description": "IRP5-excluded negative adjustment from full company-car cash equivalent to the 80% or 20% PAYE basis"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Housing Fringe Benefit",
+        "salary_component_abbr": "HOUSEFB",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0,
+        "do_not_include_in_total": 1,
+        "do_not_include_in_accounts": 1,
+        "remove_if_zero_valued": 1,
+        "description": "Non-cash residential accommodation fringe benefit for IRP5 code 3805"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Low Interest Loan Fringe Benefit",
+        "salary_component_abbr": "LOANFB",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0,
+        "do_not_include_in_total": 1,
+        "do_not_include_in_accounts": 1,
+        "remove_if_zero_valued": 1,
+        "description": "Non-cash low-interest or interest-free loan fringe benefit for IRP5 code 3801"
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "Other Fringe Benefit",
+        "salary_component_abbr": "OTHERFB",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0,
+        "do_not_include_in_total": 1,
+        "do_not_include_in_accounts": 1,
+        "remove_if_zero_valued": 1,
+        "description": "Non-cash taxable fringe benefit for IRP5 code 3801"
     }
 ]
-

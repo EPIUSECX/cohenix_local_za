@@ -7,11 +7,27 @@
   "naming_series",
   "employee",
   "property_address",
-  "monthly_rental_value",
+  "calculation_date",
+  "section_break_formula",
+  "remuneration_proxy",
+  "abatement_reduced_to_zero",
+  "column_break_formula",
+  "statutory_abatement",
+  "room_count",
+  "furnished",
+  "power_or_fuel_provided",
+  "formula_percentage",
+  "section_break_provision",
   "owned_by",
+  "monthly_rental_value",
+  "employee_rental_contribution",
+  "section_break_result",
+  "monthly_formula_value",
+  "monthly_taxable_value",
+  "calculation_method",
+  "amended_from",
   "electricity_contribution",
-  "water_contribution",
-  "monthly_taxable_value"
+  "water_contribution"
  ],
  "fields": [
   {
@@ -24,44 +40,157 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Employee",
    "options": "Employee",
-   "reqd": 1,
-   "in_list_view": 1
+   "reqd": 1
   },
   {
    "fieldname": "property_address",
-   "fieldtype": "Data",
-   "label": "Property Address"
+   "fieldtype": "Small Text",
+   "label": "Property Address",
+   "reqd": 1
   },
   {
-   "fieldname": "monthly_rental_value",
-   "fieldtype": "Data",
-   "label": "Monthly Rental Value"
+   "description": "Date used to select the statutory residential accommodation abatement.",
+   "fieldname": "calculation_date",
+   "fieldtype": "Date",
+   "label": "Calculation Date",
+   "reqd": 1
   },
   {
+   "fieldname": "section_break_formula",
+   "fieldtype": "Section Break",
+   "label": "Paragraph 9 Formula"
+  },
+  {
+   "description": "Remuneration proxy (A) determined under paragraph 9 of the Seventh Schedule.",
+   "fieldname": "remuneration_proxy",
+   "fieldtype": "Currency",
+   "label": "Annual Remuneration Proxy (A)",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "description": "Select only where paragraph 9 requires the abatement (B) to be reduced to zero.",
+   "fieldname": "abatement_reduced_to_zero",
+   "fieldtype": "Check",
+   "label": "Abatement Reduced to Zero"
+  },
+  {
+   "fieldname": "column_break_formula",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "statutory_abatement",
+   "fieldtype": "Currency",
+   "label": "Statutory Abatement (B)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "description": "Number of rooms in the accommodation, excluding a kitchen, scullery, bathroom, toilet and pantry.",
+   "fieldname": "room_count",
+   "fieldtype": "Int",
+   "label": "Number of Rooms",
+   "reqd": 1
+  },
+  {
+   "fieldname": "furnished",
+   "fieldtype": "Check",
+   "label": "Accommodation is Furnished"
+  },
+  {
+   "fieldname": "power_or_fuel_provided",
+   "fieldtype": "Check",
+   "label": "Power or Fuel Provided"
+  },
+  {
+   "fieldname": "formula_percentage",
+   "fieldtype": "Percent",
+   "label": "Formula Percentage (C)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_provision",
+   "fieldtype": "Section Break",
+   "label": "Provision and Consideration"
+  },
+  {
+   "default": "Employer",
    "fieldname": "owned_by",
-   "fieldtype": "Data",
-   "label": "Owned By"
+   "fieldtype": "Select",
+   "label": "Accommodation Provided By",
+   "options": "Employer\nThird Party",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.owned_by=='Third Party'",
+   "description": "Actual monthly expenditure incurred by the employer for arm's-length third-party accommodation.",
+   "fieldname": "monthly_rental_value",
+   "fieldtype": "Currency",
+   "label": "Employer Monthly Expenditure",
+   "mandatory_depends_on": "eval:doc.owned_by=='Third Party'",
+   "precision": "2"
+  },
+  {
+   "description": "Monthly consideration paid by the employee for the accommodation.",
+   "fieldname": "employee_rental_contribution",
+   "fieldtype": "Currency",
+   "label": "Employee Monthly Consideration",
+   "precision": "2"
+  },
+  {
+   "fieldname": "section_break_result",
+   "fieldtype": "Section Break",
+   "label": "Taxable Calculation"
+  },
+  {
+   "fieldname": "monthly_formula_value",
+   "fieldtype": "Currency",
+   "label": "Monthly Formula Value",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "description": "Full monthly cash equivalent reported under IRP5 code 3805.",
+   "fieldname": "monthly_taxable_value",
+   "fieldtype": "Currency",
+   "label": "Monthly Taxable Value",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculation_method",
+   "fieldtype": "Small Text",
+   "label": "Calculation Method",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Housing Benefit",
+   "print_hide": 1,
+   "read_only": 1
   },
   {
    "fieldname": "electricity_contribution",
-   "fieldtype": "Data",
-   "label": "Electricity Contribution"
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Electricity Contribution (Legacy)"
   },
   {
    "fieldname": "water_contribution",
-   "fieldtype": "Data",
-   "label": "Water Contribution"
-  },
-  {
-   "fieldname": "monthly_taxable_value",
-   "fieldtype": "Data",
-   "label": "Monthly Taxable Value"
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Water Contribution (Legacy)"
   }
  ],
  "index_web_pages_for_search": 1,
- "modified": "2025-01-28 12:00:00",
+ "is_submittable": 1,
+ "modified": "2026-08-01 12:00:00",
  "modified_by": "Administrator",
  "module": "SA Payroll",
  "name": "Housing Benefit",
@@ -78,6 +207,7 @@
    "report": 1,
    "role": "HR Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
@@ -95,6 +225,5 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1,
- "is_submittable": 1
+ "track_changes": 1
 }

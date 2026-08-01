@@ -3,6 +3,8 @@
 import frappe
 from frappe import _
 
+from za_local.sa_labour.report_utils import get_permitted_company, validate_employee_fields
+
 
 def execute(filters=None):
 	columns = get_columns()
@@ -27,21 +29,8 @@ def get_columns():
 
 
 def get_data(filters):
-	filters = filters or {}
-	company = filters.get("company")
-
-	employee_meta = frappe.get_meta("Employee")
-	required_fields = {"za_occupational_level", "za_race"}
-	missing_fields = sorted(field for field in required_fields if not employee_meta.has_field(field))
-	if missing_fields:
-		frappe.msgprint(
-			_(
-				"Employment Equity setup is incomplete. Please apply the ZA Local employee custom fields before running this report. Missing fields: {0}"
-			).format(", ".join(missing_fields)),
-			title=_("Setup Required"),
-			indicator="orange",
-		)
-		return []
+	company = get_permitted_company(filters)
+	validate_employee_fields({"za_occupational_level", "za_race"})
 
 	query = """
         SELECT

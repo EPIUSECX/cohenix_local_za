@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import frappe
-from frappe.utils import add_days, flt, today
+from frappe.utils import add_days, flt, getdate, today
 
 from za_local.sa_coida.doctype.coida_annual_return.coida_annual_return import COIDAAnnualReturn
 from za_local.sa_coida.doctype.oid_claim.oid_claim import OIDClaim
@@ -143,7 +143,10 @@ class TestStatutoryWorkflowRegressions(UnitTestCase):
 			patch("frappe.get_all", return_value=[frappe._dict(name="SAL-SLIP-0001")]),
 			patch("frappe.get_doc", return_value=salary_slip),
 			patch("frappe.db.get_value", return_value=0),
-			patch("za_local.sa_payroll.doctype.emp201_submission.emp201_submission._get_emp201_bucket", side_effect=bucket),
+			patch(
+				"za_local.sa_payroll.doctype.emp201_submission.emp201_submission._get_emp201_bucket",
+				side_effect=bucket,
+			),
 		):
 			result = EMP201Submission.fetch_emp201_data(doc)
 
@@ -182,30 +185,35 @@ class TestStatutoryWorkflowRegressions(UnitTestCase):
 		self.assertEqual(6000, doc.eti)
 
 	def test_emp501_totals_use_gross_paye_and_reconcile_to_irp5(self):
-		# EMP501 reconciles PAYE on a gross (pre-ETI) basis incl 4115, and ETI as its
-		# own line. The gross PAYE equals the IRP5 PAYE total (4102 + 4115), and the
-		# EMP501 ETI equals the IRP5 ETI (sum of slip ETI), so the legs tie.
+		# EMP501 payable uses ETI utilised. Certificate code 4118 is reconciled
+		# separately to EMP201 ETI generated (the theoretical amount).
 		emp501 = frappe.new_doc("EMP501 Reconciliation")
 		emp501.append("emp201_submissions", {"emp201_submission": "EMP201-RECON"})
-		emp201 = frappe._dict(
-			gross_paye_before_eti=118000.0,   # 4102 (100000) + 4115 (18000)
-			net_paye_payable=112000.0,        # gross - ETI utilised (6000)
-			sdl_payable=41470.0,
-			uif_payable=18323.52,
-			eti_utilized_current_month=6000.0,
-		)
-		with patch("frappe.get_doc", return_value=emp201):
+		emp201 = [
+			frappe._dict(
+				name="EMP201-RECON",
+				submission_period_start_date="2026-03-01",
+				gross_paye_before_eti=118000.0,  # 4102 (100000) + 4115 (18000)
+				sdl_payable=41470.0,
+				uif_payable=18323.52,
+				eti_utilized_current_month=5000.0,
+				eti_generated_current_month=6000.0,
+				eti_carried_forward_from_previous=0,
+				eti_to_be_carried_forward=1000,
+			)
+		]
+		with patch.object(EMP501Reconciliation, "_get_linked_emp201_rows", return_value=emp201):
 			EMP501Reconciliation.calculate_totals(emp501)
 
 		# Gross basis (not the net 112000)
 		self.assertEqual(118000.0, emp501.total_paye)
-		self.assertEqual(6000.0, emp501.total_eti)
+		self.assertEqual(5000.0, emp501.total_eti)
 
-		# Reconciliation contract: the IRP5 side ties to the EMP501 side.
-		irp5_paye_total = 100000 + 18000   # IRP5 paye sums {4102, 4115}
-		irp5_eti_total = 6000              # IRP5 eti sums slip za_monthly_eti
+		# PAYE ties directly; ETI 4118 ties to generated, not utilised.
+		irp5_paye_total = 100000 + 18000  # IRP5 paye sums {4102, 4115}
+		irp5_eti_total = 6000  # IRP5 eti sums slip za_monthly_eti
 		self.assertEqual(emp501.total_paye, irp5_paye_total)
-		self.assertEqual(emp501.total_eti, irp5_eti_total)
+		self.assertEqual(emp201[0].eti_generated_current_month, irp5_eti_total)
 
 	def test_emp501_submission_readiness_requires_sars_references(self):
 		doc = frappe.new_doc("EMP501 Reconciliation")
@@ -244,18 +252,25 @@ class TestStatutoryWorkflowRegressions(UnitTestCase):
 
 	def test_coida_annual_return_calculates_assessment_fee_and_aligns_fiscal_dates(self):
 		doc = frappe.new_doc("COIDA Annual Return")
+		doc.company = "Test Company"
+		doc.industry_class = "Class 1"
 		doc.fiscal_year = "2026-2027"
 		doc.from_date = "2026-01-01"
 		doc.to_date = "2026-12-31"
 		doc.total_annual_earnings = 1_250_000
-		doc.assessment_rate = 1.35
 
 		fiscal_year = frappe._dict(year_start_date="2026-03-01", year_end_date="2027-02-28")
-		with patch("frappe.get_doc", return_value=fiscal_year):
+		with (
+			patch("frappe.get_cached_doc", return_value=fiscal_year),
+			patch(
+				"za_local.sa_coida.doctype.coida_annual_return.coida_annual_return.get_company_industry_rate",
+				return_value=1.35,
+			),
+		):
 			COIDAAnnualReturn.validate(doc)
 
-		self.assertEqual(fiscal_year.year_start_date, doc.from_date)
-		self.assertEqual(fiscal_year.year_end_date, doc.to_date)
+		self.assertEqual(getdate(fiscal_year.year_start_date), doc.from_date)
+		self.assertEqual(getdate(fiscal_year.year_end_date), doc.to_date)
 		self.assertEqual(16_875, doc.assessment_fee)
 
 	def test_workplace_injury_rejects_future_dates_and_calculates_leave_days(self):

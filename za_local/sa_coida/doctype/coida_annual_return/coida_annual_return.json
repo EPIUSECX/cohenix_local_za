@@ -139,6 +139,7 @@
    "fieldname": "assessment_rate",
    "fieldtype": "Percent",
    "label": "Assessment Rate (%)",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -157,7 +158,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Draft\nSubmitted\nPaid",
+   "options": "Draft\nSubmitted\nPaid\nCancelled",
    "reqd": 1
   },
   {

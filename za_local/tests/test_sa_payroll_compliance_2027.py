@@ -12,6 +12,7 @@ from za_local.utils.statutory_rates import (
 	get_coida_annual_earnings_cap,
 	get_rate_pack,
 	get_reimbursive_travel_rate,
+	get_retirement_annual_cap,
 	get_uif_monthly_cap,
 )
 from za_local.utils.tax_utils import calculate_sdl_contribution, calculate_uif_contribution
@@ -29,12 +30,19 @@ class TestSAPayrollCompliance2027(UnitTestCase):
 		self.assertEqual(17820, pack["paye"]["rebates"]["primary"])
 		self.assertEqual(17712, get_uif_monthly_cap("2026-03-31"))
 		self.assertEqual(4.95, get_reimbursive_travel_rate("2026-03-31"))
-		self.assertEqual(688000, get_coida_annual_earnings_cap("2027-02-28"))
+		self.assertEqual(668000, get_coida_annual_earnings_cap("2027-02-28"))
+		self.assertEqual(430000, get_retirement_annual_cap("2027-02-28"))
 
 	def test_uif_and_sdl_use_statutory_pack_rates(self):
-		self.assertEqual((80, 80), tuple(round(v, 2) for v in calculate_uif_contribution(8000)))
-		self.assertEqual((177.12, 177.12), tuple(round(v, 2) for v in calculate_uif_contribution(30000)))
-		self.assertEqual(300, calculate_sdl_contribution(30000))
+		self.assertEqual(
+			(80, 80),
+			tuple(round(v, 2) for v in calculate_uif_contribution(8000, "2026-03-31")),
+		)
+		self.assertEqual(
+			(177.12, 177.12),
+			tuple(round(v, 2) for v in calculate_uif_contribution(30000, "2026-03-31")),
+		)
+		self.assertEqual(300, calculate_sdl_contribution(30000, "2026-03-31"))
 
 	def test_eti_2027_first_and_second_period_amounts(self):
 		self.assertEqual(1125, calculate_eti_from_pack(6000, 1, "2026-03-31"))
@@ -63,22 +71,21 @@ class TestSAPayrollCompliance2027(UnitTestCase):
 		self.assertEqual(39600, calculate_severance_tax(770000, "2026-03-31"))
 
 	def test_coida_annual_calculation_caps_per_employee(self):
-		slips = [
-			frappe._dict(employee="EMP-001", gross_pay=800000),
-			frappe._dict(employee="EMP-001", gross_pay=100000),
-			frappe._dict(employee="EMP-002", gross_pay=300000),
-		]
+		earnings = {
+			"EMP-001": frappe._dict(gross_total=900000, assessable_total=900000),
+			"EMP-002": frappe._dict(gross_total=300000, assessable_total=300000),
+		}
 
 		with (
-			patch("za_local.utils.coida_utils.frappe.get_all", return_value=slips),
+			patch("za_local.utils.coida_utils.get_coida_earnings_by_employee", return_value=earnings),
 			patch("za_local.utils.coida_utils.get_company_industry_rate", return_value=1.25),
 		):
 			result = calculate_annual_coida("Test Company", "2026-03-01", "2027-02-28")
 
 		self.assertEqual(1_200_000, result["uncapped_remuneration"])
-		self.assertEqual(988_000, result["total_remuneration"])
-		self.assertEqual(212_000, result["excluded_remuneration"])
-		self.assertEqual(12_350, result["total_coida"])
+		self.assertEqual(968_000, result["total_remuneration"])
+		self.assertEqual(232_000, result["excluded_remuneration"])
+		self.assertEqual(12_100, result["total_coida"])
 
 	def test_salary_component_classification_fields_are_defined(self):
 		path = Path(frappe.get_app_path("za_local", "sa_setup", "custom_fields.py"))

@@ -28,11 +28,11 @@ In the same `za_local/sa_setup/data/` directory, add the matching files for the 
 - `payroll_period_<YYYY>.json` — the payroll period dates.
 - `holiday_list_<YYYY>.json` — South African public holidays for the calendar year(s) the tax year spans. **Check for any once-off public holidays declared for that year** (e.g. election days).
 
-ETI slabs and travel allowance rates are seeded automatically from the rate pack on install/migrate (`seed_statutory_rate_packs` in `za_local/sa_setup/install.py`) — you do not maintain separate ETI/travel files.
+ETI slabs and travel allowance rates are derived from the rate pack during setup/migration. Treat the JSON pack as the source-controlled source of truth; Desk records are review surfaces, not a separate place to invent rates.
 
 ## Step 3 — Clear the cache and verify
 
-The rate pack loader is cached with `lru_cache`. On a running site the cache is cleared automatically by `seed_statutory_rate_packs` during `bench migrate`; if testing interactively, call `za_local.utils.statutory_rates.clear_rate_pack_cache()`.
+The rate pack loader is cached. Migration refreshes configured records and clears the application cache in the supported deployment flow; restart workers after deployment. In an interactive test console, call `za_local.utils.statutory_rates.clear_rate_pack_cache()` after changing a pack.
 
 Run the compliance tests:
 
@@ -41,7 +41,7 @@ bench --site <site> run-tests --module za_local.tests.test_sa_payroll_compliance
 bench --site <site> run-tests --module za_local.tests.test_sa_payroll_compliance_prior_years
 ```
 
-Add a new `test_sa_payroll_compliance_<YYYY>.py` (copy the latest one) asserting the new year's headline values: primary rebate, UIF cap, a couple of PAYE bracket computations, the ETI band amounts, the COIDA cap, and JSON validity. This is the cheapest guard against a transcription error.
+Add or update date-parameterised tests asserting headline values, bracket boundaries, mid-year effective-date changes, the UIF cap, ETI bands, COIDA cap, official interest rate periods and JSON validity. Never let a test resolve against `today()` when it is intended to prove a fixed historic year.
 
 ## Watch list — figures that change and must be confirmed each year
 
@@ -55,6 +55,18 @@ These are gazetted on varying dates and from different authorities. Do not assum
 - **Subsistence allowance daily amounts** (incidental-only; meals and incidentals) — SARS notice.
 - **COIDA annual earnings cap** — Department of Employment & Labour notice (separate assessment-year cycle).
 - **Retirement lump-sum / severance tax tables** — change infrequently (last reset 1 March 2023); confirm the exemption and brackets.
+
+## Deployment control
+
+Do not edit a production site first. Commit the pack and source references, run static/unit tests, restore a representative backup to staging, migrate there, run payroll and statutory E2E scenarios, and obtain practitioner signoff. Back up production before the controlled deployment. A successful migration proves technical execution only; it does not prove that the copied statutory values or interpretations are legally correct.
+
+## Primary reference starting points
+
+- [SARS Guide for Employers in respect of Employees' Tax (2027)](https://www.sars.gov.za/guide-for-employers-in-respect-of-employees-tax-2027/)
+- [SARS Budget 2026 frequently asked questions](https://www.sars.gov.za/about/sars-tax-and-customs-system/budget/budget-2026-frequently-asked-questions/)
+- [South African Government notices](https://www.gov.za/documents/notices) for separately gazetted COIDA and labour figures
+
+Archive the exact publication/PDF/version used for signoff; a landing-page link alone is not sufficient audit evidence.
 
 ## Note on backfilled prior-year packs
 

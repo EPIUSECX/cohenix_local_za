@@ -43,7 +43,7 @@ On **Item Group**, the *Is Capital Goods* checkbox (added by `za_local`) marks g
 
 ## 3. Apply on transactions
 
-When raising a Sales or Purchase Invoice, pick the matching tax template. The SA invoice controller calculates VAT and records the classification used by the VAT201 return. Use the SA print formats (next page) for compliant tax-invoice output.
+When raising a Sales or Purchase Invoice, pick the matching tax template. Posted tax rows/templates are the accounting evidence; Item VAT Category assists classification but does not by itself impose a tax rate. Use the SA print formats (next page), then verify the rendered statutory particulars before issue.
 
 ## Next
 

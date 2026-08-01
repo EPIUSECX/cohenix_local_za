@@ -61,7 +61,11 @@ class EmployeeFinalSettlement(Document):
 		self.paye = flt(severance_tax) + flt(normal_tax)
 
 		# UIF applies to normal termination remuneration, not severance benefits.
-		self.uif = calculate_uif_contribution(normal_taxable)[0] if normal_taxable > 0 else 0
+		self.uif = (
+			calculate_uif_contribution(normal_taxable, self.separation_date)[0]
+			if normal_taxable > 0
+			else 0
+		)
 
 		# Net settlement
 		self.net_settlement = self.total_gross - self.paye - self.uif
@@ -92,8 +96,10 @@ class EmployeeFinalSettlement(Document):
 		if flt(amount) <= 0:
 			return 0
 		annual_base = self.get_employee_annual_base()
-		base_tax = calculate_south_african_tax(annual_base)
-		total_tax = calculate_south_african_tax(annual_base + flt(amount))
+		company = frappe.db.get_value("Employee", self.employee, "company")
+		tax_context = {"date_value": self.separation_date, "company": company}
+		base_tax = calculate_south_african_tax(annual_base, **tax_context)
+		total_tax = calculate_south_african_tax(annual_base + flt(amount), **tax_context)
 		return flt(max(0, total_tax - base_tax), 2)
 
 	def get_employee_annual_base(self):

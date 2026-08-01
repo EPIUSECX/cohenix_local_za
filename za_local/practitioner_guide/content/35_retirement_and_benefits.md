@@ -28,22 +28,19 @@ South African tax limits the deductible retirement contribution to a percentage 
 For employees on a medical scheme:
 
 1. Add a **Medical Aid** deduction component (treatment Medical Aid, SARS code 4005).
-2. Record the number of dependants on the **Employee** (`Number of Dependants` field) so the engine can compute the **medical scheme fees tax credit** (main member + dependants) and offset it against PAYE.
+2. Create a date-effective **Employee Private Benefit** record with a positive private-medical-aid contribution and the medical dependant count. Prevent overlapping active records. The engine uses this record to compute the medical scheme fees tax credit.
 
 The medical tax credit rates come from the statutory rate pack (Tax Rebates and Medical Tax Credit).
 
-## Fringe / private benefits
+## Fringe benefits
 
-`za_local` provides DocTypes for common fringe benefits, captured per employee via **Employee Private Benefit** and the specific benefit types:
+Do not use Employee Private Benefit for non-medical fringe benefits. Create and submit the relevant **Company Car Benefit**, **Housing Benefit** or **Low Interest Loan Benefit** detail, link it to a submittable **Fringe Benefit**, and submit that record. Active submitted benefits flow to Salary Slips as taxable non-cash earnings: they affect PAYE and certificate reporting without increasing cash net pay or payroll accounting earnings.
 
-- Company Car Benefit
-- Housing Benefit
-- Low-Interest Loan Benefit
-- Cellphone Benefit
-- Fuel Card Benefit
-- Bursary Benefit
+- Company car: 3.5% monthly, or 3.25% with a maintenance plan; verify whether 80% or the documented 20% PAYE inclusion applies.
+- Housing: apply the paragraph 9 formula, date-effective abatement/percentage, employer spend rules and employee consideration.
+- Low-interest loan: maintain current outstanding balance; the benefit uses the date-effective official rate (repo plus one percentage point).
 
-Capture the benefit details so the taxable fringe-benefit value flows into the employee's remuneration and onto the IRP5 under the correct SARS code. Configure these for employees who receive such benefits before processing their pay.
+Cellphone, fuel-card and other benefit types require a supported valuation/mapping and practitioner evidence before use. Never assume that merely creating a record guarantees the correct IRP5 code or legal valuation.
 
 ## Next
 

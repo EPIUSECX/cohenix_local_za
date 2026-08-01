@@ -226,7 +226,7 @@ def get_wizard_status(company=None):
     try:
         # Company details
         comp_doc = frappe.get_doc("Company", company)
-        if comp_doc.get("za_paye_registration_number") or comp_doc.get("za_uif_reference_number"):
+        if comp_doc.get("za_paye_reference_number") or comp_doc.get("za_uif_reference_number"):
             status["company_details"] = True
 
         # Leave types

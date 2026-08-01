@@ -75,31 +75,40 @@
 </style>
 
 {% macro money(value) -%}
-  {{ frappe.format(value or 0, {"fieldtype": "Currency", "options": doc.get("currency") or "ZAR"}) }}
+  {{ frappe.format(value or 0, {"fieldtype": "Currency", "options": doc.get("currency") or "ZAR"}) | e }}
 {%- endmacro %}
 
 {% macro date_value(value) -%}
-  {{ frappe.format(value, {"fieldtype": "Date"}) if value else "" }}
+  {{ (frappe.format(value, {"fieldtype": "Date"}) if value else "") | e }}
 {%- endmacro %}
 
 {% macro field(label, value) -%}
   <div class="za-irp5__row">
-    <div class="za-irp5__label">{{ label }}</div>
-    <div>{{ value if value is not none else "" }}</div>
+    <div class="za-irp5__label">{{ label | e }}</div>
+    <div>{{ (value if value is not none else "") | e }}</div>
   </div>
 {%- endmacro %}
 
 <div class="za-irp5">
   <div class="za-irp5__header">
     <div>
-      <div class="za-irp5__title">{{ doc.certificate_type or "IRP5" }} Employee Tax Certificate</div>
-      <div>{{ doc.employer_legal_name or doc.company }}</div>
+      <div class="za-irp5__title">{{ (doc.certificate_type or "IRP5") | e }} Employee Tax Certificate</div>
+      <div>{{ (doc.employer_legal_name or doc.company or "") | e }}</div>
     </div>
     <div class="za-irp5__meta">
-      <div><strong>Certificate No.</strong> {{ doc.certificate_number or doc.name }}</div>
-      <div><strong>Tax Year</strong> {{ doc.tax_year }}</div>
-      <div><strong>Status</strong> {{ doc.status }}</div>
+      <div><strong>Certificate No.</strong> {{ (doc.certificate_number or doc.name or "") | e }}</div>
+      <div><strong>Tax Year</strong> {{ (doc.tax_year or "") | e }}</div>
+      <div><strong>Status</strong> {{ (doc.status or "") | e }}</div>
     </div>
+  </div>
+
+  <div class="za-irp5__section">
+    <div class="za-irp5__section-title">Business Address</div>
+    {{ field("Line 1", doc.biz_address_line_1) }}
+    {{ field("Line 2", doc.biz_address_line_2) }}
+    {{ field("Line 3", doc.biz_address_line_3) }}
+    {{ field("Line 4", doc.biz_address_line_4) }}
+    {{ field("Postal Code", doc.biz_postal_code) }}
   </div>
 
   <div class="za-irp5__grid">
@@ -186,8 +195,8 @@
       <tbody>
         {% for row in doc.income_details %}
         <tr>
-          <td>{{ row.income_code }}</td>
-          <td>{{ row.description }}</td>
+          <td>{{ (row.income_code or "") | e }}</td>
+          <td>{{ (row.description or "") | e }}</td>
           <td class="num">{{ money(row.amount) }}</td>
         </tr>
         {% else %}
@@ -211,8 +220,8 @@
         <tbody>
           {% for row in doc.deduction_details %}
           <tr>
-            <td>{{ row.deduction_code }}</td>
-            <td>{{ row.description }}</td>
+            <td>{{ (row.deduction_code or "") | e }}</td>
+            <td>{{ (row.description or "") | e }}</td>
             <td class="num">{{ money(row.amount) }}</td>
           </tr>
           {% else %}
@@ -235,8 +244,8 @@
         <tbody>
           {% for row in doc.company_contribution_details %}
           <tr>
-            <td>{{ row.contribution_code }}</td>
-            <td>{{ row.description }}</td>
+            <td>{{ (row.contribution_code or "") | e }}</td>
+            <td>{{ (row.description or "") | e }}</td>
             <td class="num">{{ money(row.amount) }}</td>
           </tr>
           {% else %}
@@ -255,16 +264,24 @@
         {{ field("Non-Taxable Income", money(doc.non_taxable_income)) }}
         {{ field("Total Deductions & Contributions", money(doc.total_deductions_contributions)) }}
         {{ field("Medical Scheme Fees Tax Credit", money(doc.medical_scheme_fees_tax_credit)) }}
+        {{ field("Additional Medical Expenses Tax Credit", money(doc.additional_medical_expenses_tax_credit)) }}
       </div>
       <div>
         {{ field("PAYE", money(doc.paye)) }}
         {{ field("UIF", money(doc.uif)) }}
         {{ field("SDL", money(doc.sdl)) }}
-        {{ field("ETI", money(doc.eti)) }}
-        {{ field("Total Tax Payable", money(doc.total_tax_payable)) }}
+        {{ field("Total Tax, SDL & UIF (4149)", money(doc.total_tax_payable)) }}
       </div>
     </div>
   </div>
+
+  {% if doc.directive_numbers or doc.reason_for_non_deduction %}
+  <div class="za-irp5__section">
+    <div class="za-irp5__section-title">Directive and Non-Deduction Details</div>
+    {{ field("Directive Number(s)", doc.directive_numbers) }}
+    {{ field("Reason Code for IT3(a) (4150)", doc.reason_for_non_deduction) }}
+  </div>
+  {% endif %}
 
   <div class="za-irp5__note">
     This print format is a practitioner review copy generated from the IRP5 Certificate record in ERPNext.

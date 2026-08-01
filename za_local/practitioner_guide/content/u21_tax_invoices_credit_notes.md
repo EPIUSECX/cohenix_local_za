@@ -1,14 +1,14 @@
 # Tax Invoices, Credit & Debit Notes
 
-**Goal:** issue the correct SARS-compliant document for a sale, and handle returns and corrections with credit/debit notes.
+**Goal:** issue the appropriate SA tax-invoice format and handle returns/corrections with credit/debit notes.
 
 ## Issuing a tax invoice
 
 1. Open the submitted **Sales Invoice**.
 2. Click **Print** (or **Print** → preview).
 3. Choose the print format:
-   - **SA Full Tax Invoice** — shows the recipient's name, address and VAT number. Use this above the prescribed threshold, or whenever the customer is a VAT vendor who needs to claim input tax.
-   - **SA Abridged Tax Invoice** — for smaller supplies below the threshold.
+   - **SA Full Tax Invoice** — required above R5,000 consideration; shows recipient name, address and VAT number.
+   - **SA Abridged Tax Invoice** — above R50 through R5,000. At R50 or less no tax invoice is required.
 4. Download as PDF or print, and send to the customer.
 
 > The words "Tax Invoice", your VAT number, the customer details (for a full invoice), and VAT shown separately at 15% must all appear. If the customer's VAT number is missing on a full tax invoice, capture it on the [customer master](../first-time-configuration/everyday-masters) and reprint.
@@ -17,8 +17,10 @@
 
 | Use… | When |
 |---|---|
-| **SA Full Tax Invoice** | Consideration above the full-tax-invoice threshold, or customer is a registered VAT vendor. |
-| **SA Abridged Tax Invoice** | Smaller supplies below the threshold. |
+| **SA Full Tax Invoice** | Consideration above R5,000 (or a voluntarily fuller document below that threshold). |
+| **SA Abridged Tax Invoice** | Consideration above R50 through R5,000. |
+
+Use the ZAR-equivalent consideration. Escalate foreign-currency or unusual supplies for tax review rather than relying only on the print-format suggestion.
 
 ## Credit notes (sales returns / corrections)
 

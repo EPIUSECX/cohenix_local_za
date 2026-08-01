@@ -12,6 +12,7 @@ from za_local.sa_vat.setup import (
 	get_default_vat_vendor_type,
 	is_valid_item_tax_account,
 	sync_vat_accounts,
+	validate_vat_posting_account,
 )
 
 
@@ -35,17 +36,6 @@ class SouthAfricaVATSettings(Document):
 		self.sync_vat_registration_number_to_company()
 		self.validate_threshold_configuration()
 		sync_vat_accounts(self)
-
-	def on_update(self):
-		self.update_accounts_settings()
-		self.update_tax_templates()
-		sync_vat_accounts(self)
-
-	def update_accounts_settings(self):
-		accounts_settings = frappe.get_doc("Accounts Settings")
-		if hasattr(accounts_settings, "standard_tax_rate") and accounts_settings.standard_tax_rate != self.standard_vat_rate:
-			accounts_settings.standard_tax_rate = self.standard_vat_rate
-			accounts_settings.save()
 
 	def ensure_company_default(self):
 		if not self.company:
@@ -207,10 +197,13 @@ class SouthAfricaVATSettings(Document):
 			rate.rate = flt(rate.rate)
 
 	def validate_vat_accounts(self):
-		for account_field in ["input_vat_account", "output_vat_account"]:
+		for account_field, label in (
+			("input_vat_account", _("Input VAT Account")),
+			("output_vat_account", _("Output VAT Account")),
+		):
 			account = getattr(self, account_field)
-			if account and not frappe.db.exists("Account", account):
-				frappe.throw(_("Account {0} does not exist").format(account))
+			if account:
+				validate_vat_posting_account(account, self.company, label)
 
 	def validate_item_tax_template_account(self):
 		if not self.item_tax_template_account:
@@ -243,6 +236,7 @@ class SouthAfricaVATSettings(Document):
 	def sync_vat_registration_number_to_company(self):
 		if not self.company or not self.vat_registration_number:
 			return
+		frappe.has_permission("Company", "write", self.company, throw=True)
 
 		updates = {}
 		for fieldname in ("za_vat_number", "tax_id"):
@@ -254,82 +248,20 @@ class SouthAfricaVATSettings(Document):
 			frappe.db.set_value("Company", self.company, updates)
 
 	def validate_threshold_configuration(self):
-		return
+		if flt(self.standard_vat_rate) <= 0:
+			frappe.throw(_("Standard VAT Rate must be greater than zero."))
+		if flt(self.vat_registration_threshold) <= 0:
+			frappe.throw(_("VAT Registration Threshold must be greater than zero."))
+		if flt(self.vat_voluntary_threshold) <= 0:
+			frappe.throw(_("VAT Voluntary Threshold must be greater than zero."))
+		if flt(self.vat_voluntary_threshold) >= flt(self.vat_registration_threshold):
+			frappe.throw(_("VAT Voluntary Threshold must be lower than the compulsory threshold."))
 
 	def update_tax_templates(self):
 		if not self.company:
 			return
 
-		self.create_or_update_legacy_tax_template("Sales", self.output_vat_account)
-		self.create_or_update_legacy_tax_template("Purchase", self.input_vat_account)
-		self.update_item_tax_templates()
 		ensure_default_tax_templates(self)
-
-	def create_or_update_legacy_tax_template(self, template_type, account):
-		template_title = f"South Africa VAT {self.standard_vat_rate}% - {template_type}"
-		doctype_name = f"{template_type} Taxes and Charges Template"
-
-		existing_name = frappe.db.get_value(
-			doctype_name,
-			{"title": template_title, "company": self.company},
-			"name",
-		)
-		if existing_name:
-			tax_template = frappe.get_doc(doctype_name, existing_name)
-		else:
-			tax_template = frappe.new_doc(doctype_name)
-			tax_template.title = template_title
-			tax_template.company = self.company
-			tax_template.is_default = 1
-
-		tax_template.taxes = []
-		for rate in self.vat_rates:
-			if rate.is_exempt:
-				continue
-			tax_template.append(
-				"taxes",
-				{
-					"charge_type": "On Net Total",
-					"account_head": account,
-					"description": rate.rate_name,
-					"rate": rate.rate,
-				},
-			)
-		tax_template.save()
-		return tax_template.name
-
-	def update_item_tax_templates(self):
-		company = self.company
-		if not self.item_tax_template_account:
-			return
-
-		if not is_valid_item_tax_account(self.item_tax_template_account, company):
-			return
-
-		for rate in self.vat_rates:
-			rate_value = flt(rate.rate)
-			title = f"South Africa VAT {rate.rate_name} ({rate_value:.2f}%)"
-			existing_name = frappe.db.get_value("Item Tax Template", {"title": title, "company": company}, "name")
-			if existing_name:
-				doc = frappe.get_doc("Item Tax Template", existing_name)
-				doc.taxes = []
-			else:
-				doc = frappe.new_doc("Item Tax Template")
-				doc.title = title
-				doc.company = company
-
-			doc.append(
-				"taxes",
-				{
-					"tax_type": self.item_tax_template_account,
-					"tax_rate": rate_value,
-				},
-			)
-			doc.flags.ignore_permissions = True
-			if existing_name:
-				doc.save()
-			else:
-				doc.insert()
 
 	def get_configuration_feedback(self, title, message, tracked=None, templates=None):
 		tracked = tracked or [row.account for row in (self.vat_accounts or []) if row.account]
@@ -384,12 +316,14 @@ class SouthAfricaVATSettings(Document):
 			warnings.append(_("Current voluntary VAT registration threshold is R120,000 effective 1 April 2026."))
 		return warnings
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def bootstrap_defaults(self):
+		self.check_permission("write")
 		return bootstrap_company_vat_setup(self.company)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def sync_vat_accounts(self):
+		self.check_permission("write")
 		tracked = sync_vat_accounts(self)
 		self.flags.ignore_permissions = True
 		if self.is_new():

@@ -47,6 +47,15 @@
             "no_copy": 1
         },
         {
+            "fieldname": "submission_key",
+            "label": "Submission Key",
+            "fieldtype": "Data",
+            "hidden": 1,
+            "read_only": 1,
+            "no_copy": 1,
+            "unique": 1
+        },
+        {
             "fieldname": "name_display_section",
             "fieldtype": "Section Break",
             "label": "Submission ID",
@@ -171,7 +180,17 @@
             "label": "ETI to be Carried Forward to Next Month",
             "fieldtype": "Currency",
             "options": "company:currency",
-            "read_only": 1
+            "read_only": 1,
+            "description": "Unused ETI at month end. At August and February this is ring-fenced for reconciliation refund and is not brought into September or March."
+        },
+        {
+            "fieldname": "eti_reconciliation_refund",
+            "label": "ETI Reconciliation Refund Due",
+            "fieldtype": "Currency",
+            "options": "company:currency",
+            "read_only": 1,
+            "depends_on": "eval:doc.month=='August' || doc.month=='February'",
+            "description": "Unused ETI ring-fenced for refund at the August or February reconciliation, subject to SARS tax-compliance requirements."
         },
         {
             "fieldname": "uif_payable",

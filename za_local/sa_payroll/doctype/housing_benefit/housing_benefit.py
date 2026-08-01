@@ -4,80 +4,50 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, today
+
+from za_local.sa_payroll.fringe_benefits.calculations import calculate_housing_values
 
 
 class HousingBenefit(Document):
 	def autoname(self):
-		"""Set name based on employee and property"""
 		if self.employee and self.property_address:
-			# Use first 20 chars of address for name
 			address_short = self.property_address[:20].replace("\n", " ")
 			self.name = f"{self.employee}-{address_short}"
 
 	def validate(self):
-		"""Validate housing benefit"""
+		self.calculation_date = self.calculation_date or today()
+		if flt(self.remuneration_proxy) <= 0:
+			frappe.throw(_("Remuneration Proxy must be greater than zero."))
 		self.calculate_monthly_benefit()
 
 	@frappe.whitelist()
 	def calculate_monthly_benefit(self):
-		"""
-		Calculate monthly taxable value for housing benefit.
-
-		SARS Rules:
-		- Company-owned property: Lower of actual cost or market rental
-		- Housing allowance: Full allowance is taxable
-		- Electricity/water: Add to taxable value if provided free
-
-		Simplified calculation:
-		- Owned by Company: Use rental value (assumed to be market-related)
-		- Third Party: Full rental value taxable
-		"""
-		monthly_rental = flt(self.monthly_rental_value)
-		electricity = flt(self.electricity_contribution)
-		water = flt(self.water_contribution)
-
-		# Base taxable value
-		if self.owned_by == "Company":
-			# Company-owned: rental value is taxable
-			base_taxable = monthly_rental
-		else:
-			# Third party: full rental value
-			base_taxable = monthly_rental
-
-		# Add utilities if provided free
-		self.monthly_taxable_value = base_taxable + electricity + water
-
-		# Set calculation method for transparency
-		self.calculation_method = (
-			f"Rental Value: R{monthly_rental:,.2f}\n"
-			f"Owned By: {self.owned_by}\n"
-			f"Electricity: R{electricity:,.2f}\n"
-			f"Water: R{water:,.2f}\n"
-			f"Total Monthly Taxable Value: R{self.monthly_taxable_value:,.2f}"
+		"""Calculate residential accommodation under paragraph 9."""
+		values = calculate_housing_values(
+			self.remuneration_proxy,
+			date_value=self.calculation_date or today(),
+			room_count=self.room_count,
+			furnished=self.furnished,
+			power_or_fuel_provided=self.power_or_fuel_provided,
+			abatement_reduced_to_zero=self.abatement_reduced_to_zero,
+			provided_by=self.owned_by,
+			employer_monthly_expenditure=self.monthly_rental_value,
+			employee_consideration=self.employee_rental_contribution,
 		)
-
-		return self.monthly_taxable_value
-
-
-@frappe.whitelist()
-def get_housing_tax_rate(owned_by):
-	"""
-	Get housing benefit tax rate based on ownership.
-
-	Args:
-		owned_by: "Company" or "Third Party"
-
-	Returns:
-		dict: Tax treatment information
-	"""
-	if owned_by == "Company":
-		return {
-			"treatment": "Use market rental or actual cost (lower)",
-			"taxable_percentage": 100
-		}
-	else:
-		return {
-			"treatment": "Full rental value taxable",
-			"taxable_percentage": 100
-		}
+		for fieldname, value in values.items():
+			self.set(fieldname, value)
+		self.calculation_method = _(
+			"(R{0:,.2f} - R{1:,.2f}) x {2}% / 12 = R{3:,.2f}\n"
+			"Provided by: {4}\nLess employee consideration: R{5:,.2f}\n"
+			"Monthly taxable value: R{6:,.2f}"
+		).format(
+			flt(self.remuneration_proxy),
+			values["statutory_abatement"],
+			values["formula_percentage"],
+			values["monthly_formula_value"],
+			self.owned_by,
+			flt(self.employee_rental_contribution),
+			values["monthly_taxable_value"],
+		)
+		return values

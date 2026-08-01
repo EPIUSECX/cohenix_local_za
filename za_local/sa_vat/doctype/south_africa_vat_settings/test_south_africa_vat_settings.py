@@ -93,6 +93,7 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 		doc.vat_registration_number = "412 345-6789"
 
 		with (
+			patch("frappe.has_permission") as has_permission,
 			patch("frappe.db.get_value", return_value=None),
 			patch("frappe.db.set_value") as set_value,
 		):
@@ -100,6 +101,7 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 			doc.sync_vat_registration_number_to_company()
 
 		self.assertEqual("4123456789", doc.vat_registration_number)
+		has_permission.assert_called_once_with("Company", "write", "Test Company", throw=True)
 		set_value.assert_called_once_with(
 			"Company",
 			"Test Company",
@@ -171,7 +173,6 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 		with patch("frappe.msgprint") as msgprint:
 			doc.validate_item_tax_template_account()
 			doc.validate_company_vat_number()
-			doc.update_item_tax_templates()
 			ensure_item_tax_templates(doc, "Test Company")
 
 		msgprint.assert_not_called()
@@ -197,6 +198,7 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 		}
 
 		with (
+			patch("za_local.sa_vat.setup.frappe.only_for") as only_for,
 			patch("za_local.sa_vat.setup.get_vat_settings", return_value=settings),
 			patch(
 				"za_local.sa_vat.setup.ensure_default_tax_templates",
@@ -205,6 +207,7 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 		):
 			result = bootstrap_company_vat_setup("Test Company")
 
+		only_for.assert_called_once_with("System Manager")
 		self.assertEqual("Recommended VAT Setup Applied", result["title"])
 		self.assertEqual(["VAT Output - TC", "VAT Input - TC"], result["vat_accounts"])
 		self.assertIn("standard_rate_non_capital", result["templates"])
@@ -392,6 +395,7 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 
 		self.assertEqual(1, len(rows))
 		self.assertEqual(15, rows[0]["tax_amount"])
+		self.assertEqual(115, rows[0]["incl_tax_amount"])
 		self.assertEqual("Classified", rows[0]["classification_status"])
 
 	def test_purchase_zero_rated_rows_do_not_create_input_vat(self):
@@ -518,11 +522,12 @@ class TestSouthAfricaVATSettings(UnitTestCase):
 			return None
 
 		with (
-			patch("frappe.get_doc", return_value=invoice),
+			patch("frappe.get_doc", return_value=invoice) as get_doc,
 			patch("frappe.db.get_value", side_effect=get_value),
 		):
 			result = check_tax_invoice_readiness("SINV-TEST")
 
+		get_doc.assert_called_once_with("Sales Invoice", "SINV-TEST", check_permission=True)
 		supplier_vat_check = next(row for row in result["checks"] if row["key"] == "supplier_vat_number")
 		self.assertTrue(supplier_vat_check["ok"])
 		self.assertEqual("4123456789", supplier_vat_check["detail"])

@@ -1,6 +1,6 @@
 # SA Print Formats & Tax Invoices
 
-`za_local` ships SARS-compliant print formats for the common sales and purchase documents. They are installed automatically and available in the **Print** view of each document.
+`za_local` ships SA-oriented print formats for common sales and purchase documents. They are installed automatically and available in the **Print** view. The issuer remains responsible for verifying the rendered particulars and underlying VAT treatment.
 
 ## Available formats
 
@@ -22,7 +22,8 @@ With HRMS you also get **SA Salary Slip**, **IRP5 Employee Certificate** and **I
 
 ## Choosing full vs abridged tax invoice
 
-- Use **SA Full Tax Invoice** when the consideration exceeds the prescribed full-tax-invoice threshold, or whenever the customer is a registered VAT vendor who needs to claim input tax. It shows the recipient's name, address and VAT number (captured per [Customer & Supplier VAT Fields](customer-supplier-vat)).
+- Use **SA Full Tax Invoice** when consideration exceeds R5,000. It shows the recipient's name, address and VAT number. A vendor recipient may request a full-detail document below that threshold, but vendor status alone does not change the statutory value threshold.
+- Use **SA Abridged Tax Invoice** above R50 through R5,000. At R50 or less a tax invoice is not required. Review foreign-currency supplies on a ZAR-equivalent basis; the app selects the conservative full format when it cannot establish that basis safely.
 - Use **SA Abridged Tax Invoice** for smaller supplies below the threshold.
 
 ## Setting a default print format

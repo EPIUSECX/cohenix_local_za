@@ -8,7 +8,7 @@ On each **Customer**, complete the `za_local` fields:
 
 | Field | Notes |
 |---|---|
-| Is VAT Vendor | Tick if the customer is a registered VAT vendor. Drives whether a full tax invoice (with their VAT number) is appropriate. |
+| Is VAT Vendor | Tick if the customer is a registered VAT vendor and capture its VAT number. This supports recipient particulars; the statutory full/abridged requirement is primarily determined by the consideration threshold. |
 | Company Registration | The customer's CIPC company registration number. |
 | Tax ID (VAT number) | The customer's SARS VAT number, captured on the standard Tax ID field / address. |
 

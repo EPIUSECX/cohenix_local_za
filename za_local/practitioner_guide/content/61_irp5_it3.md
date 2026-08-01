@@ -4,7 +4,9 @@ The **IRP5 Certificate** is each employee's annual tax certificate. Where no emp
 
 ## When
 
-At the annual reconciliation (and the interim reconciliation), covering the tax year 1 March to end February. Generate certificates before finalising the [EMP501](emp501), which links them.
+At the annual reconciliation and, where required, the interim reconciliation. The interim period is 1 March to 31 August; the annual period runs to the last day of February. Generate and reconcile certificates before finalising the internal [EMP501](emp501) working paper.
+
+The app's certificate/PDF and generic exports are not the SARS BRS payroll-import or encrypted reconciliation format. Use approved SARS capture/import tooling and retain external submission evidence.
 
 ## How the certificate is built
 

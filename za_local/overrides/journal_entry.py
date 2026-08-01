@@ -8,33 +8,31 @@ journal entry tracking and cleanup.
 import frappe
 from frappe import _
 
+DESTRUCTIVE_CLEANUP_CONFIG_KEY = "allow_za_local_destructive_payroll_cleanup"
+
 
 def _require_cleanup_access():
-    """Allow destructive payroll cleanup only for developers on non-production sites."""
+    """Allow destructive cleanup only when a System Manager explicitly enables it."""
     frappe.only_for("System Manager")
 
     if frappe.flags.in_test:
         return
 
     developer_mode = bool(frappe.conf.get("developer_mode"))
-    site_name = (getattr(frappe.local, "site", "") or "").lower()
-    non_production_site = any(
-        marker in site_name for marker in ("local", "dev", "test", "staging", "sandbox")
-    )
-
-    if developer_mode and non_production_site:
+    cleanup_enabled = bool(frappe.conf.get(DESTRUCTIVE_CLEANUP_CONFIG_KEY))
+    if developer_mode and cleanup_enabled:
         return
 
     frappe.throw(
         _(
             "Payroll journal entry force deletion is only available to System Managers "
-            "on developer-mode, non-production sites."
+            "when developer mode and the explicit destructive-cleanup site setting are enabled."
         ),
         title=_("Restricted Operation"),
     )
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def force_delete_all_cancelled_payroll_journal_entries():
     """
     Force delete ALL cancelled payroll-related Journal Entries.
@@ -60,19 +58,29 @@ def force_delete_all_cancelled_payroll_journal_entries():
     deleted = []
     failed = []
 
-    for je in jes:
+    for index, je in enumerate(jes):
+        savepoint = f"za_payroll_je_cleanup_{index}"
+        frappe.db.savepoint(savepoint)
         try:
             je_doc = frappe.get_doc("Journal Entry", je.name)
-
-            # Update flags first
-            update_employee_journal_entry_flags(je_doc)
-
-            # Change docstatus to 0, then delete
-            frappe.db.set_value("Journal Entry", je.name, "docstatus", 0)
-            frappe.delete_doc("Journal Entry", je.name, force=1)
+            _delete_cancelled_payroll_journal_entry(je_doc)
+            frappe.db.release_savepoint(savepoint)
             deleted.append(je.name)
-        except Exception as e:
-            failed.append({"name": je.name, "error": str(e)})
+        except Exception:
+            frappe.db.rollback(save_point=savepoint)
+            frappe.db.release_savepoint(savepoint)
+            frappe.log_error(
+                title=f"Payroll Journal Entry cleanup failed: {je.name}",
+                message=frappe.get_traceback(),
+                reference_doctype="Journal Entry",
+                reference_name=je.name,
+            )
+            failed.append(
+                {
+                    "name": je.name,
+                    "error": _("Deletion failed. Review the Error Log for details."),
+                }
+            )
 
     return {
         "deleted": deleted,
@@ -81,7 +89,7 @@ def force_delete_all_cancelled_payroll_journal_entries():
     }
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def force_delete_cancelled_payroll_journal_entry(journal_entry_name):
     """
     Force delete a cancelled payroll-related Journal Entry.
@@ -100,36 +108,44 @@ def force_delete_cancelled_payroll_journal_entry(journal_entry_name):
     if not journal_entry_name:
         frappe.throw(_("Journal Entry name is required"))
 
-    je = frappe.get_doc("Journal Entry", journal_entry_name)
+    savepoint = "za_payroll_je_cleanup_single"
+    frappe.db.savepoint(savepoint)
+    try:
+        je = frappe.get_doc("Journal Entry", journal_entry_name)
+        _delete_cancelled_payroll_journal_entry(je)
+        frappe.db.release_savepoint(savepoint)
+    except Exception:
+        frappe.db.rollback(save_point=savepoint)
+        frappe.db.release_savepoint(savepoint)
+        frappe.log_error(
+            title=f"Payroll Journal Entry cleanup failed: {journal_entry_name}",
+            message=frappe.get_traceback(),
+            reference_doctype="Journal Entry",
+            reference_name=journal_entry_name,
+        )
+        raise
 
-    # Verify it's a payroll-related entry
-    is_payroll_entry = False
-    if je.accounts:
-        for row in je.accounts:
-            if (row.reference_type == "Payroll Entry" and
-                row.reference_name and
-                row.party_type == "Employee" and
-                row.party):
-                is_payroll_entry = True
-                break
+    return {
+        "message": _("Cancelled payroll Journal Entry {0} deleted successfully").format(journal_entry_name)
+    }
 
-    if not is_payroll_entry:
+
+def _delete_cancelled_payroll_journal_entry(je):
+    if not any(
+        row.reference_type == "Payroll Entry"
+        and row.reference_name
+        and row.party_type == "Employee"
+        and row.party
+        for row in je.accounts
+    ):
         frappe.throw(_("This Journal Entry is not payroll-related. Cannot force delete."))
 
     if je.docstatus != 2:
         frappe.throw(_("Journal Entry must be cancelled (docstatus=2) to use force delete."))
 
-    # Update flags before deletion
     update_employee_journal_entry_flags(je)
-
-    # Force delete by setting docstatus to 0 first, then delete
-    # This bypasses the standard validation
-    frappe.db.set_value("Journal Entry", journal_entry_name, "docstatus", 0)
-    frappe.delete_doc("Journal Entry", journal_entry_name, force=1)
-
-    return {
-        "message": _("Cancelled payroll Journal Entry {0} deleted successfully").format(journal_entry_name)
-    }
+    frappe.db.set_value("Journal Entry", je.name, "docstatus", 0)
+    frappe.delete_doc("Journal Entry", je.name, force=1)
 
 
 def on_trash(doc, event):

@@ -1,13 +1,58 @@
 import json
+from itertools import pairwise
 
 import frappe
 from frappe import _  # Ensure _ is imported for translations
 from frappe.model.document import Document
-from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate
+from frappe.utils import add_days, add_months, escape_html, flt, get_first_day, get_last_day, getdate
 
-DIRECTIVE_INCOME_CODES = {"3901", "3907", "3908", "3915", "3920"}
+from za_local.sa_payroll.doctype.irp5_certificate.irp5_certificate import (
+	get_active_certificate_names,
+	require_certificate_generation_permissions,
+)
+
+DIRECTIVE_INCOME_CODES = {
+	"3901",
+	"3907",
+	"3908",
+	"3909",
+	"3915",
+	"3920",
+	"3921",
+	"3922",
+	"3923",
+	"3924",
+	"3926",
+}
 DIRECTIVE_DEDUCTION_CODES = {"4115"}
 TOTAL_TOLERANCE = 0.01
+
+
+def _get_reconciliation_period_dates(tax_year, reconciliation_period):
+	try:
+		fiscal_year = frappe.get_doc("Fiscal Year", tax_year)
+	except frappe.DoesNotExistError:
+		frappe.throw(_("Fiscal Year {0} not found.").format(tax_year), title=_("Invalid Tax Year"))
+
+	from_date = getdate(fiscal_year.year_start_date)
+	fiscal_year_end = getdate(fiscal_year.year_end_date)
+	expected_year_end = add_days(add_months(from_date, 12), -1)
+	if (from_date.month, from_date.day) != (3, 1) or fiscal_year_end != expected_year_end:
+		frappe.throw(
+			_(
+				"Fiscal Year {0} must run from 1 March to the last day of February for SARS reconciliation."
+			).format(tax_year),
+			title=_("Invalid South African Tax Year"),
+		)
+
+	if reconciliation_period == "Interim":
+		to_date = add_days(add_months(from_date, 6), -1)
+	elif reconciliation_period == "Final":
+		to_date = fiscal_year_end
+	else:
+		frappe.throw(_("Invalid Reconciliation Period selected."), title=_("Validation Error"))
+
+	return from_date, to_date
 
 
 @frappe.whitelist()
@@ -32,20 +77,7 @@ def get_company_tax_details(company):
 
 @frappe.whitelist()
 def get_period_dates(tax_year, reconciliation_period):
-	try:
-		fiscal_year_doc = frappe.get_doc("Fiscal Year", tax_year)
-	except frappe.DoesNotExistError:
-		frappe.throw(_("Fiscal Year {0} not found.").format(tax_year))
-
-	if reconciliation_period == "Interim":
-		from_date = fiscal_year_doc.year_start_date
-		to_date = getdate(f"{fiscal_year_doc.year_start_date.year}-08-31")
-	elif reconciliation_period == "Final":
-		from_date = fiscal_year_doc.year_start_date
-		to_date = fiscal_year_doc.year_end_date
-	else:
-		return None
-
+	from_date, to_date = _get_reconciliation_period_dates(tax_year, reconciliation_period)
 	return {"from_date": from_date, "to_date": to_date}
 
 
@@ -70,11 +102,11 @@ class EMP501Reconciliation(Document):
 
 	def validate_emp201_period_coverage(self, throw=False):
 		if not self.company or not self.from_date or not self.to_date:
-			return {"missing_periods": [], "linked_submissions": []}
+			return {"missing_periods": [], "duplicate_periods": [], "linked_submissions": []}
 
 		expected_starts = self._get_expected_emp201_period_starts()
 		if not expected_starts:
-			return {"missing_periods": [], "linked_submissions": []}
+			return {"missing_periods": [], "duplicate_periods": [], "linked_submissions": []}
 
 		submissions = frappe.get_all(
 			"EMP201 Submission",
@@ -91,23 +123,36 @@ class EMP501Reconciliation(Document):
 			if submission.submission_period_start_date
 		}
 		missing_periods = [period for period in expected_starts if getdate(period) not in found_starts]
+		period_counts = {}
+		for submission in submissions:
+			period = getdate(submission.submission_period_start_date)
+			period_counts[period] = period_counts.get(period, 0) + 1
+		duplicate_periods = sorted(period for period, count in period_counts.items() if count > 1)
 
-		if throw and missing_periods:
+		if throw and (missing_periods or duplicate_periods):
+			details = []
+			if missing_periods:
+				details.append(
+					_("Missing: {0}").format(
+						", ".join(frappe.utils.formatdate(period, "MMM YYYY") for period in missing_periods)
+					)
+				)
+			if duplicate_periods:
+				details.append(
+					_("Duplicate submitted declarations: {0}").format(
+						", ".join(frappe.utils.formatdate(period, "MMM YYYY") for period in duplicate_periods)
+					)
+				)
 			frappe.throw(
 				_(
-					"Monthly EMP201 submissions are required before you can continue with EMP501 reconciliation. "
-					"Missing submitted EMP201 declarations for:<br><br>{0}"
-				).format(
-					"<br>".join(
-						f"• {frappe.bold(frappe.utils.formatdate(period, 'MMM YYYY'))}"
-						for period in missing_periods
-					)
-				),
-				title=_("EMP201 Coverage Required"),
+					"Exactly one submitted EMP201 declaration is required for each month of the EMP501 period:<br><br>{0}"
+				).format("<br>".join(f"• {escape_html(detail)}" for detail in details)),
+				title=_("Invalid EMP201 Coverage"),
 			)
 
 		return {
 			"missing_periods": missing_periods,
+			"duplicate_periods": duplicate_periods,
 			"linked_submissions": submissions,
 		}
 
@@ -137,8 +182,7 @@ class EMP501Reconciliation(Document):
 			"Salary Slip",
 			filters={
 				"company": self.company,
-				"start_date": ["<=", self.to_date],
-				"end_date": [">=", self.from_date],
+				"end_date": ["between", [self.from_date, self.to_date]],
 				"docstatus": 1,
 			},
 			fields=["employee", "employee_name"],
@@ -153,22 +197,79 @@ class EMP501Reconciliation(Document):
 				title=_("Salary Slips Required"),
 			)
 
+		certificate_names = [
+			row.irp5_certificate for row in self.irp5_certificates or [] if row.irp5_certificate
+		]
+		certificate_rows = (
+			frappe.get_all(
+				"IRP5 Certificate",
+				filters={"name": ["in", certificate_names]},
+				fields=[
+					"name",
+					"employee",
+					"company",
+					"tax_year",
+					"reconciliation_period",
+					"from_date",
+					"to_date",
+					"docstatus",
+					"status",
+				],
+			)
+			if certificate_names
+			else []
+		)
+		certificates_by_name = {certificate.name: certificate for certificate in certificate_rows}
+
 		linked_certificates = {}
 		draft_or_missing_status = []
+		invalid_references = []
+		seen_certificate_names = set()
 		for row in self.irp5_certificates or []:
 			if not row.employee or not row.irp5_certificate:
 				continue
-			if not frappe.db.exists("IRP5 Certificate", row.irp5_certificate):
+			if row.irp5_certificate in seen_certificate_names:
+				invalid_references.append(
+					_("Certificate {0} is linked more than once").format(row.irp5_certificate)
+				)
+				continue
+			seen_certificate_names.add(row.irp5_certificate)
+
+			certificate = certificates_by_name.get(row.irp5_certificate)
+			if not certificate:
 				draft_or_missing_status.append(row.employee_name or row.employee)
 				continue
-			certificate_status = frappe.db.get_value(
-				"IRP5 Certificate",
-				row.irp5_certificate,
-				["docstatus", "status"],
-				as_dict=True,
-			)
-			if certificate_status.docstatus == 2 or certificate_status.status in {"Cancelled", "Rejected"}:
+			if certificate.docstatus != 1 or certificate.status != "Submitted":
 				draft_or_missing_status.append(row.employee_name or row.employee)
+				continue
+			if row.employee != certificate.employee:
+				invalid_references.append(
+					_("Certificate {0} belongs to employee {1}, not {2}").format(
+						certificate.name,
+						certificate.employee,
+						row.employee,
+					)
+				)
+				continue
+			if any(
+				[
+					certificate.company != self.company,
+					certificate.tax_year != self.tax_year,
+					certificate.reconciliation_period != self.reconciliation_period,
+					getdate(certificate.from_date) != getdate(self.from_date),
+					getdate(certificate.to_date) != getdate(self.to_date),
+				]
+			):
+				invalid_references.append(
+					_("Certificate {0} does not belong to this company, tax year, and period").format(
+						certificate.name
+					)
+				)
+				continue
+			if certificate.employee in linked_certificates:
+				invalid_references.append(
+					_("Employee {0} has more than one linked certificate").format(certificate.employee)
+				)
 				continue
 			linked_certificates[row.employee] = row.irp5_certificate
 
@@ -178,7 +279,7 @@ class EMP501Reconciliation(Document):
 			if employee not in linked_certificates
 		]
 
-		if missing_employees or draft_or_missing_status:
+		if missing_employees or draft_or_missing_status or invalid_references:
 			details = []
 			if missing_employees:
 				details.append(
@@ -188,14 +289,16 @@ class EMP501Reconciliation(Document):
 				)
 			if draft_or_missing_status:
 				details.append(
-					_("Invalid or cancelled certificate references for: {0}").format(
+					_("Draft, invalid, or cancelled certificate references for: {0}").format(
 						", ".join(sorted(set(draft_or_missing_status)))
 					)
 				)
+			if invalid_references:
+				details.extend(invalid_references)
 			frappe.throw(
 				_(
 					"EMP501 cannot be submitted until every employee with submitted salary slips in the period has a valid IRP5/IT3(a) certificate.<br><br>{0}"
-				).format("<br>".join(details)),
+				).format("<br>".join(escape_html(detail) for detail in details)),
 				title=_("Incomplete IRP5 Coverage"),
 			)
 
@@ -209,6 +312,9 @@ class EMP501Reconciliation(Document):
 
 			certificate = frappe.get_doc("IRP5 Certificate", row.irp5_certificate)
 			label = certificate.employee_name or certificate.employee or certificate.name
+			if certificate.docstatus != 1 or certificate.status != "Submitted":
+				errors.append(_("{0}: certificate must be submitted before EMP501 submission").format(label))
+				continue
 
 			if hasattr(certificate, "validate_statutory_readiness"):
 				missing = certificate.validate_statutory_readiness(throw=False)
@@ -252,14 +358,10 @@ class EMP501Reconciliation(Document):
 					_("{0}: directive income or tax exists but no directive number is recorded").format(label)
 				)
 
-			expected_tax_payable = flt(certificate.paye) + flt(certificate.uif) + flt(certificate.sdl) - flt(
-				certificate.eti
-			)
+			expected_tax_payable = flt(certificate.paye) + flt(certificate.uif) + flt(certificate.sdl)
 			if abs(flt(certificate.total_tax_payable) - expected_tax_payable) > TOTAL_TOLERANCE:
 				errors.append(
-					_(
-						"{0}: certificate total tax payable does not reconcile to PAYE + UIF + SDL - ETI"
-					).format(label)
+					_("{0}: certificate code 4149 does not reconcile to PAYE + UIF + SDL").format(label)
 				)
 
 			certificate_totals.paye += flt(certificate.paye)
@@ -270,13 +372,135 @@ class EMP501Reconciliation(Document):
 
 		if errors:
 			frappe.throw(
-				_("EMP501 cannot be submitted until linked IRP5/IT3(a) certificates are filing-ready:<br><br>{0}").format(
-					"<br>".join(f"• {frappe.bold(error)}" for error in errors)
-				),
+				_(
+					"EMP501 cannot be submitted until linked IRP5/IT3(a) certificates are filing-ready:<br><br>{0}"
+				).format("<br>".join(f"• {frappe.bold(escape_html(error))}" for error in errors)),
 				title=_("IRP5 Certificate Readiness Required"),
 			)
 
 		return certificate_totals
+
+	def _get_linked_emp201_rows(self):
+		names = [row.emp201_submission for row in self.emp201_submissions or [] if row.emp201_submission]
+		if not names:
+			return []
+
+		return frappe.get_all(
+			"EMP201 Submission",
+			filters={"name": ["in", names], "docstatus": 1},
+			fields=[
+				"name",
+				"submission_period_start_date",
+				"gross_paye_before_eti",
+				"uif_payable",
+				"sdl_payable",
+				"eti_carried_forward_from_previous",
+				"eti_generated_current_month",
+				"eti_utilized_current_month",
+				"eti_to_be_carried_forward",
+				"eti_reconciliation_refund",
+			],
+			order_by="submission_period_start_date, name",
+		)
+
+	def validate_linked_emp201_references(self):
+		coverage = self.validate_emp201_period_coverage(throw=False)
+		if coverage["duplicate_periods"]:
+			frappe.throw(
+				_("Duplicate submitted EMP201 declarations exist in this reconciliation period."),
+				title=_("Invalid EMP201 Coverage"),
+			)
+		expected_names = {row.name for row in coverage["linked_submissions"]}
+		linked_names = [
+			row.emp201_submission for row in self.emp201_submissions or [] if row.emp201_submission
+		]
+		duplicate_names = sorted({name for name in linked_names if linked_names.count(name) > 1})
+		actual_names = {row.name for row in self._get_linked_emp201_rows()}
+		missing_names = sorted(expected_names - actual_names)
+		unexpected_names = sorted(actual_names - expected_names)
+
+		if duplicate_names or missing_names or unexpected_names:
+			details = []
+			if duplicate_names:
+				details.append(_("Duplicate EMP201 references: {0}").format(", ".join(duplicate_names)))
+			if missing_names:
+				details.append(_("Missing linked EMP201 declarations: {0}").format(", ".join(missing_names)))
+			if unexpected_names:
+				details.append(
+					_("EMP201 declarations outside this period: {0}").format(", ".join(unexpected_names))
+				)
+			frappe.throw(
+				_("Linked EMP201 declarations are incomplete or inconsistent:<br><br>{0}").format(
+					"<br>".join(f"• {escape_html(detail)}" for detail in details)
+				),
+				title=_("Invalid EMP201 References"),
+			)
+
+	def validate_certificate_reconciliation(self, certificate_totals):
+		emp201_rows = self._get_linked_emp201_rows()
+		if not emp201_rows:
+			frappe.throw(_("No submitted EMP201 declarations are linked to this reconciliation."))
+
+		emp201_totals = frappe._dict(
+			paye=sum(flt(row.gross_paye_before_eti) for row in emp201_rows),
+			uif=sum(flt(row.uif_payable) for row in emp201_rows),
+			sdl=sum(flt(row.sdl_payable) for row in emp201_rows),
+			eti_generated=sum(flt(row.eti_generated_current_month) for row in emp201_rows),
+			eti_utilized=sum(flt(row.eti_utilized_current_month) for row in emp201_rows),
+		)
+
+		errors = []
+		comparisons = [
+			(_("PAYE"), certificate_totals.paye, emp201_totals.paye),
+			(_("UIF"), certificate_totals.uif, emp201_totals.uif),
+			(_("SDL"), certificate_totals.sdl, emp201_totals.sdl),
+			(_("ETI calculated (4118)"), certificate_totals.eti, emp201_totals.eti_generated),
+		]
+		for label, certificate_value, emp201_value in comparisons:
+			if abs(flt(certificate_value) - flt(emp201_value)) > TOTAL_TOLERANCE:
+				errors.append(
+					_("{0}: certificates {1}, EMP201 declarations {2}").format(
+						label,
+						frappe.format_value(certificate_value, {"fieldtype": "Currency"}),
+						frappe.format_value(emp201_value, {"fieldtype": "Currency"}),
+					)
+				)
+
+		for previous_row, current_row in pairwise(emp201_rows):
+			if (
+				abs(
+					flt(current_row.eti_carried_forward_from_previous)
+					- flt(previous_row.eti_to_be_carried_forward)
+				)
+				> TOTAL_TOLERANCE
+			):
+				errors.append(
+					_("ETI carry-forward does not flow from {0} to {1}").format(
+						previous_row.name,
+						current_row.name,
+					)
+				)
+
+		opening_eti = flt(emp201_rows[0].eti_carried_forward_from_previous)
+		closing_eti = flt(emp201_rows[-1].eti_to_be_carried_forward)
+		refund_eti = sum(flt(row.eti_reconciliation_refund) for row in emp201_rows)
+		expected_utilized = opening_eti + emp201_totals.eti_generated - closing_eti - refund_eti
+		if abs(expected_utilized - emp201_totals.eti_utilized) > TOTAL_TOLERANCE:
+			errors.append(
+				_(
+					"ETI utilisation does not reconcile: opening carry-forward + generated - closing carry-forward - reconciliation refunds must equal utilised."
+				)
+			)
+
+		if errors:
+			frappe.throw(
+				_("EMP501 does not reconcile to the submitted employee certificates:<br><br>{0}").format(
+					"<br>".join(f"• {frappe.bold(escape_html(error))}" for error in errors)
+				),
+				title=_("EMP501 Reconciliation Difference"),
+			)
+
+		return emp201_totals
 
 	def validate_dates(self):
 		"""
@@ -291,31 +515,10 @@ class EMP501Reconciliation(Document):
 				_("Reconciliation Period must be selected."), title=_("Missing Reconciliation Period")
 			)
 
-		# Fetch the selected Fiscal Year document
-		try:
-			fiscal_year_doc = frappe.get_doc("Fiscal Year", self.tax_year)
-		except frappe.DoesNotExistError:
-			frappe.throw(
-				_("Fiscal Year {0} not found. Please ensure it exists.").format(self.tax_year),
-				title=_("Invalid Tax Year"),
-			)
-
-		expected_from_date = None
-		expected_to_date = None
-
-		# Determine expected from_date and to_date based on fiscal_year_doc and reconciliation_period
-		# Assumes fiscal_year_doc.year_start_date is March 1st for SA tax year convention
-		if self.reconciliation_period == "Interim":
-			expected_from_date = fiscal_year_doc.year_start_date
-			# Interim period is March 1st to August 31st of the starting year of the fiscal year
-			expected_to_date = getdate(f"{fiscal_year_doc.year_start_date.year}-08-31")
-
-		elif self.reconciliation_period == "Final":
-			expected_from_date = fiscal_year_doc.year_start_date
-			expected_to_date = fiscal_year_doc.year_end_date
-
-		else:
-			frappe.throw(_("Invalid Reconciliation Period selected."), title=_("Validation Error"))
+		expected_from_date, expected_to_date = _get_reconciliation_period_dates(
+			self.tax_year,
+			self.reconciliation_period,
+		)
 
 		# If from_date is not set, auto-populate it
 		if not self.from_date:
@@ -348,27 +551,11 @@ class EMP501Reconciliation(Document):
 			)
 
 	def calculate_totals(self):
-		self.total_paye = 0
-		self.total_sdl = 0
-		self.total_uif = 0
-		self.total_eti = 0
-
-		if self.emp201_submissions:
-			for submission_ref in self.emp201_submissions:
-				if submission_ref.emp201_submission:
-					try:
-						emp201 = frappe.get_doc("EMP201 Submission", submission_ref.emp201_submission)
-						# Reconcile PAYE on a gross (pre-ETI) basis so it ties to the
-						# IRP5 certificate PAYE totals; ETI is reconciled as its own line.
-						self.total_paye += flt(emp201.gross_paye_before_eti)
-						self.total_sdl += flt(emp201.sdl_payable)
-						self.total_uif += flt(emp201.uif_payable)
-						self.total_eti += flt(emp201.eti_utilized_current_month)
-					except frappe.DoesNotExistError:
-						frappe.log_error(
-							f"EMP201 Submission {submission_ref.emp201_submission} not found.",
-							"EMP501 Calculate Totals",
-						)
+		emp201_rows = self._get_linked_emp201_rows()
+		self.total_paye = sum(flt(row.gross_paye_before_eti) for row in emp201_rows)
+		self.total_sdl = sum(flt(row.sdl_payable) for row in emp201_rows)
+		self.total_uif = sum(flt(row.uif_payable) for row in emp201_rows)
+		self.total_eti = sum(flt(row.eti_utilized_current_month) for row in emp201_rows)
 
 		self.total_tax_payable = self.total_paye + self.total_sdl + self.total_uif - self.total_eti
 
@@ -387,8 +574,11 @@ class EMP501Reconciliation(Document):
 
 		self.validate_submission_readiness()
 		self.validate_emp201_period_coverage(throw=True)
+		self.validate_linked_emp201_references()
+		self.calculate_totals()
 		self.validate_irp5_coverage()
-		self.validate_irp5_certificate_readiness()
+		certificate_totals = self.validate_irp5_certificate_readiness()
+		self.validate_certificate_reconciliation(certificate_totals)
 
 	def on_submit(self):
 		self.db_set("status", "Submitted", update_modified=False)
@@ -399,6 +589,7 @@ class EMP501Reconciliation(Document):
 
 	@frappe.whitelist()
 	def fetch_emp201_submissions(self):
+		self.check_permission("write")
 		if not self.from_date or not self.to_date:
 			frappe.throw(
 				_(
@@ -465,16 +656,30 @@ class EMP501Reconciliation(Document):
 		self.save(ignore_permissions=True)
 
 		coverage = self.validate_emp201_period_coverage(throw=False)
-		if coverage["missing_periods"]:
+		if coverage["missing_periods"] or coverage["duplicate_periods"]:
+			coverage_details = []
+			if coverage["missing_periods"]:
+				coverage_details.append(
+					_("Missing: {0}").format(
+						", ".join(
+							frappe.utils.formatdate(period, "MMM YYYY")
+							for period in coverage["missing_periods"]
+						)
+					)
+				)
+			if coverage["duplicate_periods"]:
+				coverage_details.append(
+					_("Duplicates: {0}").format(
+						", ".join(
+							frappe.utils.formatdate(period, "MMM YYYY")
+							for period in coverage["duplicate_periods"]
+						)
+					)
+				)
 			frappe.msgprint(
 				_(
-					"EMP201 coverage is incomplete for this reconciliation period. Missing submitted declarations for:<br><br>{0}"
-				).format(
-					"<br>".join(
-						f"• {frappe.bold(frappe.utils.formatdate(period, 'MMM YYYY'))}"
-						for period in coverage["missing_periods"]
-					)
-				),
+					"EMP201 coverage is incomplete or ambiguous for this reconciliation period:<br><br>{0}"
+				).format("<br>".join(f"• {escape_html(detail)}" for detail in coverage_details)),
 				title=_("Incomplete EMP201 Coverage"),
 				indicator="orange",
 			)
@@ -483,6 +688,9 @@ class EMP501Reconciliation(Document):
 			"count": count,
 			"missing_periods": [
 				frappe.utils.formatdate(period, "MMM YYYY") for period in coverage["missing_periods"]
+			],
+			"duplicate_periods": [
+				frappe.utils.formatdate(period, "MMM YYYY") for period in coverage["duplicate_periods"]
 			],
 			"message": _("{0} EMP201 submission(s) fetched successfully.").format(count)
 			if count > 0
@@ -495,15 +703,8 @@ class EMP501Reconciliation(Document):
 		Generate IRP5 Certificates in bulk for all employees with salary slips in the period.
 		EMP201 monthly declarations must already exist for the whole reconciliation period.
 		"""
-		# run_doc_method only enforces read on EMP501 Reconciliation, which HR User holds.
-		# This method then creates IRP5 Certificates with ignore_permissions, a DocType
-		# HR User has no rights on at all — so gate on the target DocType explicitly.
-		if not frappe.has_permission("IRP5 Certificate", "create"):
-			frappe.throw(
-				_("You are not permitted to generate IRP5 certificates."),
-				frappe.PermissionError,
-				title=_("Insufficient Permission"),
-			)
+		self.check_permission("write")
+		require_certificate_generation_permissions()
 
 		if not self.from_date or not self.to_date or not self.tax_year or not self.company:
 			frappe.throw(_("Company, Tax Year, From Date, and To Date are required to generate IRP5s."))
@@ -538,17 +739,22 @@ class EMP501Reconciliation(Document):
 
 		for emp_id, emp_name in unique_employees.items():
 			try:
-				# Check if certificate already exists
-				existing_cert_name = frappe.db.get_value(
-					"IRP5 Certificate",
+				existing_certificates = get_active_certificate_names(
 					{
 						"employee": emp_id,
 						"tax_year": self.tax_year,
 						"company": self.company,
 						"reconciliation_period": self.reconciliation_period,
-					},
-					"name",
+					}
 				)
+				if len(existing_certificates) > 1:
+					frappe.throw(
+						_(
+							"Multiple active certificates exist for {0}. Cancel the duplicate before generating again."
+						).format(emp_name),
+						title=_("Duplicate IRP5 Certificates"),
+					)
+				existing_cert_name = existing_certificates[0] if existing_certificates else None
 
 				if existing_cert_name:
 					# Update existing certificate
@@ -618,7 +824,10 @@ class EMP501Reconciliation(Document):
 					else:
 						# Certificate was supposed to be created but doesn't exist
 						error_msg = f"Certificate {irp5_cert_name} was created but not found in database"
-						frappe.log_error(error_msg, f"IRP5 Certificate Missing - {emp_name}")
+						frappe.log_error(
+							title=f"IRP5 Certificate Missing - {emp_name}",
+							message=error_msg,
+						)
 						errors.append(
 							{
 								"employee": emp_name,
@@ -630,7 +839,10 @@ class EMP501Reconciliation(Document):
 				# Log full traceback for debugging
 				error_traceback = frappe.get_traceback()
 				error_msg = f"Failed to process IRP5 for employee {emp_name} ({emp_id}): {e!s}"
-				frappe.log_error(error_traceback, f"IRP5 Generation Error - {emp_name}")
+				frappe.log_error(
+					title=f"IRP5 Generation Error - {emp_name}",
+					message=error_traceback,
+				)
 				# Include more details in error message
 				error_details = {
 					"employee": emp_name,
@@ -649,13 +861,13 @@ class EMP501Reconciliation(Document):
 		total_processed = created_count + updated_count + reused_count
 		message = _(
 			"{0} IRP5 certificates processed. {1} newly created, {2} updated, {3} already submitted and reused."
-		).format(
-			total_processed, created_count, updated_count, reused_count
-		)
+		).format(total_processed, created_count, updated_count, reused_count)
 
 		if errors:
 			error_details = "\n".join(
-				[f"- {e.get('employee', 'Unknown')}: {e.get('error', 'Unknown error')}" for e in errors[:5]]
+				f"- {escape_html(e.get('employee', 'Unknown'))}: "
+				f"{escape_html(e.get('error', 'Unknown error'))}"
+				for e in errors[:5]
 			)  # Show first 5 errors
 			if len(errors) > 5:
 				error_details += f"\n... and {len(errors) - 5} more errors"
@@ -682,7 +894,7 @@ class EMP501Reconciliation(Document):
 		frappe.throw(
 			_(
 				"Direct SARS electronic submission is not supported in this release. "
-				"Use the filing export package and complete EMP501 filing manually through SARS eFiling."
+				"Use SARS eFiling for up to 50 certificates or an approved e@syFile-compatible payroll export."
 			),
 			title=_("Manual Filing Required"),
 		)

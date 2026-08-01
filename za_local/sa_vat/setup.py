@@ -86,22 +86,17 @@ VAT_RETURN_SETTING_FIELD_MAP = [
 
 DEFAULT_TEMPLATE_SPECS = {
 	"sales": [
-		{"field_name": "standard_rate_non_capital", "title": "SA Standard Rated Sales 15%", "rate": 15},
-		{
-			"field_name": "standard_rate_non_capital_2",
-			"title": "SA Standard Rated Sales 15% Additional",
-			"rate": 15,
-		},
-		{"field_name": "standard_rate_capital", "title": "SA Capital Goods Sales 15%", "rate": 15},
+		{"field_name": "standard_rate_non_capital", "title": "SA Standard Rated Sales {rate:g}%", "rate": None},
+		{"field_name": "standard_rate_capital", "title": "SA Capital Goods Sales {rate:g}%", "rate": None},
 		{"field_name": "zero_rate_non_exported", "title": "SA Zero Rated Sales 0%", "rate": 0},
 		{"field_name": "zero_rate_exported", "title": "SA Export Zero Rated Sales 0%", "rate": 0},
 		{"field_name": "exempt", "title": "SA Exempt Sales 0%", "rate": 0},
 	],
 	"purchase": [
-		{"field_name": "input_capital_local", "title": "SA Capital Purchases 15%", "rate": 15},
-		{"field_name": "input_capital_import", "title": "SA Capital Imports 15%", "rate": 15},
-		{"field_name": "input_goods_local", "title": "SA Standard Rated Purchases 15%", "rate": 15},
-		{"field_name": "input_goods_import", "title": "SA Other Imports 15%", "rate": 15},
+		{"field_name": "input_capital_local", "title": "SA Capital Purchases {rate:g}%", "rate": None},
+		{"field_name": "input_capital_import", "title": "SA Capital Imports {rate:g}%", "rate": None},
+		{"field_name": "input_goods_local", "title": "SA Standard Rated Purchases {rate:g}%", "rate": None},
+		{"field_name": "input_goods_import", "title": "SA Other Imports {rate:g}%", "rate": None},
 	],
 }
 
@@ -324,27 +319,54 @@ def is_valid_item_tax_account(account: str | None, company: str | None) -> bool:
 	return account_company == company and account_type in ALLOWED_ITEM_TAX_ACCOUNT_TYPES
 
 
+def validate_vat_posting_account(account: str | None, company: str, label: str):
+	if not account:
+		frappe.throw(_("{0} is required before VAT tax templates can be created.").format(label))
+
+	values = frappe.db.get_value(
+		"Account",
+		account,
+		["company", "account_type", "is_group", "disabled"],
+		as_dict=True,
+	)
+	if not values:
+		frappe.throw(_("Account {0} does not exist.").format(frappe.bold(account)))
+	if values.company != company:
+		frappe.throw(_("{0} must belong to company {1}.").format(label, frappe.bold(company)))
+	if values.account_type != "Tax" or values.is_group or values.disabled:
+		frappe.throw(
+			_("{0} must be an enabled ledger account with Account Type Tax.").format(label)
+		)
+
+
 def ensure_default_tax_templates(settings):
 	company = settings.company
 	if not company:
 		frappe.throw(_("Select a company before applying recommended VAT templates."))
+	validate_vat_posting_account(settings.output_vat_account, company, _("Output VAT Account"))
+	validate_vat_posting_account(settings.input_vat_account, company, _("Input VAT Account"))
+	standard_rate = frappe.utils.flt(settings.standard_vat_rate)
+	if standard_rate <= 0:
+		frappe.throw(_("Standard VAT Rate must be greater than zero."))
 
 	created = {}
 	for spec in DEFAULT_TEMPLATE_SPECS["sales"]:
+		rate = standard_rate if spec["rate"] is None else spec["rate"]
 		created[spec["field_name"]] = ensure_tax_template(
 			doctype="Sales Taxes and Charges Template",
-			title=f"{spec['title']} - {company}",
+			title=f"{spec['title'].format(rate=rate)} - {company}",
 			company=company,
 			account=settings.output_vat_account,
-			rate=spec["rate"],
+			rate=rate,
 		)
 	for spec in DEFAULT_TEMPLATE_SPECS["purchase"]:
+		rate = standard_rate if spec["rate"] is None else spec["rate"]
 		created[spec["field_name"]] = ensure_tax_template(
 			doctype="Purchase Taxes and Charges Template",
-			title=f"{spec['title']} - {company}",
+			title=f"{spec['title'].format(rate=rate)} - {company}",
 			company=company,
 			account=settings.input_vat_account,
-			rate=spec["rate"],
+			rate=rate,
 		)
 
 	for fieldname, template in created.items():
@@ -363,30 +385,32 @@ def ensure_item_tax_templates(settings, company):
 	if not is_valid_item_tax_account(item_tax_account, company):
 		return
 
-	for title, rate in [("SA Item Tax 15%", 15), ("SA Item Tax 0%", 0)]:
+	standard_rate = frappe.utils.flt(settings.standard_vat_rate)
+	for title, rate in [(f"SA Item Tax {standard_rate:g}%", standard_rate), ("SA Item Tax 0%", 0)]:
 		existing_name = frappe.db.get_value(
 			"Item Tax Template",
 			{"title": f"{title} - {company}", "company": company},
 			"name",
 		)
 		if existing_name:
-			continue
-
-		doc = frappe.get_doc(
+			doc = frappe.get_doc("Item Tax Template", existing_name)
+			doc.taxes = []
+		else:
+			doc = frappe.new_doc("Item Tax Template")
+			doc.title = f"{title} - {company}"
+			doc.company = company
+		doc.append(
+			"taxes",
 			{
-				"doctype": "Item Tax Template",
-				"title": f"{title} - {company}",
-				"company": company,
-				"taxes": [
-					{
-						"doctype": "Item Tax Template Detail",
-						"tax_type": item_tax_account,
-						"tax_rate": rate,
-					}
-				],
-			}
+				"tax_type": item_tax_account,
+				"tax_rate": rate,
+			},
 		)
-		doc.insert(ignore_permissions=True)
+		doc.flags.ignore_permissions = True
+		if existing_name:
+			doc.save()
+		else:
+			doc.insert()
 
 
 def ensure_tax_template(doctype, title, company, account, rate):
@@ -416,7 +440,7 @@ def ensure_tax_template(doctype, title, company, account, rate):
 	return doc.name
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def bootstrap_company_vat_setup(company: str | None = None):
 	# Whitelisted and writes with ignore_permissions, reconfiguring VAT tax templates
 	# and account mappings for a caller-supplied company.

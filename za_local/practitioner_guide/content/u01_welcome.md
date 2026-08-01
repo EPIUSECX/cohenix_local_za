@@ -18,7 +18,7 @@ Each task page gives you the **goal**, the **steps**, and **what to check** afte
 
 ## A note on what the system does and doesn't do
 
-The localisation prepares **compliant documents and working papers** — tax invoices, the VAT201 return, payslips, EMP201, IRP5 certificates and the EMP501 reconciliation. It does **not** file electronically to SARS. You export or print the working paper and submit it on **SARS eFiling / e@syFile**. Each task page notes where this applies.
+The localisation prepares **SA-oriented documents and internal working papers** — tax invoices, VAT201, payslips, EMP201, certificates and EMP501. It does **not** file electronically or generate SARS BRS payroll-import/encrypted reconciliation files. Reconcile the data, complete the approved eFiling/e@syFile process, and retain external receipts.
 
 ## Where to start
 
