@@ -46,12 +46,14 @@ sed -i 's/watch:/# watch:/g' Procfile
 sed -i 's/schedule:/# schedule:/g' Procfile
 
 bench get-app https://github.com/frappe/erpnext --branch "$ERPNEXT_BRANCH" --resolve-deps
+bench get-app https://github.com/frappe/hrms --branch "$HRMS_BRANCH"
 bench get-app --overwrite za_local "${GITHUB_WORKSPACE}"
 bench setup requirements --dev
 
-CI=Yes bench build --app frappe --app erpnext --app za_local
+CI=Yes bench build --apps frappe,erpnext,hrms,za_local
 start_redis_port 11000
 start_redis_port 13000
 bench --site test_site reinstall --yes
 bench --site test_site install-app erpnext
+bench --site test_site install-app hrms
 bench --site test_site install-app za_local

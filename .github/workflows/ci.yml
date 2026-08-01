@@ -56,6 +56,7 @@ jobs:
     env:
       FRAPPE_BRANCH: ${{ matrix.erpnext_branch }}
       ERPNEXT_BRANCH: ${{ matrix.erpnext_branch }}
+      HRMS_BRANCH: ${{ matrix.erpnext_branch }}
 
     steps:
       - name: Checkout app
